@@ -90,6 +90,26 @@ export function summarize(results: CaseResult[], calls: CallRecord[]) {
     failedClosed: results.filter(
       (r) => r.stage === "inline_unavailable" || (r.stage === "review" && r.verdict === null),
     ).length,
+    // Model declines per tier, by the API's category (M6.7). Every decline is a held
+    // entry for a human, so this is the human queue's inflow from safety classifiers.
+    declines: Object.fromEntries(
+      Object.entries(groupBy(calls, (c) => c.tier)).map(([tier, cs]) => {
+        const refused = cs.filter((c) => c.outcome === "refusal");
+        return [
+          tier,
+          {
+            calls: cs.length,
+            declined: refused.length,
+            rate: cs.length ? Number((refused.length / cs.length).toFixed(4)) : 0,
+            byCategory: Object.fromEntries(
+              Object.entries(groupBy(refused, (c) => c.refusalCategory ?? "unspecified")).map(
+                ([k, v]) => [k, v.length],
+              ),
+            ),
+          },
+        ];
+      }),
+    ),
     calls: Object.fromEntries(
       Object.entries(groupBy(costs, (x) => x.c.tier)).map(([tier, xs]) => [
         tier,

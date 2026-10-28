@@ -333,6 +333,57 @@ describe("Gateway", () => {
       ).toBe(503);
     });
 
+    describe("when the reviewer can't be reached", () => {
+      const slow: Reviewer = { review: () => new Promise(() => {}) }; // never answers
+      const degraded = (onReviewUnavailable?: "deny" | "gate") =>
+        setup(
+          {
+            routes: [{ match: "POST /api/login", policy: "INLINE_REVIEW", onReviewUnavailable }],
+            review: { inlineTimeoutMs: 100 },
+          },
+          { reviewer: slow },
+        );
+
+      it("fails closed by default", async () => {
+        expect((await (await degraded()).post("/api/login", login)).status).toBe(503);
+        expect(origin).not.toHaveBeenCalled();
+      });
+
+      it("lets a spotless login through on the gate alone when the route opts in", async () => {
+        const res = await (await degraded("gate")).post("/api/login", login);
+        expect(res.status).toBe(200);
+        expect(res.headers.get("x-lazaret-review")).toBe("degraded");
+      });
+
+      it("still denies a login the gate found anything on", async () => {
+        const { send } = await degraded("gate");
+        const res = await send("/api/login", {
+          method: "POST",
+          body: JSON.stringify(login),
+          headers: { "content-type": "application/json", "user-agent": "python-requests/2.32" },
+        });
+        expect(res.status).toBe(503);
+        expect(origin).not.toHaveBeenCalled();
+      });
+
+      it("never treats a decline as unavailable: the model saw it and wouldn't judge it", async () => {
+        const declining = fakeReviewer(
+          () => verdict("allow"),
+          () => ({ kind: "refusal", category: "cyber", model: "x" }),
+        );
+        const { post } = setup(
+          {
+            routes: [
+              { match: "POST /api/login", policy: "INLINE_REVIEW", onReviewUnavailable: "gate" },
+            ],
+          },
+          { reviewer: declining.reviewer },
+        );
+        expect((await post("/api/login", login)).status).toBe(503);
+        expect(origin).not.toHaveBeenCalled();
+      });
+    });
+
     describe("actor lookup", () => {
       const actor = {
         path: "/api/me",

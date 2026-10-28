@@ -11,7 +11,10 @@ export const TIDEWATER_ROUTES: LazaretConfig["routes"] = [
   // `perMinute` is what one session or IP should stay under: nobody needs more than a
   // few API keys a minute (eval cred-04 minted 15), and an agent issuing over 10
   // credits a minute is worth a closer look. Failed logins are scored on every route.
-  { match: "POST /api/login", policy: "INLINE_REVIEW" },
+  // If the reviewer can't be reached, a login the gate found nothing wrong with goes
+  // through (origin still checks the password); anything with a signal waits. Keys and
+  // credits stay fail-closed: they wait out an outage.
+  { match: "POST /api/login", policy: "INLINE_REVIEW", onReviewUnavailable: "gate" },
   { match: "POST /api/keys", policy: "INLINE_REVIEW", perMinute: 3 },
   {
     match: "POST /api/accounts/:id/credits",

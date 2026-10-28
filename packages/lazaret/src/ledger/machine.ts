@@ -146,7 +146,9 @@ export function applyEvent(state: LedgerState, event: LedgerEvent): void {
 
     case "ENTRY_COMMITTED": {
       const entry = entryOf(event.entryId);
-      batchIn(entry.batchId, ["COMMITTING"]);
+      // A released entry commits on its own, after its batch has settled or been
+      // quarantined; every other entry commits only as part of its batch's commit phase.
+      if (entry.resolution?.decision !== "release") batchIn(entry.batchId, ["COMMITTING"]);
       // Rejecting a second commit is what makes double-commits detectable; the
       // Durable Object turns this into an idempotent no-op before it gets here.
       if (entry.status !== "APPROVED") fail(`entry ${entry.id} is ${entry.status}`);
@@ -171,6 +173,33 @@ export function applyEvent(state: LedgerState, event: LedgerEvent): void {
       for (const entry of entriesOf(batch)) {
         if (entry.status === "PENDING" || entry.status === "APPROVED") entry.status = "QUARANTINED";
       }
+      break;
+    }
+
+    case "ENTRY_RESOLVED": {
+      const entry = entryOf(event.entryId);
+      // Only once the pipeline is done with the batch, so a human never races a review.
+      batchIn(entry.batchId, ["SETTLED", "QUARANTINED"]);
+      if (entry.status !== "QUARANTINED") fail(`entry ${entry.id} is ${entry.status}, not held`);
+      entry.status = event.decision === "release" ? "APPROVED" : "DROPPED";
+      entry.resolution = {
+        decision: event.decision,
+        operator: event.operator,
+        note: event.note,
+        at: event.at,
+      };
+      break;
+    }
+
+    case "ENTRY_REPORTED": {
+      const entry = entryOf(event.entryId);
+      if (entry.status !== "COMMITTED") fail(`entry ${entry.id} is ${entry.status}, not committed`);
+      entry.resolution = {
+        decision: "report",
+        operator: event.operator,
+        note: event.note,
+        at: event.at,
+      };
       break;
     }
 

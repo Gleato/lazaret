@@ -1,4 +1,4 @@
-import type { EntryInput, SealReason, VerdictRecord } from "./types";
+import type { EntryInput, OperatorDecision, SealReason, VerdictRecord } from "./types";
 
 // The append-only event log is the source of truth (principle 3). Every state change
 // is one of these events; the in-memory state is a fold over them. Events carry
@@ -15,7 +15,17 @@ export type LedgerEvent =
   | { type: "ENTRY_COMMITTED"; entryId: string; originStatus?: number; at: number }
   | { type: "BATCH_SETTLED"; batchId: string; at: number }
   | { type: "BATCH_QUARANTINED"; batchId: string; reason: string; at: number }
-  | { type: "SESSION_FLAGGED"; sessionId: string; reason: string; at: number };
+  | { type: "SESSION_FLAGGED"; sessionId: string; reason: string; at: number }
+  // Human decisions (M6.7). Only an operator authenticated at the gateway emits these.
+  | {
+      type: "ENTRY_RESOLVED";
+      entryId: string;
+      decision: OperatorDecision;
+      operator: string;
+      note: string;
+      at: number;
+    }
+  | { type: "ENTRY_REPORTED"; entryId: string; operator: string; note: string; at: number };
 
 export type LedgerEventType = LedgerEvent["type"];
 

@@ -146,6 +146,66 @@ export class LazaretMemory<Env = unknown> extends DurableObject<Env> {
     return { archived, transitions };
   }
 
+  /**
+   * A human's label replaces whatever the archive holds for that entry (M6.7). This is
+   * how the Memory learns from the reviewer's mistakes: an operator drop of a write
+   * the reviewer allowed or held becomes distillation input like any other drop, and
+   * an operator release becomes clean traffic for backtests. Rule hits on the entry
+   * are re-scored against the human label, moving a hit from false to true positive
+   * (or back) if the label disagrees with what was archived.
+   */
+  label(record: ArchiveInput): { labelled: boolean; transitions: RuleEvent[] } {
+    const sql = this.ctx.storage.sql;
+    const touched = new Set<string>();
+    this.ctx.storage.transactionSync(() => {
+      const previous = sql
+        .exec<{ verdict: string }>(
+          "SELECT verdict FROM verdicts WHERE entry_id = ?",
+          record.entryId,
+        )
+        .toArray()[0]?.verdict;
+      sql.exec(
+        `INSERT INTO verdicts
+           (entry_id, at, route, session, verdict, category, confidence, rationale, source, sample, covered)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(entry_id) DO UPDATE SET
+           at = excluded.at, verdict = excluded.verdict, category = excluded.category,
+           confidence = excluded.confidence, rationale = excluded.rationale,
+           source = excluded.source, distilled = 0`,
+        record.entryId,
+        record.at,
+        record.route,
+        record.sessionId,
+        record.verdict,
+        record.category,
+        record.confidence,
+        record.rationale.slice(0, 400),
+        record.source,
+        JSON.stringify(record.sample),
+        record.memoryHits.length ? 1 : 0,
+      );
+      const column = (v: string | undefined) =>
+        v === "drop" ? "live_tp" : v === "allow" ? "live_fp" : null;
+      const before = column(previous);
+      const after = column(record.verdict);
+      if (before !== after) {
+        for (const ruleId of record.memoryHits) {
+          if (before)
+            sql.exec(`UPDATE rules SET ${before} = MAX(${before} - 1, 0) WHERE id = ?`, ruleId);
+          if (after) {
+            sql.exec(
+              `UPDATE rules SET ${after} = ${after} + 1, last_hit_at = ? WHERE id = ?`,
+              record.at,
+              ruleId,
+            );
+          }
+          touched.add(ruleId);
+        }
+      }
+    });
+    return { labelled: true, transitions: this.#applyLiveEvidence([...touched]) };
+  }
+
   // ── Gate ─────────────────────────────────────────────────────────────────────
 
   /** Rules the gate should evaluate. Cached by the gateway, so keep it cheap. */

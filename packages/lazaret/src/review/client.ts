@@ -95,14 +95,17 @@ export async function structuredCall(
     signal?: AbortSignal | undefined;
     timeoutMs: number;
     maxRetries: number;
+    /**
+     * Server-side fallback: re-run a declined request on another model. Default on.
+     * The reviewer turns it off (see AnthropicReviewer.review). Haiku has none.
+     */
+    fallback?: boolean;
   },
 ): Promise<ReviewOutcome> {
-  // Reviewing attack payloads can trip safety classifiers. The server-side
-  // fallback re-runs a declined request on a suitable model instead of failing.
-  // Haiku has no server-side fallback, and a refusal there fails closed below.
-  const fallback = params.model.startsWith("claude-haiku")
-    ? {}
-    : { fallbacks: "default" as const, betas: ["server-side-fallback-2026-07-01"] };
+  const fallback =
+    params.fallback === false || params.model.startsWith("claude-haiku")
+      ? {}
+      : { fallbacks: "default" as const, betas: ["server-side-fallback-2026-07-01"] };
 
   let response: Anthropic.Beta.BetaMessage;
   try {
@@ -193,12 +196,15 @@ export class AnthropicReviewer implements Reviewer {
       // Inline review has its own hard deadline; SDK retries would blow through it.
       maxRetries: call.tier === "inline" ? 0 : 2,
       timeoutMs: call.tier === "inline" ? this.#config.inlineTimeoutMs : 120_000,
+      // Off for review (M6.7). Only the configured model decides (M6.6), so a fallback
+      // answer was only ever a note for the human, and when a fallback answers, the API
+      // doesn't say why the configured model declined. The decline's category (cyber,
+      // bio, ...) is what tells an operator whether a verification program would help.
+      fallback: false,
     });
-    // Only the model the operator configured may decide an outcome. If the server-side
-    // fallback answered because that model declined, the answer is reported as a
-    // refusal (which fails closed downstream), and the fallback's verdicts ride along
-    // as a note for whoever reviews the quarantine. (M6.6: a model nobody chose must not
-    // be the one that allows, or permanently drops, a write.)
+    // Defence in depth: if a different model answered anyway (a fallback configured
+    // elsewhere, an alias resolving oddly), it still doesn't decide. The answer is a
+    // refusal that fails closed downstream, with the other model's output kept as a note.
     if ("model" in outcome && !isModel(outcome.model, model)) {
       return {
         kind: "refusal",

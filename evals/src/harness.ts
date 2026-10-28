@@ -100,6 +100,7 @@ function instrument(inner: Reviewer, maxUsd: number, costOf: (c: CallRecord) => 
         model: "model" in outcome ? outcome.model : "unknown",
         latencyMs: Date.now() - at,
         outcome: outcome.kind,
+        ...(outcome.kind === "refusal" ? { refusalCategory: outcome.category } : {}),
         entries: ids.length,
         route,
         inputTokens: outcome.usage?.inputTokens ?? 0,

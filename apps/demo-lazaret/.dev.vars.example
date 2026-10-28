@@ -1,3 +1,6 @@
 # Local development only. `npm run dev` copies this to .dev.vars (gitignored).
 # Production values are set with `npx wrangler secret put` and never committed.
 LAZARET_SIGNING_SECRET=local-dev-only-signing-secret-0000
+# Bearer token for the human review queue at /__lazaret/operator/ (M6.7). At least 16
+# characters; without it the operator API is off.
+LAZARET_OPERATOR_TOKEN=local-dev-only-operator-token-0000

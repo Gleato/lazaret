@@ -1,4 +1,4 @@
-import { originUrl } from "../commit/committer";
+import { createCommitter, originUrl } from "../commit/committer";
 import { signRequest } from "../commit/sign";
 import type { CompiledRoute, Policy, ResolvedConfig } from "../config/define";
 import {
@@ -31,6 +31,7 @@ import {
   readBodyCapped,
   toBase64,
 } from "./http";
+import { handleOperator } from "./operator";
 import { deriveSessionId } from "./session";
 
 // The Gateway is the Worker entrypoint. For every request it:
@@ -47,7 +48,8 @@ import { deriveSessionId } from "./session";
 //
 // Reads on routes with an overlay get the session's own pending writes merged in
 // (author-only, see overlay/apply.ts). `GET /__lazaret/receipts/:id` lets an author
-// poll a receipt. The `/__lazaret/` prefix is reserved and never reaches origin.
+// poll a receipt, and `/__lazaret/operator/` is the human review queue (operator.ts).
+// The `/__lazaret/` prefix is reserved and never reaches origin.
 //
 // `scheduled` is the cron entrypoint: it sweeps the Ledger for sealed batches
 // whose review never started (see LazaretLedger.sweep).
@@ -145,6 +147,24 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
 
       if (norm.segments[0]?.toLowerCase() === "__lazaret") {
         const [, kind, id] = norm.segments;
+        if (kind === "operator") {
+          const secret = binding<string>(env, config.signing.secretBinding);
+          return tag(
+            await handleOperator(request, norm.segments, {
+              config,
+              env,
+              ledger: ledgerFor(env),
+              memory: memoryFor(env),
+              committer: () => {
+                if (!secret)
+                  throw new Error(`Lazaret: missing secret ${config.signing.secretBinding}`);
+                return createCommitter({ origin: config.origin, secret, fetchOrigin, now });
+              },
+              now,
+              waitUntil: (p) => (ctx ? ctx.waitUntil(p) : void p),
+            }),
+          );
+        }
         if (method !== "GET" || kind !== "receipts" || !id || norm.segments.length !== 3) {
           return reject(404, "not_found");
         }
@@ -389,8 +409,34 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
                 : { unavailable: result.unavailable }),
             }),
           );
-          // Fail closed: no verdict means no write.
-          if (!("verdict" in result)) return reject(503, "review_unavailable");
+          if (!("verdict" in result)) {
+            // The reviewer couldn't be reached. A route may opt into the gate's judgment
+            // for that case (onReviewUnavailable: "gate"), and only a spotless one counts:
+            // the gate found nothing at all (no content, path, header, behaviour or rule
+            // signal). The outcome is still decided by code, never by a model, and it's
+            // logged so a rising rate is visible: an API slowdown sends every login here.
+            const reachable = result.cause === "declined" || result.cause === "unusable";
+            if (
+              !reachable &&
+              matched?.compiled.route.onReviewUnavailable === "gate" &&
+              decision.signals.length === 0
+            ) {
+              console.log(
+                JSON.stringify({
+                  lazaret: "inline_degraded",
+                  requestId,
+                  route: routeName,
+                  cause: result.cause,
+                  risk: Number(decision.risk.toFixed(3)),
+                }),
+              );
+              const res = await forward();
+              res.headers.set("x-lazaret-review", "degraded");
+              return res;
+            }
+            // Fail closed: no verdict means no write.
+            return reject(503, "review_unavailable");
+          }
           if (result.verdict.verdict !== "allow") {
             sample.status = 403;
             return reject(403, "forbidden");

@@ -1,6 +1,8 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "files": { "includes": ["**", "!**/node_modules", "!**/.wrangler", "!**/dist", "!tasks"] },
+  "files": {
+    "includes": ["**", "!**/node_modules", "!**/.wrangler", "!**/dist", "!tasks", "!evals/results"]
+  },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
   "linter": { "rules": { "preset": "recommended" } },
   "assist": { "actions": { "source": { "organizeImports": "on" } } }

@@ -71,6 +71,8 @@ export interface CallRecord {
   /** For single-entry calls (inline review), the route under review. */
   route?: string | undefined;
   outcome: string;
+  /** For refusals: the API's decline category (`cyber`, `bio`, ...), or null if it gave none. */
+  refusalCategory?: string | null;
   entries: number;
   inputTokens: number;
   outputTokens: number;

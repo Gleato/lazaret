@@ -10,7 +10,17 @@ import { parseVerdicts } from "./schema";
 // Anything other than a confident allow fails closed. The bar for "confident"
 // rises when the gate already saw strong evidence.
 
-export type InlineDecision = { verdict: VerdictRecord } | { unavailable: string };
+/**
+ * Why there's no verdict. Only `timeout` and `error` mean the reviewer couldn't be
+ * reached; a route may then fall back to the gate (RouteConfig.onReviewUnavailable).
+ * `declined` and `unusable` mean the model saw the request and wouldn't, or couldn't,
+ * judge it: those always fail closed, since an attacker can provoke them.
+ */
+export type UnavailableCause = "timeout" | "error" | "declined" | "unusable";
+
+export type InlineDecision =
+  | { verdict: VerdictRecord }
+  | { unavailable: string; cause: UnavailableCause };
 
 const MIN_ALLOW_CONFIDENCE = 0.7;
 const MIN_ALLOW_CONFIDENCE_HIGH_RISK = 0.9;
@@ -24,8 +34,10 @@ export async function inlineReview(
   const timeoutMs = config.review.inlineTimeoutMs;
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let timedOut = false;
   const deadline = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
+      timedOut = true;
       controller.abort();
       reject(new Error(`inline review exceeded ${timeoutMs}ms`));
     }, timeoutMs);
@@ -46,9 +58,15 @@ export async function inlineReview(
         unavailable: `reviewer refused (${outcome.category ?? "unspecified"})${
           outcome.advisory ? `; fallback ${outcome.advisory.model} answered, not used` : ""
         }`,
+        cause: "declined",
       };
-    if (outcome.kind === "incomplete") return { unavailable: outcome.reason };
-    const verdict = parseVerdicts(outcome.output, [entry.id])[entry.id] as VerdictRecord;
+    if (outcome.kind === "incomplete") return { unavailable: outcome.reason, cause: "unusable" };
+    let verdict: VerdictRecord;
+    try {
+      verdict = parseVerdicts(outcome.output, [entry.id])[entry.id] as VerdictRecord;
+    } catch (err) {
+      return { unavailable: (err as Error).message, cause: "unusable" };
+    }
     const bar =
       entry.riskScore >= config.review.escalateAtRisk
         ? MIN_ALLOW_CONFIDENCE_HIGH_RISK
@@ -64,7 +82,7 @@ export async function inlineReview(
     }
     return { verdict };
   } catch (err) {
-    return { unavailable: (err as Error).message };
+    return { unavailable: (err as Error).message, cause: timedOut ? "timeout" : "error" };
   } finally {
     if (timer !== undefined) clearTimeout(timer);
   }

@@ -56,6 +56,8 @@ Batch:  OPEN → SEALED → REVIEWING → COMMITTING → SETTLED
 
 Entry:  PENDING → APPROVED → COMMITTED
         PENDING → DROPPED | QUARANTINED
+        QUARANTINED → APPROVED → COMMITTED   (a human releases it)
+        QUARANTINED → DROPPED                 (a human drops it)
 ```
 
 The state machine is a pure reducer
@@ -143,6 +145,29 @@ within a batch, so the reference resolves.
 
 **6. Set the secrets** (`wrangler secret put`, never in code): `LAZARET_SIGNING_SECRET`
 (at least 16 characters, the same value on gateway and origin) and `ANTHROPIC_API_KEY`.
+Add `LAZARET_OPERATOR_TOKEN` (at least 16 characters) to turn on the review queue below.
+
+**7. Work the review queue.** Writes the reviewer can't settle, or won't review, are held
+for a human. With the operator token as a bearer token:
+
+```bash
+curl -H "authorization: Bearer $TOKEN" https://your.site/__lazaret/operator/queue
+curl -X POST -H "authorization: Bearer $TOKEN" -H "content-type: application/json" \
+  -d '{"action":"release","note":"real customer"}' \
+  https://your.site/__lazaret/operator/entries/<id>
+```
+
+`release` commits the held write to origin, `drop` discards it and the held writes that
+depend on it, and `report` marks a write that was already committed as an attack the
+reviewer missed. Every decision is labelled into the Memory as ground truth, so the gate
+also learns from the reviewer's mistakes. Resolve held writes while the author's session
+token is still valid: the Committer replays their original headers.
+
+**8. Decide what an inline route does when the reviewer can't be reached.** Inline review
+fails closed by default (`503`). For a route where an outage costs more than the risk, set
+`onReviewUnavailable: "gate"`: a request the gate found nothing at all on goes through
+(tagged `x-lazaret-review: degraded`), anything else still waits. A model that declines
+or answers garbage is never treated as unreachable. Tidewater does this for login only.
 
 ### Try it locally
 
@@ -170,18 +195,20 @@ inline; [`evals/results/live-latest.json`](evals/results/live-latest.json)):
 |                                                           |                                                     |
 | --------------------------------------------------------- | --------------------------------------------------- |
 | Attacks stopped (recall)                                  | 63 / 63 (100%)                                      |
-| Precision                                                 | 100%                                                |
-| Benign requests stopped (FPR)                             | 0 / 57                                              |
+| Precision                                                 | 98.4%                                               |
+| Benign requests stopped (FPR)                             | 1 / 57 (1.8%): a credit whose review hit the 3 s deadline |
 | Reviewer prompt injection / downstream agent injection    | 8 / 8 and 10 / 10 stopped                           |
 | Stopped by the deterministic gate alone, before any model | 5 / 63, with 0 false positives                      |
-| Inline review latency                                     | p50 1.7 s, p95 2.3 s; time to first token p50 1.2 s |
-| Batch review latency                                      | p50 4.8 s, p95 7.6 s (off the request path)         |
-| Cost                                                      | $0.26 per run, $2.35 per 1,000 reviewed requests    |
+| Escalations declined by Opus 5.5                          | 3 / 7, all `cyber`, all attacks, all held for a human |
+| Inline review latency                                     | p50 1.7 s, p95 2.5 s; time to first token p50 1.2 s |
+| Batch review latency                                      | p50 4.3 s, p95 10.4 s (off the request path)        |
+| Cost                                                      | $0.25 per run, $2.28 per 1,000 reviewed requests    |
 
-Only the model you configure can decide an outcome. When it declines to review a
-payload, the entry is held for a human; a server-side fallback model's answer is
-attached as a note and never acted on (in this run Opus 5.5 declined two escalations,
-and the fallback would have allowed one of them, an XSS payload). A declined batch is
+The false positive is a legitimate credit that failed closed: its inline review took
+longer than the 3 s deadline (2 of 11 credit reviews did), and credits deny rather than
+pass on the gate alone. Only the model you configure can decide an outcome. When it
+declines to review a payload, the entry is held for a human with the API's reason (here
+`cyber`), and a human releases or drops it from the review queue. A declined batch is
 split until the declined entry is isolated, so the rest still get real verdicts. Any
 first-pass allow the gate scored at 0.7 or above gets a second opinion. One corpus, one
 run: treat these as a measurement, not a guarantee. Every live run is kept in
@@ -214,7 +241,7 @@ identical and that no write is committed twice.
 - [x] M3: Claude reviewer, review workflow, committer, taint propagation
 - [x] M4: Author-only read overlay
 - [x] M5: Memory distillation and rule promotion
-- [x] M6: Demo origin (Tidewater Support helpdesk) and evals
+- [x] M6: Demo origin (Tidewater Support helpdesk) and evals, plus the human review queue
 - [ ] M7–M8: gleator.com live demo and launch
 
 The full spec is in [`tasks/todo.md`](tasks/todo.md).

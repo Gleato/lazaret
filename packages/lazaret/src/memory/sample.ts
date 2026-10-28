@@ -47,7 +47,7 @@ export function sampleFromEntry(entry: EntryState): RuleSample {
 /** Archive record for an entry that has a verdict. */
 export function archiveRecord(
   entry: EntryState,
-  source: "batch" | "inline",
+  source: ArchiveInput["source"],
   at: number,
 ): ArchiveInput {
   const verdict = entry.verdict;

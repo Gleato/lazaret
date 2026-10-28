@@ -1,7 +1,7 @@
 {
   "mode": "gate-only",
-  "startedAt": "2026-10-28T16:47:40.376Z",
-  "finishedAt": "2026-10-28T16:47:40.773Z",
+  "startedAt": "2026-10-28T17:41:36.466Z",
+  "finishedAt": "2026-10-28T17:41:36.827Z",
   "corpus": {
     "cases": 120,
     "attacks": 63,
@@ -137,6 +137,26 @@
       "gate": 5
     },
     "failedClosed": 0,
+    "declines": {
+      "inline": {
+        "calls": 83,
+        "declined": 0,
+        "rate": 0,
+        "byCategory": {}
+      },
+      "batch": {
+        "calls": 18,
+        "declined": 0,
+        "rate": 0,
+        "byCategory": {}
+      },
+      "escalation": {
+        "calls": 17,
+        "declined": 0,
+        "rate": 0,
+        "byCategory": {}
+      }
+    },
     "calls": {
       "inline": {
         "calls": 83,

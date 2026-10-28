@@ -19,7 +19,10 @@ export type BatchStatus =
   | "SETTLED"
   | "QUARANTINED";
 
-/** Entry lifecycle: PENDING → APPROVED → COMMITTED, or PENDING → DROPPED | QUARANTINED. */
+/**
+ * Entry lifecycle: PENDING → APPROVED → COMMITTED, or PENDING → DROPPED | QUARANTINED.
+ * A human resolves QUARANTINED → APPROVED (release, then COMMITTED) or → DROPPED.
+ */
 export type EntryStatus = "PENDING" | "APPROVED" | "DROPPED" | "QUARANTINED" | "COMMITTED";
 
 /** Why a batch stopped accepting entries. `manual` is for operators and tests. */
@@ -69,6 +72,20 @@ export interface EntryState extends EntryInput {
   verdict?: VerdictRecord;
   /** HTTP status origin returned when the Committer replayed this entry. */
   originStatus?: number;
+  /**
+   * A human's decision (M6.7): release or drop a held entry, or report that a
+   * committed one was an attack the reviewer missed.
+   */
+  resolution?: Resolution;
+}
+
+export type OperatorDecision = "release" | "drop";
+
+export interface Resolution {
+  decision: OperatorDecision | "report";
+  operator: string;
+  note: string;
+  at: number;
 }
 
 export interface BatchState {

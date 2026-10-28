@@ -69,6 +69,9 @@ describe("defineLazaret", () => {
     expect(
       problems({ routes: [{ match: "POST /k", policy: "INLINE_REVIEW", perMinute: 0 }] }),
     ).toMatch(/perMinute must be a positive integer/);
+    expect(
+      problems({ routes: [{ match: "POST /t", policy: "ESCROW", onReviewUnavailable: "gate" }] }),
+    ).toMatch(/onReviewUnavailable only applies to INLINE_REVIEW/);
     expect(problems({ review: { actor: { path: "api/me", fields: {} } } })).toMatch(
       /actor.path must start with \/[\s\S]*actor.fields must not be empty/,
     );

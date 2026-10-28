@@ -32,6 +32,14 @@ export interface RouteConfig {
    * for writes that are normal when rare and abusive in bulk, e.g. minting API keys.
    */
   perMinute?: number;
+  /**
+   * INLINE_REVIEW only: what to do when the reviewer can't be reached (timeout, API
+   * error). `deny` (default) fails closed. `gate` lets the request through on the gate's
+   * judgment alone, and only when the gate found no signal of any kind. Use it where an
+   * outage costs more than the small risk, e.g. login, where
+   * origin still checks the password. A decline or garbled answer always denies.
+   */
+  onReviewUnavailable?: "deny" | "gate";
 }
 
 export interface LazaretConfig {
@@ -97,6 +105,14 @@ export interface LazaretConfig {
     /** Env binding holding the HMAC secret shared with origin. */
     secretBinding?: string;
   };
+  /**
+   * The human review queue under `/__lazaret/operator/` (gateway/operator.ts). Off
+   * unless the binding holds a token of at least 16 characters.
+   */
+  operator?: {
+    /** Env binding holding the operator bearer token. Default `LAZARET_OPERATOR_TOKEN`. */
+    tokenBinding?: string;
+  };
   memory?: {
     /** Durable Object namespace binding for the Memory. If absent, memory is off. */
     binding?: string;
@@ -150,6 +166,7 @@ export interface ResolvedConfig {
     actor: { path: string; fields: Record<string, string>; timeoutMs: number } | null;
   };
   signing: { secretBinding: string };
+  operator: { tokenBinding: string };
   memory: {
     binding: string;
     name: string;
@@ -227,6 +244,13 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
       !(Number.isInteger(route.perMinute) && route.perMinute >= 1)
     ) {
       problems.push(`route "${route.match}": perMinute must be a positive integer`);
+    }
+    if (route.onReviewUnavailable !== undefined) {
+      if (route.onReviewUnavailable !== "deny" && route.onReviewUnavailable !== "gate") {
+        problems.push(`route "${route.match}": onReviewUnavailable must be "deny" or "gate"`);
+      } else if (route.policy !== "INLINE_REVIEW") {
+        problems.push(`route "${route.match}": onReviewUnavailable only applies to INLINE_REVIEW`);
+      }
     }
     routes.push({ route, pattern });
 
@@ -349,6 +373,7 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
       actor,
     },
     signing: { secretBinding: config.signing?.secretBinding ?? "LAZARET_SIGNING_SECRET" },
+    operator: { tokenBinding: config.operator?.tokenBinding ?? "LAZARET_OPERATOR_TOKEN" },
     memory: {
       binding: config.memory?.binding ?? "LAZARET_MEMORY",
       name: config.memory?.name ?? "default",

@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M6.6 done (2026-10-28); M7 next**
+Status: **M0–M6.7 done (2026-10-28); M7 next**
 
 ---
 
@@ -400,6 +400,37 @@ Rule: **a verdict counts only if the model we configured produced it; anything e
   escalateAtRisk skips escalation).
 - [x] One live run, README + review.
 
+### M6.7 — Pre-M7 decisions and the human queue (2026-10-28, approved)
+Decision log (you approved all of these):
+
+| # | Item | Decision |
+|---|---|---|
+| 1 | Human review queue | **Build now.** Operator API to release or drop held entries (and report a missed attack on a committed one). Decisions feed the Memory as labels. |
+| 2 | Inline review unavailable | **Build now.** Per-route `onReviewUnavailable`: `deny` (default; credits, keys) or `gate` (login: allow only on low gate risk with no behaviour signals). Only timeouts and API errors qualify, never a decline or garbled output. |
+| 3 | Decline tracking | **Build now:** record the API's decline category. The decline-rate panel is M7. **You:** apply to Anthropic's Cyber Verification Program. |
+| 4 | Behaviour state per isolate | Decide at M8: Durable Object-backed store before calling it production-grade. |
+| 5 | Distributed password spraying | Documented non-goal for v1 (needs an account-lockout design). Turnstile covers the demo. |
+| 6 | Spend cap (`dailyBudgetUsd` not enforced) | M7, must ship before the demo is public. |
+| 7 | Eval doesn't exercise Memory | M7: two-phase eval (warm on a training split, measure on held-out) behind the memory panel. |
+| 8 | Cross-batch taint ordering gap | Accepted; origin's 404 under the receipt-id convention is the backstop. |
+| 9 | Pending ticket detail 404s for its author | Accepted; the UI uses the list overlay. |
+| 10 | `ssrf.loopback` noise in local dev | Accepted (localhost only). |
+| 11 | Ledger log compaction | M8. |
+| 12 | Wrangler login, secrets, Workers Paid plan | You, before M8 deploy. |
+| 13 | Footer credit, public repo | Your call (recommend a public repo). |
+
+- [x] Operator queue: Ledger events `ENTRY_RESOLVED` (release/drop of a QUARANTINED entry)
+  and `ENTRY_REPORTED` (a COMMITTED entry was an attack). Release commits through the
+  Committer; a release whose held parent is still quarantined is refused (parent first). A
+  drop cascades to tainted dependents and flags the session.
+- [x] Operator endpoints under `/__lazaret/operator/` with a bearer token from
+  `LAZARET_OPERATOR_TOKEN` (absent = API off).
+- [x] Memory `label()`: operator decisions overwrite the archived verdict (source `operator`).
+  An operator drop becomes distillation input, so the Memory learns from reviewer misses.
+- [x] Decline category recorded. Review calls run without server-side fallback, because the
+  API doesn't report the category when a fallback answers.
+- [x] `onReviewUnavailable` per inline route; Tidewater login uses `gate`.
+
 ### M7 — Site
 - [ ] Astro site via `/frontend-design`, live visualizer over WebSocket, attack console, evals + memory panels
 - [ ] Turnstile, rate limits, spend cap, hourly reset
@@ -766,4 +797,49 @@ Rule: **a verdict counts only if the model we configured produced it; anything e
 - **Inline deadline vs API latency:** run 6 shows a 3 s deadline fails closed for every
   inline client during a slowdown. That's safe, but it's an outage for logins. Worth a decision
   before launch (e.g. alerting on the inline failure rate, or a status banner on the demo).
+
+### M6.7 (2026-10-28)
+- **Human review queue** (`gateway/operator.ts`, Ledger operator methods):
+  - Events: `ENTRY_RESOLVED` takes QUARANTINED to APPROVED or DROPPED, only once the batch
+    is SETTLED or QUARANTINED, so a human never races the pipeline. `ENTRY_REPORTED` marks a
+    committed write. A released entry commits outside its batch's commit phase; that's the
+    one relaxed guard.
+  - Release is refused while a held parent (same session, shared non-`:new` resource, the
+    taint link) is still held: "release held entry X first". Drop cascades to held
+    dependents and flags the session. All operations are idempotent; repeating a release
+    retries a failed commit (502 says "released, not delivered").
+  - API: `GET /__lazaret/operator/queue`, `POST /__lazaret/operator/entries/:id`
+    `{action, note?, category?}`, with a bearer token compared by digest. No token
+    configured means 404. The queue view leaves out credentials; bodies are
+    attacker-controlled text.
+  - Caveat: release replays the author's original headers, so it must happen within their
+    token lifetime (24 h on Tidewater). Origin's 401 after that is reported back.
+- **Memory `label()`:** operator decisions upsert the archive row (source `operator`,
+  `distilled = 0`) and move rule hits between live_tp and live_fp when the label disagrees.
+  An operator drop or report becomes distillation input, so sqli-06-style reviewer misses
+  can turn into gate rules. It's picked up on the next distillation run (after a batch with
+  drops); operator actions don't trigger one.
+- **Declines:** review calls no longer send `fallbacks` (the API omits the decline category
+  when a fallback answers). Refusals carry `stop_details.category` into the held entry's
+  rationale and the eval's `summary.declines` (per tier: calls, declined, rate,
+  byCategory). The model-mismatch guard stays as defence in depth.
+- **`onReviewUnavailable`:** inline review now reports a cause (`timeout`, `error`,
+  `declined`, `unusable`). Only the first two may use `gate` mode, and then only with zero
+  gate signals. Tidewater: login `gate`, keys and credits `deny`. Logged as
+  `inline_degraded`; the response carries `x-lazaret-review: degraded`.
+- **Biome** no longer formats `evals/results/` (it had reformatted committed run files).
+- **Verified:** 314 tests pass (255 library, 41 origin, 9 stack, 9 evals: 8 run, live
+  skipped). Typecheck and biome clean. Offline evals unchanged (gate-only 5/63, 0 FP; fake
+  28/63, 1 FP).
+- **Live run 8 (17:41Z, $0.25), published:** recall 63/63, precision 0.984, FPR 1/57. Gate
+  alone 5/63, 0 FP. Inline p50 1.7 s / p95 2.5 s, TTFT p50 1.2 s, batch p50 4.3 s.
+  - Declines now carry their category: escalation 3/7 declined, **all `cyber`**: sqli-06,
+    xss-05, and taint-02's parent attachment. All three are attacks, all held. Batch and
+    inline: 0 declines. Two runs ago it was 2/7, so ~30-40% of escalations decline. Every
+    one so far was an attack, but it's the number to watch on the M7 panel, and the case
+    for the Cyber Verification Program application.
+  - The FP is ok-credit-01: 2 of 11 credit inline reviews ran past 3 s (3004/3006 ms; the
+    rest were 1.5-2.5 s), and credits are `deny` when unreachable. That's a deliberate
+    trade (money waits), but the tail sits close to the deadline. Options for later:
+    a 4 s deadline for credits only, or keep 3 s and accept it. Not changed here.
 

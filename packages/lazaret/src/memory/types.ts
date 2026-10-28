@@ -49,7 +49,8 @@ export interface ArchivedVerdict {
   category: string;
   confidence: number;
   rationale: string;
-  source: "batch" | "inline";
+  /** Who produced the verdict. `operator` labels (M6.7) are ground truth and win. */
+  source: "batch" | "inline" | "operator";
   at: number;
   sample: RuleSample;
 }

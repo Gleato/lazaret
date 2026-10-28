@@ -45,8 +45,10 @@ describe("AnthropicReviewer", () => {
       model: "claude-sonnet-5-5",
       system: [{ cache_control: { type: "ephemeral" } }],
       output_config: { effort: "high", format: { type: "json_schema" } },
-      fallbacks: "default",
     });
+    // No server-side fallback: only the configured model decides, and its decline
+    // category must come back (M6.7).
+    expect(requests[0]?.fallbacks).toBeUndefined();
     expect(requests[0]?.thinking).toBeUndefined(); // batch review keeps adaptive thinking
   });
 

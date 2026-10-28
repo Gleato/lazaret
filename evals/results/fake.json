@@ -1,7 +1,7 @@
 {
   "mode": "fake",
-  "startedAt": "2026-10-28T16:47:40.776Z",
-  "finishedAt": "2026-10-28T16:47:41.108Z",
+  "startedAt": "2026-10-28T17:41:36.831Z",
+  "finishedAt": "2026-10-28T17:41:37.157Z",
   "corpus": {
     "cases": 120,
     "attacks": 63,
@@ -140,6 +140,26 @@
       "gate": 5
     },
     "failedClosed": 0,
+    "declines": {
+      "inline": {
+        "calls": 83,
+        "declined": 0,
+        "rate": 0,
+        "byCategory": {}
+      },
+      "batch": {
+        "calls": 18,
+        "declined": 0,
+        "rate": 0,
+        "byCategory": {}
+      },
+      "escalation": {
+        "calls": 11,
+        "declined": 0,
+        "rate": 0,
+        "byCategory": {}
+      }
+    },
     "calls": {
       "inline": {
         "calls": 83,
@@ -1152,7 +1172,7 @@
         "verdict": "drop",
         "category": "tainted",
         "confidence": 1,
-        "rationale": "Depends on dropped entry de65886a-1a79-44aa-90df-918cc8192a58 via ticket:de65886a-1a79-44aa-90df-918cc8192a58."
+        "rationale": "Depends on dropped entry ee4f9661-7eff-4bc9-83f9-147e69e18ae4 via ticket:ee4f9661-7eff-4bc9-83f9-147e69e18ae4."
       },
       "escalated": true
     },
@@ -1477,7 +1497,7 @@
         "verdict": "drop",
         "category": "tainted",
         "confidence": 1,
-        "rationale": "Depends on dropped entry b79ae040-d41c-440a-9d3a-6ffdc5d437ae via ticket:b79ae040-d41c-440a-9d3a-6ffdc5d437ae."
+        "rationale": "Depends on dropped entry 9296ce41-47b1-4f7a-937d-8d3eb7625c0c via ticket:9296ce41-47b1-4f7a-937d-8d3eb7625c0c."
       },
       "escalated": false
     },
@@ -1917,7 +1937,7 @@
         "verdict": "drop",
         "category": "tainted",
         "confidence": 1,
-        "rationale": "Depends on dropped entry 10a4315b-f9ff-4c8b-b540-09e114286e72 via ticket:10a4315b-f9ff-4c8b-b540-09e114286e72."
+        "rationale": "Depends on dropped entry 472995ee-f3e5-46a6-9b84-87645b086fc1 via ticket:472995ee-f3e5-46a6-9b84-87645b086fc1."
       },
       "escalated": true
     },
@@ -3175,7 +3195,7 @@
     {
       "tier": "inline",
       "model": "scripted",
-      "latencyMs": 0,
+      "latencyMs": 1,
       "outcome": "output",
       "entries": 1,
       "route": "POST /api/keys",
@@ -3187,7 +3207,7 @@
     {
       "tier": "inline",
       "model": "scripted",
-      "latencyMs": 1,
+      "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
       "route": "POST /api/accounts/:id/credits",

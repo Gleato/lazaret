@@ -69,6 +69,35 @@ describe("ledger state machine", () => {
     expect(state.entries.e1?.status).toBe("QUARANTINED");
   });
 
+  it("lets a human release a held entry after its batch is done, and commit it alone", () => {
+    const held: LedgerEvent[] = [
+      opened,
+      appended("e1"),
+      sealed,
+      reviewing,
+      { type: "BATCH_QUARANTINED", batchId: "batch-1", reason: "reviewer output malformed", at: 5 },
+    ];
+    const resolve: LedgerEvent = {
+      type: "ENTRY_RESOLVED",
+      entryId: "e1",
+      decision: "release",
+      operator: "ridge",
+      note: "",
+      at: 6,
+    };
+    const state = stateAfter([...held, resolve, { type: "ENTRY_COMMITTED", entryId: "e1", at: 7 }]);
+    expect(state.entries.e1).toMatchObject({
+      status: "COMMITTED",
+      resolution: { decision: "release", operator: "ridge" },
+    });
+    // Not while the batch is still under review: a human never races the pipeline.
+    const midReview = stateAfter([opened, appended("e1"), sealed, reviewing]);
+    expect(() => applyEvent(midReview, resolve)).toThrow(IllegalTransition);
+    // And a committed write can't be "released" or "dropped"; it can only be reported.
+    const done = stateAfter(lifecycle);
+    expect(() => applyEvent(done, { ...resolve, decision: "drop" })).toThrow(/not held/);
+  });
+
   // Each case: a legal prefix, then an event that must be rejected.
   const illegal: [string, LedgerEvent[], LedgerEvent, RegExp][] = [
     [

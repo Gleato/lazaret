@@ -16,6 +16,7 @@ import type {
   EntryInput,
   EntryState,
   LedgerState,
+  OperatorDecision,
   SealReason,
   VerdictRecord,
 } from "./types";
@@ -56,6 +57,11 @@ export interface ReviewSnapshot {
   /** Which of those entries' sessions are currently flagged. */
   flaggedSessions: string[];
 }
+
+/** An operator action's result. `reason` is safe to show the operator. */
+export type OperatorResult =
+  | { ok: true; entry: EntryState; cascaded: string[] }
+  | { ok: false; reason: string };
 
 export interface ReviewDispatch {
   /** Durable Object id of the Ledger, so the Workflow can find its way back. */
@@ -324,6 +330,115 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
     this.#commit([{ type: "BATCH_QUARANTINED", batchId, reason, at: this.now() }]);
   }
 
+  // ── Operator (M6.7) ──────────────────────────────────────────────────────────
+  //
+  // "Held for a human" needs a human. These are the only ways out of QUARANTINED,
+  // and the gateway exposes them only to an authenticated operator. Each decision is
+  // an event, so the audit trail is the same log that rebuilds state.
+
+  /** Held entries, plus released ones still waiting for their commit, oldest first. */
+  getQuarantine(limit = 100): EntryState[] {
+    const out = this.#appendOrder().filter(
+      (e) =>
+        e.status === "QUARANTINED" ||
+        (e.status === "APPROVED" && e.resolution?.decision === "release"),
+    );
+    return structuredClone(out.slice(0, Math.min(Math.max(limit, 1), 500)));
+  }
+
+  /**
+   * Release or drop a held entry. Idempotent: repeating a decision returns the entry
+   * again, so a release whose commit failed can be retried.
+   *   - release is refused while a held write it depends on is still held: origin
+   *     would get a reply to a ticket that doesn't exist yet. Release the parent first.
+   *   - drop also drops the held writes that depend on it (the same rule as taint),
+   *     and flags the session, as a reviewer's drop would.
+   */
+  resolveEntry(
+    entryId: string,
+    decision: OperatorDecision,
+    operator: string,
+    note: string,
+  ): OperatorResult {
+    const entry = this.#state.entries[entryId];
+    if (!entry) return { ok: false, reason: "not_found" };
+    const decided = decision === "release" ? "APPROVED" : "DROPPED";
+    if (entry.resolution?.decision === decision && entry.status !== "QUARANTINED") {
+      return { ok: true, entry: structuredClone(entry), cascaded: [] };
+    }
+    if (entry.status !== "QUARANTINED") return { ok: false, reason: `entry is ${entry.status}` };
+    const batch = this.#state.batches[entry.batchId];
+    if (batch?.status !== "SETTLED" && batch?.status !== "QUARANTINED") {
+      return { ok: false, reason: "batch is still under review" };
+    }
+
+    const at = this.now();
+    if (decision === "release") {
+      const parent = this.#heldParent(entry);
+      if (parent) return { ok: false, reason: `release held entry ${parent.id} first` };
+      this.#commit([{ type: "ENTRY_RESOLVED", entryId, decision, operator, note, at }]);
+    } else {
+      const cascaded = this.#heldDependents(entry);
+      this.#commit([
+        { type: "ENTRY_RESOLVED", entryId, decision, operator, note, at },
+        ...cascaded.map(
+          (d): LedgerEvent => ({
+            type: "ENTRY_RESOLVED",
+            entryId: d.id,
+            decision,
+            operator,
+            note: `Depends on entry ${entryId}, dropped by ${operator}.`,
+            at,
+          }),
+        ),
+        {
+          type: "SESSION_FLAGGED",
+          sessionId: entry.sessionId,
+          reason: `operator drop of entry ${entryId}`,
+          at,
+        },
+      ]);
+      const updated = this.#state.entries[entryId] as EntryState;
+      return {
+        ok: true,
+        entry: structuredClone(updated),
+        cascaded: cascaded.map((d) => d.id),
+      };
+    }
+    const updated = this.#state.entries[entryId] as EntryState;
+    if (updated.status !== decided) return { ok: false, reason: "decision did not apply" };
+    return { ok: true, entry: structuredClone(updated), cascaded: [] };
+  }
+
+  /**
+   * Mark a committed write as an attack the reviewer missed. Origin already has it,
+   * so nothing is undone here (that's origin's job); the point is the label. The
+   * Memory learns from it, and the session is flagged. Idempotent.
+   */
+  reportEntry(entryId: string, operator: string, note: string): OperatorResult {
+    const entry = this.#state.entries[entryId];
+    if (!entry) return { ok: false, reason: "not_found" };
+    if (entry.resolution?.decision === "report") {
+      return { ok: true, entry: structuredClone(entry), cascaded: [] };
+    }
+    if (entry.status !== "COMMITTED") return { ok: false, reason: `entry is ${entry.status}` };
+    const at = this.now();
+    this.#commit([
+      { type: "ENTRY_REPORTED", entryId, operator, note, at },
+      {
+        type: "SESSION_FLAGGED",
+        sessionId: entry.sessionId,
+        reason: `operator report on entry ${entryId}`,
+        at,
+      },
+    ]);
+    return {
+      ok: true,
+      entry: structuredClone(this.#state.entries[entryId] as EntryState),
+      cascaded: [],
+    };
+  }
+
   // ── Reads ────────────────────────────────────────────────────────────────────
 
   /**
@@ -384,6 +499,47 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
   }
 
   // ── Internals ────────────────────────────────────────────────────────────────
+
+  /** Every entry in append order (batch number, then position in the batch). */
+  #appendOrder(): EntryState[] {
+    const n = (id: string) => Number(id.slice(id.lastIndexOf("-") + 1));
+    return Object.values(this.#state.batches)
+      .sort((a, b) => n(a.id) - n(b.id))
+      .flatMap((b) => b.entryIds.map((id) => this.#state.entries[id]))
+      .filter((e): e is EntryState => e !== undefined);
+  }
+
+  /** Taint's link (same session, shared non-creation resource), as in taint.ts. */
+  #linked(a: EntryState, b: EntryState): boolean {
+    return (
+      a.sessionId === b.sessionId &&
+      a.resources.some((r) => !r.endsWith(":new") && b.resources.includes(r))
+    );
+  }
+
+  /** The nearest earlier held write this entry depends on, if any. */
+  #heldParent(entry: EntryState): EntryState | undefined {
+    const order = this.#appendOrder();
+    const before = order.slice(
+      0,
+      order.findIndex((e) => e.id === entry.id),
+    );
+    return before.reverse().find((e) => e.status === "QUARANTINED" && this.#linked(e, entry));
+  }
+
+  /** Later held writes that depend on this one, transitively. */
+  #heldDependents(entry: EntryState): EntryState[] {
+    const order = this.#appendOrder();
+    const out: EntryState[] = [];
+    const sources = [entry];
+    for (const e of order.slice(order.findIndex((x) => x.id === entry.id) + 1)) {
+      if (e.status === "QUARANTINED" && sources.some((src) => this.#linked(src, e))) {
+        out.push(e);
+        sources.push(e);
+      }
+    }
+    return out;
+  }
 
   #isFlagged(sessionId: string, now: number): boolean {
     const flag = this.#state.flaggedSessions[sessionId];
