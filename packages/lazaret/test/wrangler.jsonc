@@ -9,7 +9,8 @@
   "durable_objects": {
     "bindings": [
       { "name": "LEDGER", "class_name": "Ledger" },
-      { "name": "AUTO_LEDGER", "class_name": "AutoLedger" }
+      { "name": "AUTO_LEDGER", "class_name": "AutoLedger" },
+      { "name": "MEMORY", "class_name": "Memory" }
     ]
   },
   "workflows": [
@@ -17,6 +18,7 @@
   ],
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["Ledger"] },
-    { "tag": "v2", "new_sqlite_classes": ["AutoLedger"] }
+    { "tag": "v2", "new_sqlite_classes": ["AutoLedger"] },
+    { "tag": "v3", "new_sqlite_classes": ["Memory"] }
   ]
 }

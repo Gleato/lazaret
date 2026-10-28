@@ -1,4 +1,12 @@
-import { type CycleConfig, defineLazaret, LazaretLedger, LazaretReviewWorkflow } from "../src";
+import {
+  type CycleConfig,
+  DEFAULT_MEMORY_THRESHOLDS,
+  defineLazaret,
+  LazaretLedger,
+  LazaretMemory,
+  LazaretReviewWorkflow,
+  type MemoryThresholds,
+} from "../src";
 import { fakeOrigin, fakeReviewer, looksMalicious, verdict } from "./fakes";
 
 // Short, small cycle so trigger behaviour is easy to exercise in tests.
@@ -18,6 +26,21 @@ export class Ledger extends LazaretLedger {
 export class AutoLedger extends LazaretLedger {
   protected override cycleConfig(): CycleConfig {
     return { ...TEST_CYCLE, maxEntries: 50 };
+  }
+}
+
+// Small thresholds so the full learning loop fits in a test.
+export const TEST_MEMORY_THRESHOLDS: MemoryThresholds = {
+  ...DEFAULT_MEMORY_THRESHOLDS,
+  minSupport: 2,
+  minCleanSamples: 3,
+  promoteToFlagAfter: 2,
+  promoteToBlockAfter: 4,
+};
+
+export class Memory extends LazaretMemory {
+  protected override thresholds(): MemoryThresholds {
+    return TEST_MEMORY_THRESHOLDS;
   }
 }
 

@@ -2,7 +2,12 @@ import type { Committer } from "../commit/committer";
 import type { ResolvedConfig } from "../config/define";
 import type { ReviewSnapshot } from "../ledger/durable-object";
 import type { EntryState, VerdictRecord } from "../ledger/types";
+import { type DistillResult, type RuleProposer, runDistillation } from "../memory/distill";
+import { archiveRecord } from "../memory/sample";
+import type { ArchiveInput, DistillInput } from "../memory/store";
+import type { RuleProposal } from "../memory/types";
 import { FatalReviewError, type Reviewer, type ReviewTier } from "./client";
+import type { MemoryHint } from "./prompt";
 import { buildBatchPrompt, buildEscalationPrompt } from "./prompt";
 import { MalformedReviewError, parseVerdicts } from "./schema";
 
@@ -12,8 +17,12 @@ import { MalformedReviewError, parseVerdicts } from "./schema";
 // in-memory runner that can simulate a crash between any two steps. The harness
 // owns the loop (principle 1), and every step is a checkpoint (principles 3 and 4).
 //
-//   snapshot → [begin-review-n → review chunks → escalate] → record-verdicts
-//            → begin-commit → commit each approved entry → settle
+//   snapshot → memory-context → [begin-review-n → review chunks → escalate]
+//            → record-verdicts → memory-archive → begin-commit
+//            → commit each approved entry → settle → memory-distill
+//
+// Memory steps are best-effort: they never throw, so the Memory being down makes
+// Lazaret less smart, never less safe.
 //
 // Failure handling:
 //   - Transient errors (429, overload, network) throw inside a step, so the step
@@ -47,6 +56,16 @@ export interface LedgerPort {
   markCommitted(entryId: string, originStatus?: number): Awaitable<unknown>;
   settle(batchId: string): Awaitable<void>;
   quarantine(batchId: string, reason: string): Awaitable<void>;
+  getReviewedEntries(batchId: string): Awaitable<EntryState[]>;
+}
+
+/** The Memory RPC surface the pipeline uses. */
+export interface MemoryPort {
+  archive(records: ArchiveInput[]): Awaitable<unknown>;
+  getReviewerContext(routes: string[]): Awaitable<MemoryHint[]>;
+  getDistillInput(limit?: number): Awaitable<DistillInput>;
+  submitCandidates(proposals: RuleProposal[], sourceEntryIds: string[]): Awaitable<unknown>;
+  markDistilled(entryIds: string[]): Awaitable<unknown>;
 }
 
 export interface PipelineDeps {
@@ -56,10 +75,13 @@ export interface PipelineDeps {
   config: ResolvedConfig;
   /** Base delay between whole review attempts. Default 30s, doubling. */
   attemptBackoffMs?: number;
+  memory?: MemoryPort;
+  /** Proposes rules from past drops. Without it, memory archives but doesn't learn. */
+  proposer?: RuleProposer;
 }
 
 export type PipelineResult =
-  | { outcome: "settled"; committed: number }
+  | { outcome: "settled"; committed: number; distill?: DistillResult }
   | { outcome: "quarantined"; reason: string }
   | { outcome: "already_quarantined" };
 
@@ -82,8 +104,10 @@ export async function runReviewPipeline(
   if (snapshot.status === "QUARANTINED") return { outcome: "already_quarantined" };
 
   // If verdicts already landed (e.g. a replay after a crash mid-commit), go straight to commit.
+  let hadDrops = false;
   if (snapshot.entries.length > 0 && snapshot.status !== "SETTLED") {
-    const result = await reviewWithAttempts(step, deps, snapshot);
+    const hints = await memoryContext(step, deps, snapshot.entries);
+    const result = await reviewWithAttempts(step, deps, snapshot, hints);
     if (!result.ok) {
       await step.do("quarantine", async () => ledger.quarantine(batchId, result.reason));
       return { outcome: "quarantined", reason: result.reason };
@@ -92,6 +116,8 @@ export async function runReviewPipeline(
       await ledger.recordVerdicts(batchId, result.verdicts);
       return true;
     });
+    hadDrops = Object.values(result.verdicts).some((v) => v.verdict === "drop");
+    await archiveToMemory(step, deps, batchId);
   }
 
   await step.do("begin-commit", async () => ledger.beginCommit(batchId));
@@ -111,13 +137,59 @@ export async function runReviewPipeline(
     );
   }
   await step.do("settle", async () => ledger.settle(batchId));
+
+  if (hadDrops && deps.memory && deps.proposer && deps.config.memory.distill) {
+    const { memory, proposer } = deps;
+    const distill = await step.do("memory-distill", () => runDistillation(memory, proposer));
+    return { outcome: "settled", committed: plan.length, distill };
+  }
   return { outcome: "settled", committed: plan.length };
+}
+
+async function memoryContext(
+  step: StepRunner,
+  deps: PipelineDeps,
+  entries: EntryState[],
+): Promise<MemoryHint[]> {
+  const { memory } = deps;
+  if (!memory) return [];
+  return step.do("memory-context", async () => {
+    try {
+      return await memory.getReviewerContext([...new Set(entries.map((e) => e.route))]);
+    } catch {
+      return [];
+    }
+  });
+}
+
+async function archiveToMemory(
+  step: StepRunner,
+  deps: PipelineDeps,
+  batchId: string,
+): Promise<void> {
+  const { memory } = deps;
+  if (!memory) return;
+  await step.do("memory-archive", async () => {
+    try {
+      const entries = await deps.ledger.getReviewedEntries(batchId);
+      const at = Date.now();
+      // Archive is idempotent per entry id, so a replay of this step can't double-count.
+      await memory.archive(entries.map((e) => archiveRecord(e, "batch", at)));
+      return true;
+    } catch (err) {
+      console.error(
+        JSON.stringify({ lazaret: "memory_archive_failed", batchId, error: String(err) }),
+      );
+      return false;
+    }
+  });
 }
 
 async function reviewWithAttempts(
   step: StepRunner,
   deps: PipelineDeps,
   snapshot: ReviewSnapshot,
+  hints: MemoryHint[],
 ): Promise<StepVerdicts> {
   const { ledger, config } = deps;
   const { batchId } = snapshot;
@@ -130,7 +202,7 @@ async function reviewWithAttempts(
         deps,
         "batch",
         snapshot.entries,
-        (chunk) => buildBatchPrompt(chunk, snapshot.flaggedSessions),
+        (chunk) => buildBatchPrompt(chunk, snapshot.flaggedSessions, hints),
         `review-${n}`,
       );
       if (!first.ok) return first;

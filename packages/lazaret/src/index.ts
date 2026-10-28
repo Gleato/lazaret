@@ -22,6 +22,7 @@ export {
   MemoryBehaviourStore,
   scoreBehaviour,
 } from "./gate/behaviour";
+export type { MemoryGateRule } from "./gate/gate";
 export { decide, type GateDecision } from "./gate/gate";
 export { canonicalize, inspect } from "./gate/inspect";
 export {
@@ -43,6 +44,35 @@ export { applyEvent, IllegalTransition, initialState, replay } from "./ledger/ma
 export { applyTaint, type TaintResult } from "./ledger/taint";
 export { type CycleConfig, DEFAULT_CYCLE } from "./ledger/triggers";
 export type * from "./ledger/types";
+export {
+  AnthropicRuleProposer,
+  buildDistillPrompt,
+  DISTILL_SYSTEM_PROMPT,
+  type DistillResult,
+  PROPOSAL_SCHEMA,
+  parseProposals,
+  type RuleProposer,
+  runDistillation,
+} from "./memory/distill";
+export { backtest, statusAfterBacktest, statusAfterLiveEvidence } from "./memory/lifecycle";
+export { archiveRecord, sampleFromEntry } from "./memory/sample";
+export {
+  type ArchiveInput,
+  type DistillInput,
+  LazaretMemory,
+  type RuleEvent,
+} from "./memory/store";
+export {
+  type ActiveRuleSpec,
+  type ArchivedVerdict,
+  DEFAULT_MEMORY_THRESHOLDS,
+  type JsonValue,
+  type MemoryRule,
+  type MemoryThresholds,
+  type RuleProposal,
+  type RuleSample,
+  type RuleStatus,
+} from "./memory/types";
 export { overlayResponse } from "./overlay/apply";
 export {
   type BuiltinMerge,
@@ -63,6 +93,7 @@ export {
   TransientReviewError,
 } from "./review/client";
 export { type InlineDecision, inlineReview } from "./review/inline";
+export type { MemoryPort } from "./review/pipeline";
 export {
   chunkEntries,
   finalVerdict,
@@ -73,6 +104,7 @@ export {
   type StepOptions,
   type StepRunner,
 } from "./review/pipeline";
+export type { MemoryHint } from "./review/prompt";
 export {
   buildBatchPrompt,
   buildEscalationPrompt,

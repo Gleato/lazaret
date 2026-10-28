@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M4 done (2026-10-27); M5 next**
+Status: **M0–M5 done (2026-10-27); M6 next**
 
 ---
 
@@ -210,7 +210,7 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
 - [x] Author-only overlay, built-in mergers + custom merge hook
 
 ### M5 — Memory
-- [ ] Verdict archive (D1 + R2), distiller → candidate rules, backtest, promote/retire, reviewer context retrieval
+- [x] Verdict archive, distiller → candidate rules, backtest, promote/retire, reviewer context retrieval (Durable Object SQLite rather than D1 + R2, see review)
 
 ### M6 — Demo origin + evals
 - [ ] Tidewater Support helpdesk API + customer/agent UI (Worker + D1), ~8 endpoints per §6
@@ -223,6 +223,7 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
 - [ ] Turnstile, rate limits, spend cap, hourly reset
 
 ### M8 — Ship
+- [ ] Ledger log compaction: snapshot the projection + prune archived batches (deferred from M5)
 - [ ] Deploy site to gleator.com, demo Lazaret + origin on routes/subdomain
 - [ ] Playwright E2E against production, README, package publish (`@gleator/lazaret`)
 
@@ -361,4 +362,42 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
   - Each overlaid GET costs one Ledger round trip, but only on routes that have an overlay.
   - Authors can see their own unvetted content. That is self-XSS only, and is the intended
     read-your-writes behaviour.
+
+### M5 (2026-10-27)
+- **Layout:** `src/memory/`, containing types, sample, lifecycle (pure policy), store
+  (the `LazaretMemory` Durable Object) and distill (Claude rule proposer). The gate,
+  pipeline, workflow, gateway and prompt are wired to it.
+- **Spec deviation:** the archive is a Durable Object's SQLite instead of D1 + R2. That is
+  one transactional store with one binding, so it's easier to test and enough for this
+  scale. R2 archival of raw entries can be added later if retention needs grow.
+- **Rule lifecycle:**
+  - `pending → shadow → flag → block`, with `rejected` and `retired` as exits.
+  - Candidates need ≥ 2 drops, 0 false positives, and ≥ 20 clean samples in the backtest.
+  - Shadow → flag after 3 live confirmations, flag → block after 10.
+  - One live false positive retires any active rule. So does 30 days without a hit.
+- **Design choices:**
+  - The reviewer is the independent label. Memory-rule hits are hidden from its prompt,
+    and the displayed risk is recomputed without them, so promotion can't feed on its
+    own output.
+  - The reviewer still gets aggregate drop history per route as background, inside the
+    untrusted block.
+  - Distiller proposals are untrusted (an LLM wrote them after reading attacker data). They
+    are a flat DSL conjunction, compiled with the same ReDoS checks, backtested against
+    real clean traffic, and start in shadow. Malformed proposals are dropped one by one.
+  - Memory is advisory: every memory step is best-effort and never throws. The gateway
+    caches rules (60 s TTL) and keeps the last good set on errors.
+  - Archiving is idempotent per entry id, so a replayed Workflow step can't double-count.
+    Inline verdicts are archived too (via `waitUntil`).
+- **Verified:** 218 tests pass (25 new). The headline test is the end-to-end learning loop:
+  1. A fraud pattern with no gate signature reaches the reviewer and is dropped.
+  2. It is distilled into a rule and backtested at 2 matched drops, 0 of 3 clean
+     requests matched.
+  3. The rule goes to shadow, then flag, then block.
+  4. The next attack is rejected at the edge with no model call, while benign tickets
+     still flow.
+
+  `tsc` and Biome are clean.
+- **Bug caught by lint:** memory hints were never passed to the reviewer prompt, because
+  a scripted edit silently missed after the formatter had rewrapped the line. Fixed, with
+  a regression assertion in the learning-loop test.
 

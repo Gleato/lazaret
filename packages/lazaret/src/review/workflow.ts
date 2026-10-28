@@ -2,8 +2,10 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import { createCommitter } from "../commit/committer";
 import type { ResolvedConfig } from "../config/define";
 import type { LazaretLedger, ReviewDispatch } from "../ledger/durable-object";
+import { AnthropicRuleProposer, type RuleProposer } from "../memory/distill";
+import type { LazaretMemory } from "../memory/store";
 import { AnthropicReviewer, type Reviewer } from "./client";
-import { type LedgerPort, runReviewPipeline, type StepRunner } from "./pipeline";
+import { type LedgerPort, type MemoryPort, runReviewPipeline, type StepRunner } from "./pipeline";
 
 // The Review Workflow runs the pipeline as a Cloudflare Workflow. Workflows give
 // us server-side execution that survives crashes and deploys (principle 3), with
@@ -23,6 +25,12 @@ export class LazaretReviewWorkflow<Env = unknown> extends WorkflowEntrypoint<Env
     const key = this.#binding<string>(config.review.apiKeyBinding);
     if (!key) throw new Error(`Lazaret: missing secret ${config.review.apiKeyBinding}`);
     return new AnthropicReviewer(key, config.review);
+  }
+
+  /** Rule distiller. Returns undefined (memory archives but doesn't learn) without an API key. */
+  protected proposer(config: ResolvedConfig): RuleProposer | undefined {
+    const key = this.#binding<string>(config.review.apiKeyBinding);
+    return key ? new AnthropicRuleProposer(key, config.memory.distillModel) : undefined;
   }
 
   /** How the Committer reaches origin. Override for a service binding. */
@@ -60,6 +68,12 @@ export class LazaretReviewWorkflow<Env = unknown> extends WorkflowEntrypoint<Env
       sleep: (name, ms) => step.sleep(name, ms),
     };
 
+    const memoryNs = this.#binding<DurableObjectNamespace<LazaretMemory>>(config.memory.binding);
+    const memory = memoryNs
+      ? (memoryNs.get(memoryNs.idFromName(config.memory.name)) as unknown as MemoryPort)
+      : undefined;
+    const proposer = memory ? this.proposer(config) : undefined;
+
     const fetchOrigin = this.fetchOrigin();
     return runReviewPipeline(
       runner,
@@ -72,6 +86,8 @@ export class LazaretReviewWorkflow<Env = unknown> extends WorkflowEntrypoint<Env
           ...(fetchOrigin ? { fetchOrigin } : {}),
         }),
         config,
+        ...(memory ? { memory } : {}),
+        ...(proposer ? { proposer } : {}),
       },
       event.payload.batchId,
     );

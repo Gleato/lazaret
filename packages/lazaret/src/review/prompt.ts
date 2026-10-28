@@ -1,4 +1,6 @@
+import { combineRisk } from "../gate/signals";
 import type { EntryState, VerdictRecord } from "../ledger/types";
+import { MEMORY_SIGNAL_PREFIX } from "../memory/types";
 
 // Prompt construction for the reviewer.
 //
@@ -13,6 +15,9 @@ import type { EntryState, VerdictRecord } from "../ledger/types";
 //   3. Credentials (authorization, cookie, …) never enter the prompt.
 //   4. Only verdicts come back. The reviewer has no tools, so a hijacked reviewer
 //      can at worst mislabel, and the disagreement guard and gate catch that case.
+//   5. Learned-rule hits (`memory.*` signals) are hidden, and the displayed risk
+//      excludes them. The reviewer's verdicts are the independent labels that
+//      decide whether those rules get promoted, so they must not see the rules.
 
 export const SYSTEM_PROMPT = `You are the review stage of Lazaret, a security harness that holds write requests to a web application in quarantine until they are vetted. Each request you see was submitted by an internet client and has been held at the network edge; nothing has reached the application yet. Your verdicts decide what happens next: "allow" lets the write through to the application, "drop" discards it permanently, and "quarantine" holds it for a human.
 
@@ -48,6 +53,7 @@ export function encodeUntrusted(data: unknown): string {
 
 function entryView(entry: EntryState, flagged: Set<string>) {
   const { request } = entry;
+  const visible = entry.signals.filter((s) => !s.id.startsWith(MEMORY_SIGNAL_PREFIX));
   const headers: Record<string, string> = {};
   for (const h of PROMPT_HEADERS) {
     const v = request.headers[h];
@@ -74,8 +80,8 @@ function entryView(entry: EntryState, flagged: Set<string>) {
     session: entry.sessionId.slice(0, 8),
     session_flagged: flagged.has(entry.sessionId),
     gate: {
-      risk: Number(entry.riskScore.toFixed(2)),
-      signals: entry.signals.map((s) => ({
+      risk: Number(combineRisk(visible.map((s) => s.weight)).toFixed(2)),
+      signals: visible.map((s) => ({
         id: s.id,
         weight: s.weight,
         ...(s.evidence ? { evidence: s.evidence } : {}),
@@ -84,12 +90,38 @@ function entryView(entry: EntryState, flagged: Set<string>) {
   };
 }
 
-export function buildBatchPrompt(entries: EntryState[], flaggedSessions: string[]): string {
+/** Aggregated drop history for the routes in a batch (from the Memory). */
+export interface MemoryHint {
+  route: string;
+  category: string;
+  count: number;
+  example: string;
+}
+
+export function buildBatchPrompt(
+  entries: EntryState[],
+  flaggedSessions: string[],
+  memoryHints: MemoryHint[] = [],
+): string {
   const flagged = new Set(flaggedSessions);
-  return `Review this batch of ${entries.length} held write request(s) and return one verdict per entry_id.
+  // Past rationales were written while reading attacker data, so they go inside the
+  // untrusted block too.
+  const history = memoryHints.length
+    ? {
+        recent_drops_on_these_routes: memoryHints.map((h) => ({
+          ...h,
+          example: h.example.slice(0, 200),
+        })),
+      }
+    : {};
+  return `Review this batch of ${entries.length} held write request(s) and return one verdict per entry_id.${
+    memoryHints.length
+      ? " The data also lists attack categories recently dropped on these routes; treat it as background, and judge each entry on its own evidence."
+      : ""
+  }
 
 <batch_data>
-${encodeUntrusted({ entries: entries.map((e) => entryView(e, flagged)) })}
+${encodeUntrusted({ ...history, entries: entries.map((e) => entryView(e, flagged)) })}
 </batch_data>`;
 }
 

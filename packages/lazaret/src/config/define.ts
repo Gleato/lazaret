@@ -73,6 +73,18 @@ export interface LazaretConfig {
     /** Env binding holding the HMAC secret shared with origin. */
     secretBinding?: string;
   };
+  memory?: {
+    /** Durable Object namespace binding for the Memory. If absent, memory is off. */
+    binding?: string;
+    /** Memory instance name. */
+    name?: string;
+    /** How long the gateway caches active rules. */
+    ruleCacheTtlMs?: number;
+    /** Ask Claude to propose rules after batches with drops. */
+    distill?: boolean;
+    /** Model for rule distillation. Defaults to the batch model. */
+    distillModel?: string;
+  };
 }
 
 export interface CompiledRoute {
@@ -112,6 +124,13 @@ export interface ResolvedConfig {
     dailyBudgetUsd: number;
   };
   signing: { secretBinding: string };
+  memory: {
+    binding: string;
+    name: string;
+    ruleCacheTtlMs: number;
+    distill: boolean;
+    distillModel: string;
+  };
 }
 
 export const DEFAULT_SENSITIVE_FIELDS = [
@@ -274,5 +293,12 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
       dailyBudgetUsd: config.review?.dailyBudgetUsd ?? 5,
     },
     signing: { secretBinding: config.signing?.secretBinding ?? "LAZARET_SIGNING_SECRET" },
+    memory: {
+      binding: config.memory?.binding ?? "LAZARET_MEMORY",
+      name: config.memory?.name ?? "default",
+      ruleCacheTtlMs: config.memory?.ruleCacheTtlMs ?? 60_000,
+      distill: config.memory?.distill ?? true,
+      distillModel: config.memory?.distillModel ?? config.review?.batchModel ?? "claude-sonnet-5-5",
+    },
   };
 }

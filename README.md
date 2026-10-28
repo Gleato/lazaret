@@ -13,7 +13,8 @@ server. Writes that fail are dropped, along with anything that depends on them.
 
 > **Status: early development.** The Ledger (M1), the gateway and deterministic gate
 > (M2), the Claude reviewer, review workflow and signed committer (M3), and the author-only
-> read overlay (M4) are built and tested. Memory comes next. A live demo will run at
+> read overlay (M4), and the self-improving memory (M5) are built and tested. The demo app
+> comes next. A live demo will run at
 > [gleator.com](https://gleator.com).
 
 ## How it works
@@ -85,7 +86,7 @@ identical and that no write is committed twice.
 - [x] M2: Gate and route policies
 - [x] M3: Claude reviewer, review workflow, committer, taint propagation
 - [x] M4: Author-only read overlay
-- [ ] M5: Memory distillation and rule promotion
+- [x] M5: Memory distillation and rule promotion
 - [ ] M6: Demo origin (Tidewater Support helpdesk) and evals
 - [ ] M7–M8: gleator.com live demo and launch
 

@@ -265,6 +265,17 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
     );
   }
 
+  /** Entries of a batch that have a final verdict (for the Memory archive). */
+  getReviewedEntries(batchId: string): EntryState[] {
+    const batch = this.#state.batches[batchId];
+    if (!batch) throw new Error(`unknown batch ${batchId}`);
+    return structuredClone(
+      batch.entryIds
+        .map((id) => this.#state.entries[id])
+        .filter((e): e is EntryState => e?.verdict !== undefined),
+    );
+  }
+
   /**
    * Mark one entry as written to origin. Idempotent: the Committer may replay after a
    * crash without knowing which writes landed (principle 4), so a repeat is a no-op.

@@ -8,11 +8,14 @@ import {
   MemoryBehaviourStore,
   scoreBehaviour,
 } from "../gate/behaviour";
-import { decide } from "../gate/gate";
+import { decide, type MemoryGateRule } from "../gate/gate";
 import { inspect } from "../gate/inspect";
+import { compileRule } from "../gate/rules";
 import type { GateSignal } from "../gate/signals";
 import type { LazaretLedger } from "../ledger/durable-object";
 import type { EntryInput } from "../ledger/types";
+import { archiveRecord } from "../memory/sample";
+import type { LazaretMemory } from "../memory/store";
 import { overlayResponse } from "../overlay/apply";
 import { AnthropicReviewer, type Reviewer } from "../review/client";
 import { inlineReview } from "../review/inline";
@@ -73,6 +76,44 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
   const now = deps.now ?? Date.now;
   const binding = <T>(env: object, name: string) =>
     (env as Record<string, unknown>)[name] as T | undefined;
+  const memoryFor = (env: object) => {
+    const ns = binding<DurableObjectNamespace<LazaretMemory>>(env, config.memory.binding);
+    return ns ? ns.get(ns.idFromName(config.memory.name)) : null;
+  };
+
+  // Learned rules, cached per isolate. Memory is advisory: if it can't be reached,
+  // the gate keeps the last rules it had (or none) and requests carry on.
+  let memoryCache: { at: number; rules: MemoryGateRule[] } | null = null;
+  const memoryRules = async (env: object): Promise<MemoryGateRule[]> => {
+    const memory = memoryFor(env);
+    if (!memory) return [];
+    const at = Date.now();
+    if (memoryCache && at - memoryCache.at < config.memory.ruleCacheTtlMs) return memoryCache.rules;
+    try {
+      const specs = await memory.getActiveRules();
+      const rules = specs.flatMap((spec): MemoryGateRule[] => {
+        try {
+          return [
+            {
+              id: spec.id,
+              mode: spec.mode,
+              weight: spec.weight,
+              category: spec.category,
+              compiled: compileRule(spec.rule),
+            },
+          ];
+        } catch {
+          return []; // a rule that no longer compiles is skipped, never fatal
+        }
+      });
+      memoryCache = { at, rules };
+    } catch (err) {
+      console.error(JSON.stringify({ lazaret: "memory_unavailable", error: String(err) }));
+      memoryCache = { at, rules: memoryCache?.rules ?? [] };
+    }
+    return memoryCache.rules;
+  };
+
   const ledgerFor = (env: object) => {
     const ns = binding<DurableObjectNamespace<LazaretLedger>>(env, config.ledger.binding);
     if (!ns) throw new Error(`Lazaret: missing Durable Object binding ${config.ledger.binding}`);
@@ -85,7 +126,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
       if (redispatched) console.log(JSON.stringify({ lazaret: "sweep", redispatched }));
     },
 
-    async fetch(request: Request, env: object): Promise<Response> {
+    async fetch(request: Request, env: object, ctx?: ExecutionContext): Promise<Response> {
       const requestId = crypto.randomUUID();
       const tag = (res: Response): Response => {
         const out = new Response(res.body, res);
@@ -169,6 +210,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
           json: inspection.json,
         },
         [...pathSignals, ...inspection.signals, ...behaviourSignals],
+        await memoryRules(env),
       );
 
       console.log(
@@ -272,7 +314,29 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
             reviewer,
             config,
           );
-          // TODO(M5): record inline verdicts in the Ledger so they feed memory distillation.
+          // Inline verdicts feed the Memory like batch verdicts do (off the critical path).
+          const memory = memoryFor(env);
+          if (memory && "verdict" in result) {
+            const record = archiveRecord(
+              {
+                ...entry,
+                id: requestId,
+                batchId: "inline",
+                status: "PENDING",
+                receivedAt: sample.at,
+                verdict: result.verdict,
+              },
+              "inline",
+              sample.at,
+            );
+            const archiving = Promise.resolve(memory.archive([record])).catch((err: unknown) =>
+              console.error(
+                JSON.stringify({ lazaret: "memory_archive_failed", error: String(err) }),
+              ),
+            );
+            if (ctx) ctx.waitUntil(archiving);
+            else await archiving;
+          }
           console.log(
             JSON.stringify({
               lazaret: "inline_review",
