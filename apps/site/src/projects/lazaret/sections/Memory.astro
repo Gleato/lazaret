@@ -1,0 +1,201 @@
+---
+// The Memory: what the eval says learning buys (two-phase eval, built at build time
+// from evals/results/memory-*.json), and the rules the live demo has learned so far
+// (fetched from the demo's read-only /__lazaret/memory).
+import { memoryEval } from "../data/memory";
+---
+
+<section class="section" id="memory" aria-labelledby="memory-title">
+  <div class="wrap">
+    <header>
+      <h2 id="memory-title">It learns from what it catches</h2>
+      <p>
+        Every verdict is archived. After a batch with drops, a model proposes a deterministic rule.
+        The rule is tested against past traffic, watched on live traffic, and only then allowed to
+        flag or block at the gate, where it costs nothing and takes microseconds.
+      </p>
+    </header>
+
+    <div class="cols">
+      <div>
+        <h3>Does learning help on attacks it hasn't seen?</h3>
+        {
+          memoryEval ? (
+            <>
+              <p class="sans hint">{memoryEval.summary}</p>
+              <table class="lining">
+                <thead>
+                  <tr>
+                    <th scope="col">Held-out cases, gate only</th>
+                    <th scope="col">Cold memory</th>
+                    <th scope="col">After training</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {memoryEval.rows.map((r) => (
+                    <tr>
+                      <th scope="row">{r.label}</th>
+                      <td>{r.cold}</td>
+                      <td>{r.warm}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {memoryEval.catches.length > 0 && (
+                <ul class="catches sans">
+                  {memoryEval.catches.map((c) => (
+                    <li>
+                      <code>{c.caseId}</code> was caught by a learned rule: {c.rule}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p class="sans source">{memoryEval.source}</p>
+            </>
+          ) : (
+            <p class="sans hint">The two-phase memory eval hasn't been published yet.</p>
+          )
+        }
+      </div>
+      <div>
+        <h3>Rules the demo has learned</h3>
+        <p class="sans hint" id="rules-summary">Loading the live Memory…</p>
+        <ol class="rules" id="rules"></ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { DEMO_ORIGIN } from "../../../lib/demo-client";
+  import { h } from "../../../lib/dom";
+
+  interface Rule {
+    id: string;
+    status: string;
+    category: string;
+    description: string;
+    support: number;
+    cleanSamples: number;
+    liveTruePositives: number;
+    liveFalsePositives: number;
+  }
+
+  const STATUS: Record<string, string> = {
+    pending: "Waiting for enough clean traffic to test against",
+    shadow: "Watching live traffic, no effect yet",
+    flag: "Adds risk at the gate",
+    block: "Blocks at the gate",
+    rejected: "Rejected by its backtest",
+    retired: "Retired",
+  };
+  const ORDER = ["block", "flag", "shadow", "pending", "retired", "rejected"];
+
+  async function load(): Promise<void> {
+    const summary = document.getElementById("rules-summary") as HTMLElement;
+    const list = document.getElementById("rules") as HTMLElement;
+    try {
+      const res = await fetch(`${DEMO_ORIGIN}/__lazaret/memory`);
+      const body = (await res.json()) as {
+        enabled: boolean;
+        rules: Rule[];
+        stats: { archived: Record<string, number> } | null;
+      };
+      const archived = Object.values(body.stats?.archived ?? {}).reduce((a, b) => a + b, 0);
+      const rules = body.rules.sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status));
+      summary.textContent = rules.length
+        ? `${rules.length} ${rules.length === 1 ? "rule" : "rules"} from ${archived} archived verdicts. The Memory carries over when the demo resets each hour.`
+        : `Nothing learned yet from ${archived} archived verdicts. Rules need a few drops of the same kind before one is proposed.`;
+      list.replaceChildren(
+        ...rules.map((r) =>
+          h(
+            "li",
+            {},
+            h("span", { class: `st ${r.status}` }, STATUS[r.status] ?? r.status),
+            h("span", { class: "desc" }, r.description),
+            h(
+              "span",
+              { class: "meta" },
+              `${r.category}. Matched ${r.support} past drops and none of ${r.cleanSamples} clean writes. Live: ${r.liveTruePositives} right, ${r.liveFalsePositives} wrong.`,
+            ),
+          ),
+        ),
+      );
+    } catch {
+      summary.textContent = "The live Memory can't be reached right now.";
+    }
+  }
+  void load();
+</script>
+
+<style>
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(24px, 4vw, 48px);
+  }
+  h3 {
+    margin-bottom: 0.4rem;
+  }
+  .hint,
+  .source {
+    color: var(--ink-2);
+    font-size: var(--t-1);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    margin-bottom: 0.75rem;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 0.35rem 0.5rem 0.35rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  thead th {
+    font: 700 var(--t-1) / 1.2 var(--sans);
+    color: var(--ink-2);
+  }
+  tbody th {
+    font-weight: 400;
+  }
+  .catches {
+    margin: 0 0 0.75rem;
+    padding-left: 1.1rem;
+    font-size: var(--t-1);
+  }
+  .rules {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .rules :global(li) {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px dotted var(--rule);
+  }
+  .rules :global(.st) {
+    font: 700 var(--t-1) / 1.2 var(--sans);
+    color: var(--lagoon);
+  }
+  .rules :global(.st.block) {
+    color: var(--b);
+  }
+  .rules :global(.st.retired),
+  .rules :global(.st.rejected) {
+    color: var(--ink-3);
+  }
+  .rules :global(.meta) {
+    color: var(--ink-2);
+    font: 400 var(--t-1) / 1.4 var(--sans);
+  }
+  @media (max-width: 860px) {
+    .cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

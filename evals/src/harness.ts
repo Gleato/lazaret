@@ -4,7 +4,9 @@ import {
   defineLazaret,
   type EntryState,
   type LazaretLedger,
+  type LazaretMemory,
   type LedgerPort,
+  type MemoryPort,
   type Reviewer,
   runReviewPipeline,
   type StepRunner,
@@ -175,6 +177,25 @@ export interface HarnessOptions {
   maxUsd?: number;
   costOf?: (c: CallRecord) => number;
   seed?: number;
+  /**
+   * The Memory eval (src/memory-eval.ts). Without it the run has no Memory at all,
+   * exactly as before M7: the gateway finds no binding, the pipeline archives nothing.
+   */
+  memory?: {
+    /**
+     * What the gateway sees under the Memory binding: learned rules for the gate, and
+     * where inline verdicts are archived. A real namespace in training; a frozen view
+     * in held-out runs, so scoring never changes the rules being scored.
+     */
+    namespace: DurableObjectNamespace<LazaretMemory>;
+    name: string;
+    /**
+     * What the review pipeline archives to and takes reviewer context from. No proposer
+     * is passed to the pipeline: the Memory eval distils once per training round
+     * instead of after every batch (why: src/memory-eval.ts).
+     */
+    port: MemoryPort;
+  };
 }
 
 export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
@@ -192,7 +213,10 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
   );
 
   const config = defineLazaret(
-    tidewaterConfig({ ledger: { binding: "EVAL_LEDGER", shard: options.shard } }),
+    tidewaterConfig({
+      ledger: { binding: "EVAL_LEDGER", shard: options.shard },
+      ...(options.memory ? { memory: { binding: "EVAL_MEMORY", name: options.memory.name } } : {}),
+    }),
   );
   // Request ids that reached origin. "Delivered" means exactly this: a 401 from origin
   // for a wrong password still counts as delivered, a 403 from Lazaret does not.
@@ -229,7 +253,11 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
     return Response.json({ ok: true }, { status: 201 });
   };
   const gateway = createGateway(config, { fetchOrigin: origin, reviewer });
-  const env = { EVAL_LEDGER: options.ledger, LAZARET_SIGNING_SECRET: SECRET };
+  const env = {
+    EVAL_LEDGER: options.ledger,
+    LAZARET_SIGNING_SECRET: SECRET,
+    ...(options.memory ? { EVAL_MEMORY: options.memory.namespace } : {}),
+  };
   const ledger = options.ledger.get(options.ledger.idFromName(options.shard));
 
   // The gateway's structured gate log is the only place it reports risk and signals
@@ -316,6 +344,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
           committer,
           config,
           attemptBackoffMs: 500,
+          ...(options.memory ? { memory: options.memory.port } : {}),
         },
         batch.id,
       );

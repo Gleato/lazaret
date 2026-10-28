@@ -1,0 +1,513 @@
+---
+// The live demo: the attack console on the left, the Ledger on the right, and below
+// them what the gateway decided on the spot and what is waiting for a human. The
+// behaviour lives in src/lib/demo.ts; this file is structure and style.
+import { loadExhibits } from "../data/attacks";
+
+const exhibits = loadExhibits();
+// The corpus contains `<script>` payloads (that's the point of an XSS exhibit), so
+// the JSON is escaped before it goes into a script tag.
+const exhibitsJson = JSON.stringify(exhibits).replaceAll("<", "\\u003c");
+const turnstileSiteKey =
+  (import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string | undefined) ?? "1x00000000000000000000AA";
+---
+
+<section class="section demo" id="demo" aria-labelledby="demo-title">
+  <div class="wrap">
+    <header>
+      <h2 id="demo-title">Fire an attack at a real helpdesk</h2>
+      <p>
+        Tidewater Support is a small helpdesk with its own AI support agent, running behind a
+        real Lazaret deployment. Send it something below and follow the write through the
+        ledger: held, sealed into a batch, reviewed, then committed or dropped.
+      </p>
+    </header>
+
+    <div class="status sans" id="status" role="status" aria-live="polite">
+      <span class="dot" data-state="connecting"></span>
+      <span id="status-text">Connecting to the ledger…</span>
+      <span id="status-extra" class="extra"></span>
+    </div>
+
+    <div class="layout">
+      <div class="console">
+        <h3>Attack console</h3>
+        <p class="hint sans">
+          Each button sends a case from the evaluation corpus as a signed-in Tidewater
+          customer. Sending needs a quick bot check, because every write is reviewed by a paid
+          model.
+        </p>
+        <div id="check" class="check">
+          <button class="btn primary" id="start" type="button">Start sending</button>
+          <div id="turnstile"></div>
+          <p id="check-msg" class="sans small" role="alert"></p>
+        </div>
+        <ul class="exhibits" id="exhibits"></ul>
+        <div class="term" aria-label="Responses" role="log" id="log">
+          <p class="term-empty">Responses from the gateway appear here.</p>
+        </div>
+      </div>
+
+      <div class="ledger-panel">
+        <div class="ledger-head">
+          <h3>The ledger</h3>
+          <ul class="legend sans" id="legend"></ul>
+        </div>
+        <ol class="ledger" id="ledger" aria-live="off"></ol>
+        <p class="ledger-empty sans" id="ledger-empty">
+          No writes yet this hour. Send one from the console, or open <a
+            id="tidewater-link"
+            href="#">Tidewater</a
+          > and write a ticket yourself.
+        </p>
+      </div>
+    </div>
+
+    <div class="below">
+      <div>
+        <h3>Decided at the edge</h3>
+        <p class="hint sans">
+          Logins, API keys and credits can't wait for a batch, so a fast model reviews them
+          inline, under a 3 second deadline. Blocked routes never reach a model at all.
+        </p>
+        <ol class="rail" id="rail"></ol>
+      </div>
+      <div>
+        <h3>Waiting for a human</h3>
+        <p class="hint sans">
+          Writes the reviewer wouldn't clear, or declined to judge, are held here. An operator
+          releases or drops each one, and that decision becomes a training label for the
+          Memory.
+        </p>
+        <ol class="queue" id="queue"></ol>
+      </div>
+    </div>
+
+    <div class="agent" id="agent" hidden>
+      <h3>What Tidewater's AI agent would have done</h3>
+      <p class="hint sans">
+        A simulation: a deliberately naive agent reads two copies of the ticket queue. One copy
+        has the attack ticket in it, as if writes went straight to the database. The other is
+        the real queue behind Lazaret.
+      </p>
+      <div class="agent-grid">
+        <div class="side off">
+          <h4>Without Lazaret</h4>
+          <p class="amount lining" id="agent-off"></p>
+          <p class="sans small" id="agent-off-note"></p>
+        </div>
+        <div class="side on">
+          <h4>With Lazaret</h4>
+          <p class="amount lining" id="agent-on"></p>
+          <p class="sans small" id="agent-on-note"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="application/json" id="exhibits-data" set:html={exhibitsJson} />
+<script define:vars={{ turnstileSiteKey }}>
+  window.__TURNSTILE_SITE_KEY__ = turnstileSiteKey;
+</script>
+<script>
+  import { startDemo } from "../../../lib/demo";
+  startDemo();
+</script>
+
+<style>
+  .status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.75rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--rule);
+    border-left-width: 4px;
+    background: var(--paper-2);
+    margin-bottom: 1.5rem;
+    font-size: var(--t-1);
+  }
+  .status .extra {
+    color: var(--ink-2);
+  }
+  .status[data-tone="warn"] {
+    border-left-color: var(--q);
+  }
+  .status[data-tone="ok"] {
+    border-left-color: var(--lagoon);
+  }
+  .status[data-tone="bad"] {
+    border-left-color: var(--b);
+  }
+  .dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: var(--ink-3);
+    flex: none;
+  }
+  .dot[data-state="open"] {
+    background: var(--lagoon);
+  }
+  .dot[data-state="replay"] {
+    background: var(--q);
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
+    gap: clamp(20px, 3vw, 40px);
+    align-items: start;
+  }
+  h3 {
+    margin-bottom: 0.4rem;
+  }
+  .hint {
+    color: var(--ink-2);
+    font-size: var(--t-1);
+  }
+  .small {
+    font-size: var(--t-1);
+  }
+  .check {
+    display: grid;
+    gap: 0.5rem;
+    justify-items: start;
+    margin-bottom: 1rem;
+  }
+  .check p:empty {
+    display: none;
+  }
+
+  .exhibits {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .exhibits :global(li) {
+    border-bottom: 1px solid var(--rule);
+  }
+  .exhibits :global(button) {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.1rem 0.6rem;
+    width: 100%;
+    padding: 0.55rem 0.25rem;
+    border: 0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+  }
+  .exhibits :global(button:hover:not([disabled])) {
+    background: var(--paper-2);
+  }
+  .exhibits :global(button[disabled]) {
+    cursor: not-allowed;
+    color: var(--ink-3);
+  }
+  .exhibits :global(.ex-title) {
+    font-weight: 700;
+  }
+  .exhibits :global(.ex-kind) {
+    grid-row: span 2;
+    align-self: start;
+    margin-top: 0.15rem;
+    font-size: var(--t-1);
+    font-weight: 700;
+    padding: 0.05rem 0.4rem;
+    border-radius: 2px;
+    border: 1px solid currentColor;
+    min-width: 4.4rem;
+    text-align: center;
+  }
+  .exhibits :global(.ex-kind.attack) {
+    color: var(--b);
+  }
+  .exhibits :global(.ex-kind.honest) {
+    color: var(--lagoon);
+  }
+  .exhibits :global(.ex-watch) {
+    grid-column: 2;
+    color: var(--ink-2);
+    font-size: var(--t-1);
+    font-weight: 400;
+  }
+
+  .term {
+    background: var(--term);
+    color: var(--term-ink);
+    font: 400 0.78rem / 1.55 var(--mono);
+    padding: 0.8rem 0.9rem;
+    border-radius: 3px;
+    max-height: 22rem;
+    overflow: auto;
+    overflow-wrap: anywhere;
+  }
+  .term :global(p) {
+    margin: 0;
+    max-width: none;
+  }
+  .term :global(.req) {
+    color: var(--term-dim);
+    margin-top: 0.5rem;
+  }
+  .term :global(.req:first-child) {
+    margin-top: 0;
+  }
+  .term :global(.q) {
+    color: var(--term-q);
+  }
+  .term :global(.b) {
+    color: var(--term-b);
+  }
+  .term :global(.c) {
+    color: var(--term-c);
+  }
+  .term-empty {
+    color: var(--term-dim);
+  }
+
+  .ledger-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    color: var(--ink-2);
+    font-size: var(--t-1);
+  }
+  .legend :global(li) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .ledger {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    max-height: 46rem;
+    overflow: auto;
+  }
+  .ledger-empty {
+    color: var(--ink-2);
+    margin-top: 1rem;
+  }
+
+  /* One batch = one ledger page: a ruled head with its state track, entries below. */
+  .ledger :global(.batch) {
+    border-top: 2px solid var(--ink);
+    padding: 0.6rem 0 0.9rem;
+  }
+  .ledger :global(.batch[data-status="QUARANTINED"]) {
+    border-top-color: var(--q);
+  }
+  .ledger :global(.batch-head) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1rem;
+    font-family: var(--sans);
+    font-size: var(--t-1);
+  }
+  .ledger :global(.batch-name) {
+    font: 700 var(--t0) / 1.2 var(--serif);
+  }
+  .ledger :global(.track) {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 2px;
+  }
+  .ledger :global(.track li) {
+    padding: 0.05rem 0.45rem;
+    background: var(--paper-2);
+    color: var(--ink-3);
+  }
+  .ledger :global(.track li.done) {
+    background: var(--paper-3);
+    color: var(--ink-2);
+  }
+  .ledger :global(.track li.now) {
+    background: var(--ink);
+    color: var(--paper);
+    font-weight: 700;
+  }
+  .ledger :global(.track li.side) {
+    background: var(--q);
+    color: var(--q-ink);
+    font-weight: 700;
+  }
+  .ledger :global(.batch-note) {
+    color: var(--ink-2);
+  }
+  .ledger :global(.entries) {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+  }
+  .ledger :global(.entry) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.15rem 0.7rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px dotted var(--rule);
+  }
+  .ledger :global(.entry.mine) {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--q) 16%, transparent), transparent 70%);
+  }
+  .ledger :global(.entry .flag) {
+    color: var(--ink);
+    margin-top: 0.2rem;
+  }
+  .ledger :global(.entry-line) {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+  }
+  .ledger :global(.entry-body) {
+    grid-column: 2 / 4;
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    max-height: 4.6em;
+    overflow: hidden;
+  }
+  .ledger :global(.entry-verdict) {
+    grid-column: 2 / 4;
+    font-size: 0.92rem;
+  }
+  .ledger :global(.entry-verdict strong) {
+    font-family: var(--sans);
+  }
+  .ledger :global(.taint) {
+    grid-column: 2 / 4;
+    font-family: var(--sans);
+    font-size: var(--t-1);
+    color: var(--b);
+  }
+  .ledger :global(.risk) {
+    font-family: var(--sans);
+    font-size: var(--t-1);
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .ledger :global(.riskbar) {
+    display: inline-block;
+    width: 3.2rem;
+    height: 0.4rem;
+    background: var(--paper-3);
+    vertical-align: middle;
+  }
+  .ledger :global(.riskbar span) {
+    display: block;
+    height: 100%;
+    background: var(--ink-2);
+  }
+  .ledger :global(.riskbar.high span) {
+    background: var(--b);
+  }
+
+  .below {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(20px, 3vw, 40px);
+    margin-top: 2.5rem;
+  }
+  .rail,
+  .queue {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .rail :global(li),
+  .queue :global(li) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.1rem 0.6rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px dotted var(--rule);
+    font-size: 0.92rem;
+  }
+  .rail :global(.meta),
+  .queue :global(.meta) {
+    grid-column: 2;
+    color: var(--ink-2);
+    font-family: var(--sans);
+    font-size: var(--t-1);
+  }
+  .rail :global(.empty),
+  .queue :global(.empty) {
+    display: block;
+    color: var(--ink-2);
+    font-family: var(--sans);
+  }
+  .queue :global(.body) {
+    grid-column: 2;
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  .agent {
+    margin-top: 2.5rem;
+    border-top: 2px solid var(--ink);
+    padding-top: 1rem;
+  }
+  .agent-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .side {
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--rule);
+  }
+  .side.off {
+    border-left: 4px solid var(--b);
+  }
+  .side.on {
+    border-left: 4px solid var(--lagoon);
+  }
+  .side h4 {
+    margin: 0;
+    font: 700 var(--t0) / 1.2 var(--sans);
+  }
+  .amount {
+    font: 800 var(--t4) / 1.1 var(--serif);
+    margin: 0.3rem 0;
+  }
+
+  @media (max-width: 900px) {
+    .layout,
+    .below {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (max-width: 520px) {
+    .agent-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .ledger :global(.entry) {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+    .ledger :global(.risk) {
+      grid-column: 2;
+    }
+  }
+</style>

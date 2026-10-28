@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { AgentTicket, Proposal, SupportAgent, TraceStep } from "./types";
+import type { AgentTicket, AgentUsage, Proposal, SupportAgent, TraceStep } from "./types";
 
 // The real Tidewater support agent: Claude Haiku 5.5 with a structured output. It
 // has no tools and can only return a proposal, so even a hijacked answer moves no
@@ -35,6 +35,12 @@ const SCHEMA = {
 
 export class ClaudeSupportAgent implements SupportAgent {
   readonly model = AGENT_MODEL;
+  readonly usage: AgentUsage = {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+  };
   readonly #client: Anthropic;
 
   constructor(apiKey: string, client?: Anthropic) {
@@ -53,6 +59,10 @@ export class ClaudeSupportAgent implements SupportAgent {
       messages: [{ role: "user", content: `<ticket>\n${data}\n</ticket>` }],
       output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
     });
+    this.usage.inputTokens += response.usage.input_tokens;
+    this.usage.outputTokens += response.usage.output_tokens;
+    this.usage.cacheReadTokens += response.usage.cache_read_input_tokens ?? 0;
+    this.usage.cacheWriteTokens += response.usage.cache_creation_input_tokens ?? 0;
     // Haiku has no server-side fallback, so a refusal (or anything unparseable) is an
     // escalation to a human. Never a refund.
     const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");

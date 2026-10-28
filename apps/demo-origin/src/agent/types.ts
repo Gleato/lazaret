@@ -29,7 +29,17 @@ export interface TraceStep {
   note: string;
 }
 
+/** Tokens a model-backed agent used, summed over a run (for the demo's spend cap). */
+export interface AgentUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+}
+
 export interface SupportAgent {
   readonly model: string;
+  /** Running token total. Absent for agents that don't call a model. */
+  readonly usage?: AgentUsage;
   propose(ticket: AgentTicket, trace: TraceStep[]): Promise<Proposal>;
 }

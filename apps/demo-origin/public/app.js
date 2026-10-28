@@ -86,6 +86,11 @@ async function api(method, path, body) {
   try {
     json = await res.json();
   } catch {}
+  // On the public demo, writes need a Turnstile pass (apps/demo-lazaret guard.ts).
+  // The guard's check page sets it as a cookie and sends the visitor back here.
+  if (res.status === 401 && json?.error === "demo_pass_required") {
+    location.assign(`/demo/verify?return=${encodeURIComponent(location.pathname + location.hash)}`);
+  }
   return { status: res.status, json };
 }
 

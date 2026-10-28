@@ -8,7 +8,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
     "eval:gate": "EVAL_WRITE=1 vitest run test/eval.test.ts",
-    "eval:live": "EVAL_WRITE=1 EVAL_LIVE=1 vitest run test/eval.test.ts"
+    "eval:live": "EVAL_WRITE=1 EVAL_LIVE=1 vitest run test/eval.test.ts",
+    "eval:memory": "EVAL_WRITE=1 vitest run test/memory.test.ts",
+    "eval:memory:live": "EVAL_WRITE=1 EVAL_LIVE=1 vitest run test/memory.test.ts"
   },
   "dependencies": {
     "@gleator/lazaret": "*",

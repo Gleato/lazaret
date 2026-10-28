@@ -4,6 +4,7 @@ import type { ResolvedConfig } from "../config/define";
 import type { LazaretLedger, ReviewDispatch } from "../ledger/durable-object";
 import { AnthropicRuleProposer, type RuleProposer } from "../memory/distill";
 import type { LazaretMemory } from "../memory/store";
+import { meteredProposer, meteredReviewer, tierModel } from "./budget";
 import { AnthropicReviewer, type Reviewer } from "./client";
 import { type LedgerPort, type MemoryPort, runReviewPipeline, type StepRunner } from "./pipeline";
 
@@ -72,14 +73,24 @@ export class LazaretReviewWorkflow<Env = unknown> extends WorkflowEntrypoint<Env
     const memory = memoryNs
       ? (memoryNs.get(memoryNs.idFromName(config.memory.name)) as unknown as MemoryPort)
       : undefined;
-    const proposer = memory ? this.proposer(config) : undefined;
+    // Every model call is charged to the daily cap, which lives in its own Ledger
+    // instance (review/budget.ts). The pipeline checks it before review starts.
+    const budget = ns.get(ns.idFromName(config.review.budgetShard));
+    const charge = (usd: number) => budget.chargeSpend(usd);
+    const baseProposer = memory ? this.proposer(config) : undefined;
+    const proposer = baseProposer
+      ? meteredProposer(baseProposer, charge, config.memory.distillModel)
+      : undefined;
 
     const fetchOrigin = this.fetchOrigin();
     return runReviewPipeline(
       runner,
       {
         ledger,
-        reviewer: this.reviewer(config),
+        reviewer: meteredReviewer(this.reviewer(config), charge, (tier) =>
+          tierModel(config.review, tier),
+        ),
+        budget: { status: () => budget.budgetStatus(config.review.dailyBudgetUsd) },
         committer: createCommitter({
           origin: config.origin,
           secret,

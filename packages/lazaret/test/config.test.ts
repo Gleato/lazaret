@@ -6,7 +6,10 @@ describe("defineLazaret", () => {
     const config = defineLazaret({ origin: "https://api.example.com", routes: [] });
     expect(config.fallback).toEqual({ read: "PASS", write: "ESCROW" });
     expect(config.cycle).toEqual(DEFAULT_CYCLE);
-    expect(config.ledger).toEqual({ binding: "LAZARET_LEDGER", shard: "default" });
+    expect(config.ledger.binding).toBe("LAZARET_LEDGER");
+    expect(config.ledger.shardAt(0)).toBe("default");
+    expect(config.review).toMatchObject({ dailyBudgetUsd: 5, budgetShard: "lazaret-budget" });
+    expect(config.live).toEqual({ enabled: false, bodyPreviewChars: 280 });
     expect(config.gate.thresholds).toEqual({ pass: 0.7, review: 0.95 });
     expect(config.gate.sensitiveFields).toContain("role");
   });

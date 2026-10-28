@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M6.7 done (2026-10-28); M7 next**
+Status: **M0–M7 done (2026-10-28); M8 next**
 
 ---
 
@@ -70,10 +70,11 @@ bottom, which has the per-milestone design notes. Also read `tasks/lessons.md`.
 `LAZARET_SIGNING_SECRET` (≥ 16 chars, shared with origin) via `npx wrangler secret put`,
 after `npx wrangler login`. Not done yet. Nothing has called the real Claude API so far.
 
-**Next: M7** (see §7 and §9). M6 is built and verified; see the M6 review at the bottom.
-Before M7, two things need you: approve the M6 commit, and decide whether to run the live
-eval (`EVAL_CONFIRM_SPEND=yes npm run eval:live`, about $3, needs `ANTHROPIC_API_KEY` in your
-shell). The site's evals panel wants `evals/results/live-latest.json`.
+**Next: M8** (deploy). M7 is built and verified locally; see the M7 review at the bottom.
+Local stack: `npm run dev -w @gleator/tidewater-lazaret` (8787) plus `npm run dev -w
+@gleator/site` (4321); both are in `.claude/launch.json`. Open items for M8: Turnstile keys,
+`PUBLIC_DEMO_ORIGIN`, and `DEMO_SITE_ORIGINS`; re-record `apps/site/public/recording.json`
+against live models; the live memory eval (~$0.45, needs the user's OK).
 
 **Added in M6 (for the next session)**
 - Workspaces: `apps/demo-origin` (Tidewater), `apps/demo-lazaret` (its Lazaret deployment),
@@ -432,8 +433,206 @@ Decision log (you approved all of these):
 - [x] `onReviewUnavailable` per inline route; Tidewater login uses `gate`.
 
 ### M7 — Site
-- [ ] Astro site via `/frontend-design`, live visualizer over WebSocket, attack console, evals + memory panels
-- [ ] Turnstile, rate limits, spend cap, hourly reset
+- [x] Astro site via `/frontend-design`, live visualizer over WebSocket, attack console, evals + memory panels
+- [x] Turnstile, rate limits, spend cap, hourly reset
+
+#### M7 plan (2026-10-28, approved)
+
+**Your decisions (2026-10-28):** canned attacks only; footer is name + GitHub; budget:
+- **$10/day global cap** (`review.dailyBudgetUsd: 10`).
+- **$0.25/day per IP** (demo guard). An engaged visitor costs about 2–3¢, so this only
+  stops scripted draining.
+- **Recorded replay when the budget is spent.** A real session recorded against the
+  stack, labelled with its date, plays in the visualizer. Escrowed writes wait sealed.
+
+**Shape.** Three layers, each in the place it belongs:
+- **Library** (`packages/lazaret`): things any deployment needs. A spend cap, a live
+  event stream, a read-only public view. All opt-in through `defineLazaret()`.
+- **Demo guard** (`apps/demo-lazaret`): things only a public demo needs. Turnstile,
+  per-IP limits, hourly reset, the agent-run budget. It wraps the gateway, and the library
+  never learns it exists.
+- **Site** (`apps/site`): Astro, static, with small vanilla-TS islands (no UI framework,
+  like Tidewater's UI). It talks to the demo gateway over HTTP and one WebSocket.
+
+Locally: `astro dev` (4321) next to the offline Tidewater stack (8787, scripted reviewer,
+no API key). Both go in `.claude/launch.json`.
+
+Steps:
+- [x] **A. Spend cap, enforced (library; decision-log #6).**
+  - Prices move from `evals/src/pricing.ts` into the library (`review/pricing.ts`), so the
+    evals and the cap price calls from the same table.
+  - The Ledger DO keeps a `spend` table: USD per UTC day (one shard = one counter, already
+    a single writer).
+  - Every model call checks the budget *before* calling and records `usage` after: inline
+    (gateway), batch, escalation, distillation (workflow).
+  - Overshoot is bounded by the calls already in flight; documented, not hidden.
+  - **Budget spent = the reviewer is unavailable**, reusing decision #2's rules rather
+    than adding a new mode:
+    - Inline: a new cause, `budget`, treated like `timeout`/`error`. Login (`gate`) lets
+      through only a request the gate found nothing wrong with; credits and keys are denied.
+    - Escrow: batches seal and wait in `SEALED` (no review dispatched) until the next day or
+      a raised cap, then review as normal. Nothing commits unreviewed, and nothing piles into
+      the human queue.
+    - Distillation is skipped.
+  - `GET /__lazaret/status` reports `{ budget: { spentUsd, capUsd, exhausted }, inline:
+    { degraded } }`.
+  - Tests:
+    - the cap stops calls at the limit;
+    - inline login falls back to `gate`, credits deny;
+    - a sealed batch waits, then reviews after the day rolls over;
+    - usage from all three tiers adds up.
+- [x] **B. Live stream (library).**
+  - `LazaretLedger.fetch` accepts a hibernatable WebSocket at `/__lazaret/live?after=<seq>`.
+    It replays from `getEvents(after)`, then pushes each new event as it is appended.
+  - The stream is a **public projection**, built by `publicEvent()`:
+    - no headers, tokens or IPs;
+    - session ids cut to an 8-char hash;
+    - bodies cut to 280 chars, sent as plain strings;
+    - verdict category, risk and rationale kept.
+  - Inline decisions and gate blocks never enter the Ledger, but the visualizer should show
+    them. The gateway sends them through `ledger.observe()`, fire-and-forget. They go out
+    as `OBSERVED` frames, not into the event log, because the log stays the source of truth.
+    They also keep a small ring buffer for the `inline.degraded` count.
+  - Caps: 100 sockets per shard (over that, `503`), and outbound frames are coalesced.
+  - Config: `live: { enabled, bodyPreviewChars }`, off by default.
+  - Tests:
+    - replay then live in order, with no gaps or duplicates across a reconnect;
+    - the projection never carries headers or a full session id (property test over every
+      event type);
+    - socket cap; hibernation survives `evictDurableObject`.
+- [x] **C. Public read-only views (library).**
+  - `GET /__lazaret/memory`: rules with status and backtest numbers, the rule-event
+    timeline, and archive stats. Rule patterns are text.
+  - `GET /__lazaret/queue`: the human queue redacted the same way as the stream. Acting on
+    it stays behind the operator token.
+  - Both off unless `live.enabled`.
+- [x] **D. Demo guard (`apps/demo-lazaret/src/guard.ts`).**
+  - **Turnstile:** `POST /demo/pass` verifies a token and returns a 30-minute HMAC-signed
+    demo pass. The attack console and the WebSocket need a pass. Plain Tidewater browsing
+    doesn't. Dev uses Cloudflare's published always-pass test keys.
+  - **Rate limits:** Workers Rate Limiting bindings, per IP: 30 writes/min and
+    5 agent runs/hour. Also 3 passes/10 min per IP.
+  - **Hourly reset** (cron `0 * * * *`):
+    - The Ledger shard name gets an hourly epoch (`tidewater-<yyyymmddhh>`), so a fresh
+      Ledger starts each hour. In-flight batches still settle in the old shard, because the
+      Workflow carries the Ledger id: no race and no `deleteAll`. Library change:
+      `ledger.shard` may be a function of the time.
+    - Origin is re-seeded through a signed internal `/__reset` (service binding only).
+    - The Memory is kept, so the memory panel can show learning across resets. The live
+      socket gets a `reset` frame and reconnects to the new shard.
+  - **Agent-run budget:**
+    - Origin returns the run's token usage in a response header. The guard charges it to
+      the same daily spend counter, then strips the header.
+    - Once the budget is spent, agent runs get a `503` with a reason.
+  - Payload caps stay with the gate's 96 KiB `maxBodyBytes`. The demo guard lowers this to
+    16 KiB for the console.
+  - Tests: no pass → 401; a forged or expired pass → 401; over the rate limit → 429; reset
+    rolls the shard and reseeds; agent runs stop once the budget is spent.
+- [x] **E. Two-phase Memory eval (decision-log #7).**
+  - The eval worker gets a Memory binding.
+  - A deterministic, class-stratified split: 60% train, 40% held out, from a stable hash of
+    the case id.
+  - Phase 1 runs the training split through the pipeline with the Memory archiving and
+    distilling.
+  - Phase 2 runs the held-out split twice: with a cold Memory and with the warm one.
+  - Reported: gate-only recall and FPR, cold vs warm. Also model calls saved, rules
+    promoted/retired, and which held-out cases a learned rule caught.
+  - Offline `--fake` uses a scripted proposer (free, CI-checked). `--live` costs the usual
+    run plus about 3–5 Sonnet distillation calls, est. **~$0.30**. Not run without your OK.
+  - Output: `evals/results/memory-latest.json`.
+  - With 120 cases, few rules may promote. The panel shows whatever the run produced,
+    including "nothing learned yet".
+- [x] **F. Site skeleton (`apps/site`, Astro, via `/frontend-design`).**
+  - Aesthetic per §7: Venetian harbour ledger meets ops console. Ink-on-parchment type,
+    maritime signal flags as the state indicators, terminal panels for the live system.
+    Light and dark.
+  - Routing, ready for more projects:
+    - `src/projects/lazaret/` holds the page's content and sections.
+    - `src/layouts/{Base,Project}Layout.astro`.
+    - Today `/` renders the Lazaret project. Later, adding an index homepage and
+      `/projects/<name>` is one new page plus a moved import, with no redesign.
+  - Static sections, in §7's order:
+    1. Hero (1423 lazaretto → "AI agents are the new plague ships");
+    2. live demo (G–J);
+    3. architecture walkthrough: an interactive SVG, where each stage links to the code;
+    4. five principles, each with live evidence;
+    5. evals (K);
+    6. Memory (L);
+    7. code/README/GitHub and footer.
+  - The demo endpoint is a build-time env var (`PUBLIC_DEMO_ORIGIN`), so M8 only changes
+    config.
+- [x] **G. Live visualizer island.**
+  - Opens the WebSocket and reconnects from the last `seq`.
+  - Batch lanes step through `OPEN → SEALED → REVIEWING → COMMITTING → SETTLED`, with
+    QUARANTINED / REVIEW_FAILED side states shown as signal flags.
+  - Entries move between lanes. Verdict chips show category, risk and rationale.
+  - Taint draws a line from a dropped parent to the children it took down.
+  - Inline `OBSERVED` frames show in a side rail.
+  - **All event text is set with `textContent`; no HTML from the stream, ever.**
+  - `prefers-reduced-motion` turns movement into state changes only.
+- [x] **H. Attack console island.**
+  - Canned attacks from the eval corpus, with stable ids and short labels, loaded at build
+    time from `evals/corpus` so the site and the evals can't drift. Classes:
+    - SQLi, stored XSS, mass assignment, refund fraud;
+    - reviewer prompt injection, downstream support-agent injection;
+    - credential stuffing (a scripted burst of about 12 logins);
+    - taint (a ticket and its reply);
+    - benign traffic, for contrast.
+  - Each fires through the real gateway as a seeded demo customer. It shows the HTTP
+    response (202 + receipt, 403, inline verdict) and then follows the receipt in the
+    visualizer.
+  - The downstream scenario ends by running Tidewater's agent and showing the "Lazaret off"
+    replay next to it (still labelled *simulated*).
+  - Turnstile runs once per visit.
+  - Free-text editing: none in v1. Only canned payloads. That keeps the console an exhibit,
+    not an open relay, and bounds what the reviewer is asked to judge. *(Your call; see the
+    question below.)*
+- [x] **I. Human queue panel.**
+  - Read-only for visitors, from `GET /__lazaret/queue`: held entries, why, and the decline
+    category.
+  - It explains that a human releases or drops them, and that the label feeds the Memory.
+  - Bodies are text only.
+  - No operator controls on the public site. Operator actions stay with the bearer-token API,
+    plus a `curl` example in the README.
+- [x] **J. Status line.**
+  - A thin bar above the demo, from `GET /__lazaret/status` (polled every 15 s) and from
+    `x-lazaret-review: degraded` on console responses:
+    - **normal:** "Reviewer online";
+    - **degraded:** "Inline reviewer slow: logins fall back to gate rules, credits wait";
+    - **budget spent:** "Today's review budget is spent: writes are held until 00:00 UTC".
+  - Also shows the time to the next hourly reset.
+- [x] **K. Evals panel** (built from `live-latest.json` at build time, via the `dataviz`
+  skill).
+  - Recall, precision and FPR, overall and gate-only.
+  - Where attacks were stopped: gate, inline, review, escalation, taint.
+  - Per-class table.
+  - **Decline rate by tier and category** (escalation 3/7 `cyber` today), with an
+    honest note on what a decline means (held for a human, never allowed).
+  - **Inline latency shown honestly:** p50 1.7 s / p95 2.5 s against the 1.2 s TTFT floor
+    and the 3 s deadline, plus the run 8 FP the deadline caused.
+  - Cost per run and per 1k entries, and the run date and models. The page names the run
+    file, so the numbers can be traced.
+- [x] **L. Memory panel.**
+  - The two-phase result from E: cold vs warm gate recall on held-out cases.
+  - The live Memory's rules (status, backtest precision, hits) from `GET /__lazaret/memory`,
+    and the promotion timeline.
+- [x] **M. Verify and review.**
+  - Tests for A–E. `npm test`, `npm run typecheck`, `npx biome check .` all clean.
+  - Astro: `astro check` plus a build in CI terms.
+  - Browser pane against the offline stack: every canned attack, the visualizer through a
+    full cycle, a reconnect, the hourly reset (triggered by hand), a forced budget-spent
+    state, and a forced degraded state.
+  - Each at desktop and 375 px, light and dark.
+  - Then the README's status block and the M7 review below.
+
+**Not in M7:** deploying (M8), Playwright E2E (M8), operator UI on the site, free-text
+attacks, per-target-account spraying (decision #5).
+
+**Library changes, summarised for review:**
+- the spend cap and pricing table (A);
+- the hibernatable live stream and `observe()` (B);
+- the public memory/queue/status views (C);
+- `ledger.shard` as a function of time (D).
 
 ### M8 — Ship
 - [ ] Ledger log compaction: snapshot the projection + prune archived batches (deferred from M5)
@@ -443,8 +642,10 @@ Decision log (you approved all of these):
 ---
 
 ## 10. Open questions
-- Name/credit to display in the footer and an optional GitHub/LinkedIn link?
-- Public GitHub repo for the code (recommended for employers)?
+- Footer: name + GitHub (decided 2026-10-28). It says "Built by Gleato" for now; confirm
+  the name to show.
+- ~~Public GitHub repo?~~ Already public: github.com/Gleato/lazaret (checked 2026-10-28).
+  Its `origin/main` is at `875d7b8`; M6.5–M6.7 are committed locally but not pushed.
 
 ## Review
 
@@ -842,4 +1043,117 @@ Decision log (you approved all of these):
     rest were 1.5-2.5 s), and credits are `deny` when unreachable. That's a deliberate
     trade (money waits), but the tail sits close to the deadline. Options for later:
     a 4 s deadline for credits only, or keep 3 s and accept it. Not changed here.
+
+### M7 (2026-10-28)
+- **Library** (`packages/lazaret`):
+  - **Spend cap, enforced** (`review/budget.ts`, `review/pricing.ts`).
+    - Every model call is metered from real token usage: inline, batch, escalation and
+      distillation, through `meteredReviewer` and `meteredProposer`. Prices moved into the
+      library, so the evals and the cap use one table.
+    - The counter is a `spend` table in a dedicated Ledger instance (`review.budgetShard`),
+      so it survives shard rollover.
+    - When the budget is spent:
+      - inline routes get a new unavailable cause, `budget`, and the route's
+        `onReviewUnavailable` decides (`x-lazaret-review: budget` on the 503);
+      - batches sleep durably in the Workflow until the next UTC day, so they wait SEALED
+        (quarantined only after 7 days);
+      - distillation is skipped.
+    - Overshoot is bounded by the calls already in flight plus one batch. This is
+      documented rather than locked per call.
+    - If the budget object is unreachable, review goes ahead: the cap guards spend, not
+      safety.
+  - **Live stream** (`ledger/public.ts`, Ledger `fetch`, hibernatable WebSockets).
+    - Each viewer gets HELLO, a paged replay after `?after=`, and the last 30 observations,
+      all sent synchronously after `acceptWebSocket`. Every commit is then broadcast as one
+      frame, after the transaction holds.
+    - The cap is 100 sockets per shard; over that, viewers get a 503.
+    - The public projection is built from an allow-list: no headers, queries, IPs or
+      operator names, 8-character session hashes, bodies cut to `bodyPreviewChars`. A new
+      event type fails the compile until it gets a projection.
+    - `observe()` covers what the gateway decides on its own (inline verdicts, gate
+      blocks). It goes into a 200-row ring, never into the event log, and never carries a
+      body. `closeLive()` sends RESET.
+  - **Public endpoints** `/__lazaret/{live,status,queue,memory}`, behind `live.enabled`.
+  - `ledger.shard` may be a function of the time (`shardAt`). It is exported on its own
+    as `@gleator/lazaret/public` (types only, no Workers imports) for browser clients.
+- **Demo guard** (`apps/demo-lazaret/src/guard.ts`), wrapping the gateway:
+  - Turnstile → a 30-minute HMAC pass, as a cookie or the `x-demo-pass` header. Only
+    writes need it. The pass is never forwarded.
+  - Workers Rate Limiting: 30 writes/min and 3 passes/min per IP.
+  - A $0.25 daily share per IP, charged from estimates (escrow $0.003, inline $0.002),
+    because batch costs carry no IP.
+  - Agent runs: checked against the global cap, 5 a day per IP, charged from the
+    `x-tidewater-usage` header the origin now sends. The guard strips that header.
+  - A 16 KiB body cap.
+  - CORS for the site's origins only.
+  - The hourly reset uses the shard naming (`tidewater-<yyyy-mm-ddThh>`). The cron calls
+    `closeLive` on the old shard and re-seeds origin through a signed `POST /admin/reset`
+    (BLOCKed at the edge). The minute sweep also sweeps the previous hour's shard.
+  - Tidewater config: $10/day cap and `live` on.
+  - Tidewater UI: a 401 `demo_pass_required` redirects to `/demo/verify`.
+  - Dev runs with `--test-scheduled`, so the reset can be triggered by hand.
+- **Origin:** `src/seed.ts` and `POST /admin/reset`. A test checks a reset database
+  equals a freshly migrated one. The agent reports its usage.
+- **Memory eval** (step E, built by a subagent, in `evals/`):
+  - Deterministic stratified split, 73 train / 47 held out.
+  - Training runs in 3 rounds with per-round distillation. Phase 2 runs on a frozen
+    Memory.
+  - Fake run: held-out gate recall went from 1/23 to 3/23 (sqli-01 and sqli-02 were
+    caught by a learned block rule), with 0 gate false positives. This checks the loop,
+    not rule quality.
+  - Live estimate: **~$0.45, not run.**
+  - The subagent flagged two library follow-ups:
+    - a rule rejected for low support can never be proposed again;
+    - backtests use the reviewer's own labels, so a rule that catches a reviewer miss is
+      rejected (operator `label()` is the existing fix path).
+- **Site** (`apps/site`, Astro 7, built with `/frontend-design`):
+  - Lagoon-grey paper and iron-gall ink. Real International Code of Signals flags carry
+    state, and their shapes differ so meaning never rests on colour alone: Q (yellow)
+    held, B (red swallowtail) dropped, C (stripes) admitted. Alegreya and Alegreya Sans,
+    with Plex Mono only for logs.
+  - `/` renders `src/projects/lazaret/LazaretPage.astro`, so adding projects later means
+    one new page.
+  - The demo island (`src/lib/demo.ts`, a pure reducer in `ledger-view.ts` with 5 tests):
+    - the console runs 10 corpus exhibits, read at build time from `evals/corpus` so they
+      can't drift from the evals;
+    - personas sign in up front;
+    - receipts are followed into the ledger;
+    - the dpi-01 exhibit ends with the simulated "Lazaret off" comparison.
+  - Panels: edge rail, human queue (read-only), status line, evals, Memory.
+  - The evals and memory numbers come from the results files at build time.
+  - Recorded replay when the budget is spent or the demo is unreachable
+    (`public/recording.json`, from `npm run record -w @gleator/site`).
+  - All network text is set with `textContent`. The exhibit JSON escapes `<`.
+- **Verified:**
+  - 374 tests pass: 283 library, 44 origin, 27 demo deployment, 5 site, 15 evals (2
+    skipped).
+  - `npm run typecheck` and `npx biome check .` are clean.
+  - Regenerated offline results: gate-only unchanged (5/63, 0 FP). Fake mode is 30/63 with
+    1 FP, up from 28/63, because the scripted reviewer now holds text that addresses the
+    reviewer, which gives the offline queue panel something to show.
+  - In the browser pane against the offline stack, I checked:
+    - every exhibit: honest ticket delivered, XSS dropped and rendered inert, taint
+      reply dropped with its parent, mass assignment, fraud refused inline, the stuffing
+      burst refused at the edge after 10 failures, rpi-07 in the human queue, and dpi-01
+      at $5,000 hijacked off vs $0 on;
+    - the budget-spent replay, the degraded status and the manual hourly reset;
+    - desktop and 375 px, in light and dark, with no horizontal overflow.
+- **Found and fixed while verifying:**
+  - `requestAnimationFrame` doesn't run in a background tab, so the ledger froze. A timer
+    now backs it up.
+  - A credential-stuffing exhibit locked the visitor's own later logins out (correct gate
+    behaviour), so personas now sign in first.
+  - A `display` rule beat `[hidden]`; a global rule now fixes it.
+  - Astro drops the space between a line-final word and a following `{expr}`, so those
+    places use an explicit `{" "}`.
+- **Not verified or not done:**
+  - The real Turnstile widget and siteverify (offline uses the test key; siteverify is
+    unit-tested only with an injected verifier).
+  - The 100-socket cap (no test).
+  - A recording from live models. The current one is from the offline stack and labelled
+    as such; re-record against live in M8.
+  - The console only calls the simulation endpoint, not the real `POST /api/agent/run`,
+    to keep each click cheap. The real agent's cost cap is in place for the Tidewater UI.
+  - The live memory eval (~$0.45) needs your OK.
+  - Footer name to confirm.
 

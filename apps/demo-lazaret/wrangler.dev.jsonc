@@ -19,6 +19,18 @@
     }
   ],
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TidewaterLedger", "TidewaterMemory"] }],
-  // Sweep re-dispatches any sealed batch whose review never started.
-  "triggers": { "crons": ["* * * * *"] }
+  // Every minute: sweep re-dispatches any sealed batch whose review never started.
+  // On the hour: the demo reset (src/guard.ts).
+  "triggers": { "crons": ["* * * * *", "0 * * * *"] },
+  // Per-IP limits for the public demo (src/guard.ts). Periods can only be 10 or 60 s.
+  "ratelimits": [
+    { "name": "WRITE_LIMIT", "namespace_id": "7001", "simple": { "limit": 30, "period": 60 } },
+    { "name": "PASS_LIMIT", "namespace_id": "7002", "simple": { "limit": 3, "period": 60 } }
+  ],
+  "vars": {
+    // Browser origins allowed to call the demo (the gleator.com console), comma-separated.
+    "DEMO_SITE_ORIGINS": "http://localhost:4321",
+    // Cloudflare's published always-pass Turnstile test site key (local dev only).
+    "TURNSTILE_SITE_KEY": "1x00000000000000000000AA"
+  }
 }

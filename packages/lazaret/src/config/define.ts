@@ -55,8 +55,13 @@ export interface LazaretConfig {
   ledger?: {
     /** Durable Object namespace binding holding the Ledger. Default `LAZARET_LEDGER`. */
     binding?: string;
-    /** Ledger instance name. One shard for now; per-tenant sharding comes later. */
-    shard?: string;
+    /**
+     * Ledger instance name. One shard for now; per-tenant sharding comes later. A
+     * function of the time rolls the shard over (the public demo starts a fresh Ledger
+     * every hour). Batches already in review finish in their old shard, because the
+     * Review Workflow addresses its Ledger by id, not by name.
+     */
+    shard?: string | ((now: number) => string);
   };
   /** How to identify a session. Checked in order: cookie, header, then IP + user agent. */
   session?: { cookie?: string; header?: string };
@@ -91,7 +96,14 @@ export interface LazaretConfig {
     maxAttempts?: number;
     /** Env binding holding the Anthropic API key. */
     apiKeyBinding?: string;
+    /**
+     * Hard cap on model spend per UTC day, across all tiers, priced from real token
+     * usage (review/budget.ts). Default $5. Once spent, inline routes treat the reviewer
+     * as unavailable and batches wait sealed until the next day.
+     */
     dailyBudgetUsd?: number;
+    /** Ledger instance that keeps the spend counter. Default `lazaret-budget`. */
+    budgetShard?: string;
     /**
      * Who is asking, from origin itself. Before inline review the gateway makes a signed
      * `GET path` to origin with the client's own headers and picks `fields` (output name →
@@ -112,6 +124,17 @@ export interface LazaretConfig {
   operator?: {
     /** Env binding holding the operator bearer token. Default `LAZARET_OPERATOR_TOKEN`. */
     tokenBinding?: string;
+  };
+  /**
+   * The public, read-only view (M7): a WebSocket stream of the Ledger at
+   * `/__lazaret/live`, and `/__lazaret/{status,queue,memory}`. Off by default. What it
+   * shows is a redacted projection (ledger/public.ts): no headers, tokens, IPs or
+   * queries, short session hashes, and bodies cut to `bodyPreviewChars`.
+   */
+  live?: {
+    enabled?: boolean;
+    /** Body characters shown per entry (default 280, max 2000, 0 hides bodies). */
+    bodyPreviewChars?: number;
   };
   memory?: {
     /** Durable Object namespace binding for the Memory. If absent, memory is off. */
@@ -146,7 +169,7 @@ export interface ResolvedConfig {
   overlays: CompiledOverlay[];
   fallback: { read: Policy; write: Policy };
   cycle: CycleConfig;
-  ledger: { binding: string; shard: string };
+  ledger: { binding: string; shardAt: (now: number) => string };
   session: { cookie?: string; header?: string };
   gate: {
     thresholds: { pass: number; review: number };
@@ -163,10 +186,12 @@ export interface ResolvedConfig {
     maxAttempts: number;
     apiKeyBinding: string;
     dailyBudgetUsd: number;
+    budgetShard: string;
     actor: { path: string; fields: Record<string, string>; timeoutMs: number } | null;
   };
   signing: { secretBinding: string };
   operator: { tokenBinding: string };
+  live: { enabled: boolean; bodyPreviewChars: number };
   memory: {
     binding: string;
     name: string;
@@ -331,6 +356,18 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
     }
   }
 
+  const shard = config.ledger?.shard ?? "default";
+  const bodyPreviewChars = config.live?.bodyPreviewChars ?? 280;
+  if (!(Number.isInteger(bodyPreviewChars) && bodyPreviewChars >= 0 && bodyPreviewChars <= 2000)) {
+    problems.push("live.bodyPreviewChars must be an integer from 0 to 2000");
+  }
+  const dailyBudgetUsd = config.review?.dailyBudgetUsd ?? 5;
+  if (!(dailyBudgetUsd > 0)) problems.push("review.dailyBudgetUsd must be greater than 0");
+  const budgetShard = config.review?.budgetShard ?? "lazaret-budget";
+  if (typeof shard === "string" && shard === budgetShard) {
+    problems.push("ledger.shard and review.budgetShard must differ");
+  }
+
   const rules: CompiledRule[] = [];
   const ruleIds = new Set<string>();
   for (const rule of config.gate?.rules ?? []) {
@@ -350,7 +387,7 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
     cycle,
     ledger: {
       binding: config.ledger?.binding ?? "LAZARET_LEDGER",
-      shard: config.ledger?.shard ?? "default",
+      shardAt: typeof shard === "function" ? shard : () => shard,
     },
     session: { ...config.session },
     gate: {
@@ -369,11 +406,13 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
       inlineTimeoutMs,
       maxAttempts,
       apiKeyBinding: config.review?.apiKeyBinding ?? "ANTHROPIC_API_KEY",
-      dailyBudgetUsd: config.review?.dailyBudgetUsd ?? 5,
+      dailyBudgetUsd,
+      budgetShard,
       actor,
     },
     signing: { secretBinding: config.signing?.secretBinding ?? "LAZARET_SIGNING_SECRET" },
     operator: { tokenBinding: config.operator?.tokenBinding ?? "LAZARET_OPERATOR_TOKEN" },
+    live: { enabled: config.live?.enabled ?? false, bodyPreviewChars },
     memory: {
       binding: config.memory?.binding ?? "LAZARET_MEMORY",
       name: config.memory?.name ?? "default",

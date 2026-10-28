@@ -4,6 +4,7 @@ import { type Account, authenticate, getAccount, login, randomToken, sha256Hex }
 import { onceByLazaretId, type WriteResult } from "./dedupe";
 import { HttpError, json, parseJsonObject, str } from "./http";
 import type { Route } from "./router";
+import { resetDemo } from "./seed";
 
 // Tidewater's API (tasks/todo.md §6). Policies are Lazaret's business, set in
 // apps/demo-lazaret. This file is just a helpdesk, written the way you'd write one
@@ -354,6 +355,11 @@ export const routes: Route<Ctx>[] = [
         )
         .all<AgentTicket>();
       const run = await runAgent(agent, queue);
+      // The run's token usage, for the public demo's spend cap (apps/demo-lazaret
+      // guard.ts charges it and strips the header before the response leaves).
+      const usage = agent.usage
+        ? { "x-tidewater-usage": JSON.stringify({ model: agent.model, ...agent.usage }) }
+        : undefined;
       if (run.proposals.length) {
         await ctx.db.batch(
           run.proposals.map((p) =>
@@ -376,7 +382,7 @@ export const routes: Route<Ctx>[] = [
           ),
         );
       }
-      return json(200, run);
+      return json(200, run, usage);
     },
   },
   {
@@ -408,6 +414,17 @@ export const routes: Route<Ctx>[] = [
         .prepare(`${AGENT_QUEUE_SQL} ORDER BY t.created_at DESC LIMIT 5`)
         .all<AgentTicket>();
       return json(200, await simulateLazaretOff(committed.reverse(), scenario as ScenarioId));
+    },
+  },
+  {
+    // The public demo's hourly reset (seed.ts). Lazaret BLOCKs `/admin/*` at the edge,
+    // so only the demo guard, calling origin directly over the service binding with a
+    // signed request, gets here. No account is involved: the signature is the check.
+    method: "POST",
+    path: "/admin/reset",
+    handler: async (ctx) => {
+      await resetDemo(ctx.db);
+      return json(200, { reset: true, at: ctx.now });
     },
   },
   {

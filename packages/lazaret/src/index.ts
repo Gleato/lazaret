@@ -42,6 +42,18 @@ export type { ReviewDispatch, ReviewSnapshot } from "./ledger/durable-object";
 export { LazaretLedger } from "./ledger/durable-object";
 export type { LedgerEvent, LedgerEventType, StoredEvent } from "./ledger/events";
 export { applyEvent, IllegalTransition, initialState, replay } from "./ledger/machine";
+export {
+  type LiveFrame,
+  type ObservedInput,
+  PUBLIC_EVENT_TYPES,
+  type PublicEntry,
+  type PublicEvent,
+  type PublicObservation,
+  publicEntry,
+  publicEvent,
+  publicObservation,
+  shortSession,
+} from "./ledger/public";
 export { applyTaint, type TaintResult } from "./ledger/taint";
 export { type CycleConfig, DEFAULT_CYCLE } from "./ledger/triggers";
 export type * from "./ledger/types";
@@ -85,6 +97,17 @@ export {
   type PendingWrite,
 } from "./overlay/merge";
 export {
+  type BudgetPort,
+  type BudgetStatus,
+  GLOBAL_BUDGET_KEY,
+  meteredProposer,
+  meteredReviewer,
+  nextUtcMidnight,
+  SpendTable,
+  tierModel,
+  utcDay,
+} from "./review/budget";
+export {
   AnthropicReviewer,
   FatalReviewError,
   type ReviewCall,
@@ -94,9 +117,10 @@ export {
   type ReviewUsage,
   TransientReviewError,
 } from "./review/client";
-export { type InlineDecision, inlineReview } from "./review/inline";
+export { type InlineDecision, inlineReview, type UnavailableCause } from "./review/inline";
 export type { MemoryPort } from "./review/pipeline";
 export {
+  type BudgetCheck,
   chunkEntries,
   finalVerdict,
   type LedgerPort,
@@ -106,6 +130,7 @@ export {
   type StepOptions,
   type StepRunner,
 } from "./review/pipeline";
+export { costUsd, PRICES } from "./review/pricing";
 export type { MemoryHint } from "./review/prompt";
 export {
   buildBatchPrompt,

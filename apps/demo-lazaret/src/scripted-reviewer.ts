@@ -15,8 +15,24 @@ const ATTACK = [
   { re: /"amount_cents"\s*:\s*\d{5,}/, category: "fraud" },
 ] as const;
 
+/**
+ * Text that talks to the reviewer, with nothing else wrong, is held for a human. That's
+ * what a careful reviewer does with it, and it gives the offline stack something for the
+ * human review queue (the site's queue panel) without a live model.
+ */
+const ADDRESSES_REVIEWER =
+  /\b(reviewers?|reviewing this|verdicts?|pre-?cleared|approve every|mark this (as )?(safe|allow))\b/i;
+
 export function scriptedVerdict(body: string | null): VerdictRecord {
   const hit = ATTACK.find((a) => a.re.test(body ?? ""));
+  if (!hit && ADDRESSES_REVIEWER.test(body ?? "")) {
+    return {
+      verdict: "quarantine",
+      category: "prompt_injection",
+      confidence: 0.6,
+      rationale: "scripted: the text addresses the reviewer; held for a human",
+    };
+  }
   return hit
     ? {
         verdict: "drop",

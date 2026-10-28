@@ -14,10 +14,12 @@ import { inspect } from "../gate/inspect";
 import { compileRule } from "../gate/rules";
 import type { GateSignal } from "../gate/signals";
 import type { LazaretLedger } from "../ledger/durable-object";
+import type { ObservedInput } from "../ledger/public";
 import type { EntryInput } from "../ledger/types";
 import { archiveRecord } from "../memory/sample";
 import type { LazaretMemory } from "../memory/store";
 import { overlayResponse } from "../overlay/apply";
+import { meteredReviewer, tierModel } from "../review/budget";
 import { AnthropicReviewer, type Reviewer } from "../review/client";
 import { inlineReview } from "../review/inline";
 import { fillTemplate, matchPattern } from "../routing/matcher";
@@ -32,6 +34,7 @@ import {
   toBase64,
 } from "./http";
 import { handleOperator } from "./operator";
+import { handlePublic, PUBLIC_KINDS } from "./public";
 import { deriveSessionId } from "./session";
 
 // The Gateway is the Worker entrypoint. For every request it:
@@ -49,7 +52,12 @@ import { deriveSessionId } from "./session";
 // Reads on routes with an overlay get the session's own pending writes merged in
 // (author-only, see overlay/apply.ts). `GET /__lazaret/receipts/:id` lets an author
 // poll a receipt, and `/__lazaret/operator/` is the human review queue (operator.ts).
-// The `/__lazaret/` prefix is reserved and never reaches origin.
+// With `live.enabled`, `/__lazaret/{live,status,queue,memory}` are the public,
+// read-only view (public.ts). The `/__lazaret/` prefix is reserved and never reaches
+// origin.
+//
+// Inline review is metered against the daily spend cap (review/budget.ts) and checked
+// before each call: once the day's budget is spent, the reviewer counts as unavailable.
 //
 // `scheduled` is the cron entrypoint: it sweeps the Ledger for sealed batches
 // whose review never started (see LazaretLedger.sweep).
@@ -121,7 +129,13 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
   const ledgerFor = (env: object) => {
     const ns = binding<DurableObjectNamespace<LazaretLedger>>(env, config.ledger.binding);
     if (!ns) throw new Error(`Lazaret: missing Durable Object binding ${config.ledger.binding}`);
-    return ns.get(ns.idFromName(config.ledger.shard));
+    return ns.get(ns.idFromName(config.ledger.shardAt(now())));
+  };
+  // The spend counter lives in its own Ledger instance, so it survives shard rollover.
+  const budgetFor = (env: object) => {
+    const ns = binding<DurableObjectNamespace<LazaretLedger>>(env, config.ledger.binding);
+    if (!ns) throw new Error(`Lazaret: missing Durable Object binding ${config.ledger.binding}`);
+    return ns.get(ns.idFromName(config.review.budgetShard));
   };
 
   return {
@@ -147,6 +161,17 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
 
       if (norm.segments[0]?.toLowerCase() === "__lazaret") {
         const [, kind, id] = norm.segments;
+        if (config.live.enabled && kind && PUBLIC_KINDS.has(kind) && norm.segments.length === 2) {
+          const res = await handlePublic(request, kind, {
+            config,
+            ledger: ledgerFor(env),
+            shard: config.ledger.shardAt(now()),
+            budget: async () => budgetFor(env).budgetStatus(config.review.dailyBudgetUsd),
+            memory: memoryFor(env),
+          });
+          // A 101 carries the socket; its headers are immutable, so it isn't re-tagged.
+          return res.status === 101 ? res : tag(res);
+        }
         if (kind === "operator") {
           const secret = binding<string>(env, config.signing.secretBinding);
           return tag(
@@ -253,10 +278,31 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
           signals: decision.signals.map((s) => s.id),
         }),
       );
+      // Telemetry for the public live view (fire-and-forget; never on the critical path).
+      const observe = (
+        o: Omit<ObservedInput, "route" | "method" | "sessionId" | "risk" | "signals">,
+      ) => {
+        if (!config.live.enabled) return;
+        const sending = Promise.resolve(
+          ledgerFor(env).observe({
+            ...o,
+            route: routeName,
+            method,
+            sessionId,
+            risk: decision.risk,
+            signals: decision.signals.map((s) => s.id),
+          }),
+        ).catch((err: unknown) =>
+          console.error(JSON.stringify({ lazaret: "observe_failed", error: String(err) })),
+        );
+        if (ctx) ctx.waitUntil(sending);
+      };
+
       if (decision.block) {
         // Lazaret's own refusals count as auth failures for per-route scoring (as
         // origin's 401s do), so a client that keeps getting refused keeps adding up.
         sample.status = 403;
+        observe({ kind: "gate_block", outcome: "deny" });
         return reject(403, "forbidden");
       }
 
@@ -347,9 +393,24 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
 
         case "INLINE_REVIEW": {
           const apiKey = binding<string>(env, config.review.apiKeyBinding);
-          const reviewer =
+          const base =
             deps.reviewer ?? (apiKey ? new AnthropicReviewer(apiKey, config.review) : null);
-          if (!reviewer) return reject(503, "review_unavailable");
+          if (!base) return reject(503, "review_unavailable");
+          const budget = budgetFor(env);
+          const reviewer = meteredReviewer(
+            base,
+            (usd) => budget.chargeSpend(usd),
+            (tier) => tierModel(config.review, tier),
+          );
+          // One round trip to the budget object (a few ms) before a ~1.2 s model call.
+          // If the budget object itself can't be reached, review goes ahead: the cap
+          // guards spend, and failing every login on its account would be worse.
+          const spent = await Promise.resolve(budget.budgetStatus(config.review.dailyBudgetUsd))
+            .then((b) => b.exhausted)
+            .catch((err: unknown) => {
+              console.error(JSON.stringify({ lazaret: "budget_unavailable", error: String(err) }));
+              return false;
+            });
           // A few ms over a service binding, against the ~1.1 s the model takes to start.
           const actorConfig = config.review.actor;
           const actor = actorConfig
@@ -363,18 +424,22 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
                 ),
               )
             : null;
-          const result = await inlineReview(
-            {
-              ...entry,
-              id: requestId,
-              batchId: "inline",
-              status: "PENDING",
-              receivedAt: sample.at,
-            },
-            reviewer,
-            config,
-            actor,
-          );
+          const started = Date.now();
+          const result = spent
+            ? ({ unavailable: "daily review budget spent", cause: "budget" } as const)
+            : await inlineReview(
+                {
+                  ...entry,
+                  id: requestId,
+                  batchId: "inline",
+                  status: "PENDING",
+                  receivedAt: sample.at,
+                },
+                reviewer,
+                config,
+                actor,
+              );
+          const latencyMs = spent ? undefined : Date.now() - started;
           // Inline verdicts feed the Memory like batch verdicts do (off the critical path).
           const memory = memoryFor(env);
           if (memory && "verdict" in result) {
@@ -430,17 +495,33 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
                   risk: Number(decision.risk.toFixed(3)),
                 }),
               );
+              observe({ kind: "inline", outcome: "degraded", cause: result.cause, latencyMs });
               const res = await forward();
               res.headers.set("x-lazaret-review", "degraded");
               return res;
             }
             // Fail closed: no verdict means no write.
-            return reject(503, "review_unavailable");
+            observe({ kind: "inline", outcome: "unavailable", cause: result.cause, latencyMs });
+            const refused = reject(503, "review_unavailable");
+            if (result.cause === "budget") refused.headers.set("x-lazaret-review", "budget");
+            return refused;
           }
           if (result.verdict.verdict !== "allow") {
             sample.status = 403;
+            observe({
+              kind: "inline",
+              outcome: "deny",
+              category: result.verdict.category,
+              latencyMs,
+            });
             return reject(403, "forbidden");
           }
+          observe({
+            kind: "inline",
+            outcome: "allow",
+            category: result.verdict.category,
+            latencyMs,
+          });
           return forward();
         }
 

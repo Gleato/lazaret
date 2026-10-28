@@ -1,0 +1,197 @@
+---
+// How a write travels, as a sequence a visitor can step through. Numbered because it
+// really is an order. Each stage links to the file that implements it.
+const REPO = "https://github.com/Gleato/lazaret/blob/main/packages/lazaret/src";
+const stages = [
+  {
+    id: "gate",
+    name: "Gate",
+    line: "Scores every request in under 5 ms, with no model call.",
+    detail:
+      "The gateway normalises the path, matches a route, and scores the request: attack signatures, mass-assignment fields, per-session and per-route behaviour (bursts, failed logins), and rules the Memory has learned. Reads pass through. Blocked routes stop here. The score travels with the write as evidence.",
+    code: `${REPO}/gateway/gateway.ts`,
+  },
+  {
+    id: "ledger",
+    name: "Ledger",
+    line: "Holds the write and answers 202 with a receipt.",
+    detail:
+      "A Durable Object with an append-only event log in SQLite. Its state is a replay of that log, so a crash loses nothing that was acknowledged. Writes collect in a batch that seals on a 30 second timer, when full, or at once on a risk spike. The author sees their own pending writes in reads; nobody else does.",
+    code: `${REPO}/ledger/durable-object.ts`,
+  },
+  {
+    id: "review",
+    name: "Reviewer",
+    line: "An independent Claude model judges the batch.",
+    detail:
+      "Claude Sonnet 5.5 reviews each sealed batch. It has no tools and no network, and it only returns JSON verdicts. Payloads are encoded as data, so text that addresses the reviewer is just more evidence. A risky allow goes to Claude Opus 5.5 for a second look. Only the configured model can decide: a decline or a fallback model's answer holds the write for a human.",
+    code: `${REPO}/review/pipeline.ts`,
+  },
+  {
+    id: "commit",
+    name: "Committer",
+    line: "Replays approved writes to your origin, signed.",
+    detail:
+      "Approved writes are sent to origin exactly as the client sent them, HMAC-signed with an idempotency key, inside a checkpointed Cloudflare Workflow. A retry never commits twice. Drops spread to every write that depended on them (taint), so a harmless-looking reply to a malicious ticket falls with it.",
+    code: `${REPO}/commit/committer.ts`,
+  },
+  {
+    id: "memory",
+    name: "Memory",
+    line: "Turns the reviewer's verdicts into cheap gate rules.",
+    detail:
+      "Every verdict is archived. After a batch with drops, a model proposes deterministic rules. Each one is backtested against past traffic, shadowed on live traffic, and promoted only while it stays clean. Human decisions from the review queue are labels too, so the Memory also learns from what the reviewer missed.",
+    code: `${REPO}/memory/store.ts`,
+  },
+];
+---
+
+<section class="section" id="how" aria-labelledby="how-title">
+  <div class="wrap">
+    <header>
+      <h2 id="how-title">How a write gets through</h2>
+      <p>Five stages between a client and your database. Select one to see what it does.</p>
+    </header>
+    <div class="arch" data-arch>
+      <ol class="stages" role="tablist" aria-label="Stages">
+        {
+          stages.map((s, i) => (
+            <li>
+              <button
+                type="button"
+                role="tab"
+                id={`tab-${s.id}`}
+                aria-controls={`panel-${s.id}`}
+                aria-selected={i === 0 ? "true" : "false"}
+                tabindex={i === 0 ? 0 : -1}
+              >
+                <span class="n lining">{i + 1}</span>
+                <span class="name">{s.name}</span>
+                <span class="line sans">{s.line}</span>
+              </button>
+            </li>
+          ))
+        }
+      </ol>
+      {
+        stages.map((s, i) => (
+          <div
+            class="panel"
+            role="tabpanel"
+            id={`panel-${s.id}`}
+            aria-labelledby={`tab-${s.id}`}
+            hidden={i !== 0}
+          >
+            <p>{s.detail}</p>
+            <p class="sans">
+              <a href={s.code}>Read the code</a>
+            </p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<script>
+  // Tabs with arrow-key navigation (WAI-ARIA tabs pattern).
+  for (const root of document.querySelectorAll<HTMLElement>("[data-arch]")) {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const select = (tab: HTMLButtonElement) => {
+      for (const t of tabs) {
+        const on = t === tab;
+        t.setAttribute("aria-selected", String(on));
+        t.tabIndex = on ? 0 : -1;
+        const panel = document.getElementById(t.getAttribute("aria-controls") ?? "");
+        if (panel) panel.hidden = !on;
+      }
+    };
+    tabs.forEach((tab, i) => {
+      tab.addEventListener("click", () => select(tab));
+      tab.addEventListener("keydown", (e) => {
+        const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+        if (!step) return;
+        e.preventDefault();
+        const next = tabs[(i + step + tabs.length) % tabs.length];
+        if (next) {
+          select(next);
+          next.focus();
+        }
+      });
+    });
+  }
+</script>
+
+<style>
+  .stages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border-top: 2px solid var(--ink);
+  }
+  .stages li {
+    position: relative;
+  }
+  /* The path between stages: a ruled arrow along the top edge. */
+  .stages li + li::before {
+    content: "";
+    position: absolute;
+    top: -7px;
+    left: -6px;
+    border: 6px solid transparent;
+    border-left-color: var(--ink);
+  }
+  .stages button {
+    display: grid;
+    gap: 0.25rem;
+    width: 100%;
+    height: 100%;
+    text-align: left;
+    padding: 0.9rem 0.9rem 1rem 0;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .stages button[aria-selected="true"] {
+    border-bottom: 4px solid var(--lagoon);
+  }
+  .stages button:hover .name {
+    text-decoration: underline;
+  }
+  .n {
+    font: 400 var(--t-1) / 1 var(--sans);
+    color: var(--ink-3);
+  }
+  .name {
+    font: 700 var(--t1) / 1.2 var(--serif);
+  }
+  .line {
+    color: var(--ink-2);
+    font-size: var(--t-1);
+  }
+  .panel {
+    padding-top: 1.25rem;
+    font-size: var(--t1);
+  }
+  @media (max-width: 820px) {
+    .stages {
+      grid-template-columns: minmax(0, 1fr);
+      border-top: 0;
+      border-left: 2px solid var(--ink);
+    }
+    .stages li + li::before {
+      display: none;
+    }
+    .stages button {
+      padding-left: 0.9rem;
+    }
+    .stages button[aria-selected="true"] {
+      border-bottom-width: 1px;
+      box-shadow: inset 4px 0 0 var(--lagoon);
+    }
+  }
+</style>

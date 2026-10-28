@@ -5,5 +5,7 @@ import "vitest";
 declare module "vitest" {
   interface TaskMeta {
     evalResult?: unknown;
+    /** The two-phase Memory eval (test/memory.test.ts), written as memory-<mode>.json. */
+    memoryResult?: unknown;
   }
 }

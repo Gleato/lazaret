@@ -56,7 +56,11 @@ describe("Claude support agent", () => {
       messages: {
         create: async (req: (typeof requests)[number]) => {
           requests.push(req);
-          return { stop_reason, content: [{ type: "text", text: JSON.stringify(answer) }] };
+          return {
+            stop_reason,
+            content: [{ type: "text", text: JSON.stringify(answer) }],
+            usage: { input_tokens: 300, output_tokens: 40, cache_read_input_tokens: 900 },
+          };
         },
       },
     } as unknown as Anthropic;
@@ -78,6 +82,18 @@ describe("Claude support agent", () => {
     });
     const content = requests[0]?.messages[0]?.content ?? "";
     expect(content.match(/<\/ticket>/g)).toHaveLength(1); // only the real closing tag
+  });
+
+  it("adds up its token usage across a run, for the demo's spend cap", async () => {
+    const agent = new ClaudeSupportAgent("unused", fakeClient({ decision: "no_refund" }).client);
+    await agent.propose(ticket("a"), []);
+    await agent.propose(ticket("b"), []);
+    expect(agent.usage).toEqual({
+      inputTokens: 600,
+      outputTokens: 80,
+      cacheReadTokens: 1800,
+      cacheWriteTokens: 0,
+    });
   });
 
   it("escalates on a refusal or an unparseable answer, never refunds", async () => {
@@ -147,6 +163,7 @@ describe("agent endpoints", () => {
       },
     };
     const tidewater = createTidewater({ agent: () => scripted });
+    let lastUsage: string | null = null;
     const run = async () => {
       const headers = await signRequest(
         {
@@ -165,6 +182,7 @@ describe("agent endpoints", () => {
         }),
         env,
       );
+      lastUsage = res.headers.get("x-tidewater-usage");
       return (await res.json()) as { proposals: unknown[] };
     };
     const first = await run();
@@ -173,6 +191,8 @@ describe("agent endpoints", () => {
     expect(seen).not.toContain("tkt_seed_2"); // answered
     const second = await run();
     expect(second.proposals).toHaveLength(0);
+    // A scripted agent reports no usage, so there's nothing to charge.
+    expect(lastUsage).toBeNull();
     const list = await call("GET", "/api/agent/proposals", { token: sam });
     expect(list.json.proposals.length).toBe(first.proposals.length);
   });

@@ -4,3 +4,7 @@ LAZARET_SIGNING_SECRET=local-dev-only-signing-secret-0000
 # Bearer token for the human review queue at /__lazaret/operator/ (M6.7). At least 16
 # characters; without it the operator API is off.
 LAZARET_OPERATOR_TOKEN=local-dev-only-operator-token-0000
+# Cloudflare's published always-pass Turnstile test secret: the guard accepts any
+# token without a network call, so the offline stack needs no internet. Production sets
+# the real secret with `npx wrangler secret put TURNSTILE_SECRET`.
+TURNSTILE_SECRET=1x0000000000000000000000000000000AA

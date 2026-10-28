@@ -1,0 +1,241 @@
+/*
+  gleator.com design tokens. Direction (tasks/todo.md §7): a Venetian harbour ledger
+  that meets an ops console.
+  - Paper is lagoon grey-green, not cream; ink is iron-gall blue-black.
+  - State colours are the real International Code of Signals flags, used for what
+    they mean: Q (yellow) "quarantine" for held writes, B (red) "dangerous cargo" for
+    drops, C (blue/white) "affirmative" for writes that were admitted. The yellow Q
+    is the one loud thing on the page; everything else stays quiet.
+  - Type: Alegreya (a Renaissance-rooted text face, right for 1423 Venice) and its
+    sans for the interface. Monospace only where the content really is a log.
+*/
+
+:root {
+  --paper: #eceee6;
+  --paper-2: #e2e6db;
+  --paper-3: #d6dbcf;
+  --ink: #1e2330;
+  --ink-2: #4a5160;
+  --ink-3: #6b7280;
+  --rule: #c3c9bb;
+  --lagoon: #2c5a5e;
+  --q: #e2ae12;
+  --q-ink: #1e2330;
+  --b: #b8262c;
+  --c: #23498f;
+  --term: #17242a;
+  --term-ink: #d9e0d4;
+  --term-dim: #8fa19a;
+  --term-q: #f0c24b;
+  --term-b: #ff8a8a;
+  --term-c: #9cc0ff;
+  --focus: #23498f;
+
+  --serif: "Alegreya", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* A 1.25 (major third) scale on an 18px text size. */
+  --t-1: 0.8rem;
+  --t0: 1rem;
+  --t1: 1.25rem;
+  --t2: 1.563rem;
+  --t3: 1.953rem;
+  --t4: 2.441rem;
+  --t5: 3.815rem;
+
+  --measure: 38rem;
+  --gutter: clamp(16px, 4vw, 48px);
+  --wide: 76rem;
+  color-scheme: light;
+}
+
+/* Night watch on the lagoon: its own steps, not an inversion. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f1b1f;
+    --paper-2: #152429;
+    --paper-3: #1d3036;
+    --ink: #e3e5da;
+    --ink-2: #a9b2ac;
+    --ink-3: #87918c;
+    --rule: #2b3d42;
+    --lagoon: #86b9b3;
+    --q: #f0be2a;
+    --b: #f0777b;
+    --c: #8fb0f0;
+    --term: #0a1316;
+    --focus: #f0be2a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0f1b1f;
+  --paper-2: #152429;
+  --paper-3: #1d3036;
+  --ink: #e3e5da;
+  --ink-2: #a9b2ac;
+  --ink-3: #87918c;
+  --rule: #2b3d42;
+  --lagoon: #86b9b3;
+  --q: #f0be2a;
+  --b: #f0777b;
+  --c: #8fb0f0;
+  --term: #0a1316;
+  --focus: #f0be2a;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 112.5%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 var(--t0) / 1.55 var(--serif);
+  font-variant-numeric: oldstyle-nums proportional-nums;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--serif);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0;
+  text-wrap: balance;
+}
+h2 {
+  font-size: var(--t3);
+}
+h3 {
+  font-size: var(--t1);
+}
+
+p {
+  margin: 0 0 0.9em;
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--lagoon);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+code,
+kbd,
+.mono {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  font-variant-numeric: normal;
+}
+
+.wrap {
+  width: min(100%, var(--wide));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.sans {
+  font-family: var(--sans);
+}
+
+.lining {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+button {
+  font: 500 var(--t0) / 1.2 var(--sans);
+  color: inherit;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.55em 1em;
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  font: 600 var(--t0) / 1.2 var(--sans);
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn:hover {
+  background: var(--paper-2);
+}
+.btn.primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+.btn.primary:hover {
+  background: var(--lagoon);
+  border-color: var(--lagoon);
+}
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Section rhythm: a ruled ledger line above each section heading. */
+.section {
+  padding-block: clamp(48px, 8vw, 96px);
+  border-top: 1px solid var(--rule);
+}
+.section > .wrap > header {
+  margin-bottom: 2rem;
+}
+.section > .wrap > header p {
+  color: var(--ink-2);
+  font-size: var(--t1);
+  margin-top: 0.6rem;
+}
+
+/* !important is the point here: reduced motion must beat any component's animation. */
+/* biome-ignore-start lint/complexity/noImportantStyles: see above */
+/* `hidden` must win over any component's display rule (a grid with hidden set stays visible otherwise). */
+[hidden] {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* biome-ignore-end lint/complexity/noImportantStyles: see above */

@@ -1,8 +1,17 @@
 import { DurableObject } from "cloudflare:workers";
 import { combineRisk } from "../gate/signals";
+import { type BudgetStatus, GLOBAL_BUDGET_KEY, SpendTable } from "../review/budget";
 import { RECEIPT_PLACEHOLDER } from "../routing/matcher";
 import type { LedgerEvent, StoredEvent } from "./events";
 import { applyEvent, initialState, nextBatchId } from "./machine";
+import {
+  type LiveFrame,
+  type ObservedInput,
+  type PublicEntry,
+  publicEntry,
+  publicEvent,
+  publicObservation,
+} from "./public";
 import { applyTaint } from "./taint";
 import {
   type CycleConfig,
@@ -44,6 +53,17 @@ import type {
 //     protected override cycleConfig() { return { ...DEFAULT_CYCLE, intervalSec: 30 }; }
 //   }
 
+/** Live sockets per Ledger shard (M7). Over this, new viewers get a 503. */
+const MAX_LIVE_SOCKETS = 100;
+/** Gateway observations kept for the live view and the status line. */
+const KEEP_OBSERVATIONS = 200;
+/** Observations a new viewer is sent on connect, so the side rail isn't empty. */
+const OBSERVATIONS_ON_CONNECT = 30;
+
+interface SocketAttachment {
+  previewChars: number;
+}
+
 /** How long a flagged session's writes carry a risk boost. */
 const SESSION_FLAG_TTL_MS = 60 * 60 * 1000;
 const SESSION_FLAG_WEIGHT = 0.6;
@@ -72,10 +92,13 @@ export interface ReviewDispatch {
 export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
   #state: LedgerState = initialState();
   readonly #cycle: CycleConfig;
+  #spendTable: SpendTable | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.#cycle = validateCycleConfig(this.cycleConfig());
+    // Answered by the runtime without waking a hibernated object.
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
     ctx.blockConcurrencyWhile(async () => {
       this.#migrate();
       this.#state = this.#replayFromLog();
@@ -498,6 +521,144 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
       .map((row) => ({ seq: row.seq, event: JSON.parse(row.payload) as LedgerEvent }));
   }
 
+  // ── Spend cap (M7, review/budget.ts) ──────────────────────────────────────────
+  // Used on the dedicated budget instance (`review.budgetShard`), never the serving
+  // shard, so the day's spend survives a shard rollover.
+
+  budgetStatus(capUsd: number, key: string = GLOBAL_BUDGET_KEY): BudgetStatus {
+    return this.#spend().status(capUsd, key);
+  }
+
+  chargeSpend(usd: number, key: string = GLOBAL_BUDGET_KEY): number {
+    return this.#spend().charge(usd, key);
+  }
+
+  // ── Public view (M7, ledger/public.ts) ────────────────────────────────────────
+
+  /**
+   * Record something the gateway decided on its own (inline review, a gate block)
+   * and push it to live viewers. Kept in a small ring, outside the event log: the
+   * log is the source of truth for escrow and this is telemetry.
+   */
+  observe(input: ObservedInput): void {
+    if (!input || typeof input.route !== "string" || typeof input.sessionId !== "string") {
+      throw new TypeError("observation needs a route and a session");
+    }
+    const at = this.now();
+    const frame = publicObservation(input, at);
+    this.ctx.storage.sql.exec(
+      "INSERT INTO observations (at, payload) VALUES (?, ?)",
+      at,
+      JSON.stringify(frame),
+    );
+    this.ctx.storage.sql.exec(
+      "DELETE FROM observations WHERE id <= (SELECT MAX(id) FROM observations) - ?",
+      KEEP_OBSERVATIONS,
+    );
+    this.#broadcast(() => [frame]);
+  }
+
+  /** Inline review health over the last `windowMs`, for the demo's status line. */
+  liveStatus(windowMs = 5 * 60_000): {
+    head: number;
+    openBatch: string | null;
+    inline: { total: number; degraded: number; unavailable: number; p50LatencyMs: number | null };
+  } {
+    const since = this.now() - windowMs;
+    const inline = this.#observations(since).filter((o) => o.kind === "inline");
+    const latencies = inline
+      .map((o) => o.latencyMs)
+      .filter((n): n is number => n !== null)
+      .sort((a, b) => a - b);
+    return {
+      head: this.#state.seq,
+      openBatch: this.#state.openBatchId,
+      inline: {
+        total: inline.length,
+        degraded: inline.filter((o) => o.outcome === "degraded").length,
+        unavailable: inline.filter((o) => o.outcome === "unavailable").length,
+        p50LatencyMs: latencies.length
+          ? (latencies[Math.floor((latencies.length - 1) / 2)] as number)
+          : null,
+      },
+    };
+  }
+
+  /** The human queue, redacted for the public page. Acting on it needs the operator API. */
+  getPublicQueue(previewChars: number, limit = 50): PublicEntry[] {
+    return this.getQuarantine(limit).map((e) => publicEntry(e, previewChars));
+  }
+
+  /**
+   * Live stream. The gateway forwards `GET /__lazaret/live?after=<seq>` here as a
+   * WebSocket upgrade. Hibernatable: an idle viewer costs nothing. On connect the
+   * viewer gets HELLO, the log after `after` (paged), and recent observations, then
+   * every new event as it commits. All of that happens synchronously after
+   * `acceptWebSocket`, and the object is single-threaded, so no event can slip in
+   * between the replay and the live tail: no gap, no duplicate.
+   */
+  override async fetch(request: Request): Promise<Response> {
+    if (request.headers.get("upgrade")?.toLowerCase() !== "websocket") {
+      return new Response("expected a WebSocket upgrade", { status: 426 });
+    }
+    if (this.ctx.getWebSockets().length >= MAX_LIVE_SOCKETS) {
+      return new Response("too many viewers", { status: 503, headers: { "retry-after": "30" } });
+    }
+    const url = new URL(request.url);
+    const after = Math.max(0, Number.parseInt(url.searchParams.get("after") ?? "0", 10) || 0);
+    const previewChars = Math.min(
+      2000,
+      Math.max(0, Number.parseInt(url.searchParams.get("preview") ?? "280", 10) || 0),
+    );
+    const shard = (url.searchParams.get("shard") ?? "").slice(0, 64);
+
+    const pair = new WebSocketPair();
+    const [client, server] = [pair[0], pair[1]];
+    this.ctx.acceptWebSocket(server);
+    server.serializeAttachment({ previewChars } satisfies SocketAttachment);
+
+    // A viewer ahead of this log (it came from a shard that has since rolled over)
+    // starts from the beginning.
+    const from = after > this.#state.seq ? 0 : after;
+    const send = (frames: LiveFrame[]) => {
+      if (frames.length) server.send(JSON.stringify(frames));
+    };
+    send([{ type: "HELLO", shard, head: this.#state.seq, previewChars }]);
+    for (let cursor = from; ; ) {
+      const page = this.getEvents(cursor, 500);
+      if (!page.length) break;
+      send(page.map((e) => publicEvent(e, previewChars)));
+      cursor = (page[page.length - 1] as StoredEvent).seq;
+    }
+    send(this.#observations(0).slice(-OBSERVATIONS_ON_CONNECT));
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  /** Tell every viewer this shard is finished (the demo rolled over), then close. */
+  closeLive(): number {
+    const sockets = this.ctx.getWebSockets();
+    for (const ws of sockets) {
+      try {
+        ws.send(JSON.stringify([{ type: "RESET" }] satisfies LiveFrame[]));
+        ws.close(1000, "reset");
+      } catch {
+        // already gone
+      }
+    }
+    return sockets.length;
+  }
+
+  // Viewers only listen. Anything they send (other than the auto-answered ping) is ignored.
+  override webSocketMessage(): void {}
+
+  override webSocketClose(ws: WebSocket, code: number): void {
+    try {
+      ws.close(code === 1005 ? 1000 : code, "bye");
+    } catch {
+      // already closed
+    }
+  }
+
   // ── Internals ────────────────────────────────────────────────────────────────
 
   /** Every entry in append order (batch number, then position in the batch). */
@@ -632,6 +793,48 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
       this.#state = this.#replayFromLog();
       throw err;
     }
+    // Only after the transaction holds: viewers never see an event that rolled back.
+    // One frame per call, so a multi-event operation (append + seal) arrives together.
+    const first = this.#state.seq - events.length + 1;
+    this.#broadcast((previewChars) =>
+      events.map((event, i) => publicEvent({ seq: first + i, event }, previewChars)),
+    );
+  }
+
+  /** Send frames to every live viewer, projected once per preview length. */
+  #broadcast(frames: (previewChars: number) => LiveFrame[]): void {
+    const sockets = this.ctx.getWebSockets();
+    if (!sockets.length) return;
+    const byPreview = new Map<number, string>();
+    for (const ws of sockets) {
+      const previewChars =
+        (ws.deserializeAttachment() as SocketAttachment | null)?.previewChars ?? 0;
+      let payload = byPreview.get(previewChars);
+      if (payload === undefined) {
+        payload = JSON.stringify(frames(previewChars));
+        byPreview.set(previewChars, payload);
+      }
+      try {
+        ws.send(payload);
+      } catch {
+        // A socket closing mid-broadcast is not the writer's problem.
+      }
+    }
+  }
+
+  #spend(): SpendTable {
+    this.#spendTable ??= new SpendTable(this.ctx.storage.sql, () => this.now());
+    return this.#spendTable;
+  }
+
+  #observations(since: number) {
+    return this.ctx.storage.sql
+      .exec<{ payload: string }>(
+        "SELECT payload FROM observations WHERE at >= ? ORDER BY id",
+        since,
+      )
+      .toArray()
+      .map((row) => JSON.parse(row.payload) as ReturnType<typeof publicObservation>);
   }
 
   #migrate(): void {
@@ -641,6 +844,14 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
         type    TEXT    NOT NULL,
         payload TEXT    NOT NULL,
         at      INTEGER NOT NULL
+      )
+    `);
+    // Gateway telemetry for the public view (observe); not part of the event log.
+    this.ctx.storage.sql.exec(`
+      CREATE TABLE IF NOT EXISTS observations (
+        id      INTEGER PRIMARY KEY AUTOINCREMENT,
+        at      INTEGER NOT NULL,
+        payload TEXT    NOT NULL
       )
     `);
   }

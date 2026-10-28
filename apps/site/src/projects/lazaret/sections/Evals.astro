@@ -1,0 +1,376 @@
+---
+// The latest live eval (evals/results/live-latest.json), drawn at build time. Charts
+// follow the dataviz rules: one axis, single-series bars in one colour with direct
+// labels, text in ink tokens, and a table behind every figure.
+import { evals } from "../data/evals";
+
+const pct = (n: number) => `${(n * 100).toFixed(n === 1 || n === 0 ? 0 : 1)}%`;
+const usd = (n: number) => `$${n.toFixed(2)}`;
+const secs = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+const date = new Date(evals.run.startedAt).toLocaleDateString("en-GB", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const stopped = evals.stages.reduce((n, s) => n + s.count, 0);
+const maxStage = Math.max(...evals.stages.map((s) => s.count));
+const { overall, gateOnly, latency } = evals;
+const fpCount = overall.fp;
+
+// Latency scale: one axis in seconds, 0 to just past the deadline.
+const scaleMax = 4000;
+const x = (ms: number) => `${Math.min(100, (ms / scaleMax) * 100).toFixed(2)}%`;
+const marks = [
+  { ms: latency.ttftP50, label: `First token, p50 ${secs(latency.ttftP50)}`, kind: "floor" },
+  { ms: latency.inline.p50, label: `Inline verdict, p50 ${secs(latency.inline.p50)}`, kind: "p50" },
+  { ms: latency.inline.p95, label: `Inline verdict, p95 ${secs(latency.inline.p95)}`, kind: "p95" },
+  { ms: latency.deadlineMs, label: `Deadline ${secs(latency.deadlineMs)}`, kind: "deadline" },
+];
+const escalation = evals.declines.find((d) => d.tier === "escalation");
+---
+
+<section class="section evals" id="evals" aria-labelledby="evals-title">
+  <div class="wrap">
+    <header>
+      <h2 id="evals-title">Measured against real attacks</h2>
+      <p>
+        {evals.run.cases} labelled requests, {evals.run.attacks} attacks and {evals.run.benign} honest
+        ones, sent through the real gateway, Ledger and reviewer with live Claude models. Run of{" "}
+        {date}, from <code>{evals.run.file}</code>.
+      </p>
+    </header>
+
+    <dl class="tiles lining">
+      <div>
+        <dt>Attacks stopped</dt>
+        <dd><span class="big">{overall.tp}/{overall.tp + overall.fn}</span> recall {pct(overall.recall)}</dd>
+      </div>
+      <div>
+        <dt>Honest writes stopped</dt>
+        <dd>
+          <span class="big">{overall.fp}/{overall.fp + overall.tn}</span> false positive rate {pct(overall.falsePositiveRate)}
+        </dd>
+      </div>
+      <div>
+        <dt>Stopped by the gate alone</dt>
+        <dd>
+          <span class="big">{gateOnly.tp}/{gateOnly.tp + gateOnly.fn}</span> with no model call and{" "}
+          {gateOnly.fp} false positives
+        </dd>
+      </div>
+      <div>
+        <dt>Cost</dt>
+        <dd>
+          <span class="big">{usd(evals.cost.totalUsd)}</span> per run, {usd(evals.cost.perThousandReviewedEntries)} per
+          1,000 reviewed writes
+        </dd>
+      </div>
+    </dl>
+
+    <div class="grid">
+      <figure class="chart">
+        <figcaption>
+          <h3>Where the {stopped} stopped writes were caught</h3>
+          <p class="sans">
+            {overall.tp} attacks and {fpCount} honest {fpCount === 1 ? "write" : "writes"}, by the stage that
+            stopped {fpCount + overall.tp === 1 ? "it" : "them"}. Most never needed the stronger model.
+          </p>
+        </figcaption>
+        <table class="bars lining">
+          <thead class="visually-hidden">
+            <tr><th scope="col">Stage</th><th scope="col">Writes stopped</th></tr>
+          </thead>
+          <tbody>
+            {
+              evals.stages.map((s) => (
+                <tr title={`${s.label}: ${s.count}`}>
+                  <th scope="row" class="sans">{s.label}</th>
+                  <td>
+                    <span class="bar" style={`--w: ${((s.count / maxStage) * 100).toFixed(1)}%`} />
+                    <span class="val">{s.count}</span>
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </figure>
+
+      <figure class="chart">
+        <figcaption>
+          <h3>Attacks stopped, by kind</h3>
+        </figcaption>
+        <table class="classes lining">
+          <thead>
+            <tr><th scope="col">Kind</th><th scope="col">Stopped</th></tr>
+          </thead>
+          <tbody>
+            {
+              evals.classes.map((c) => (
+                <tr>
+                  <th scope="row">{c.name}</th>
+                  <td>{c.stopped} of {c.cases}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </figure>
+    </div>
+
+    <div class="grid">
+      <figure class="chart">
+        <figcaption>
+          <h3>Inline review is fast, not instant</h3>
+          <p class="sans">
+            Logins, keys and credits wait on a fast model before they reach Tidewater. Its first token
+            alone takes about {secs(latency.ttftP50)}, so no inline verdict can be quicker than
+            that. A call past the {secs(latency.deadlineMs)} deadline fails closed; in this run that
+            happened {evals.inlinePastDeadline} {evals.inlinePastDeadline === 1 ? "time" : "times"}{evals.honestStopped.some((h) => h.stage === "inline_unavailable")
+              ? `, and it is where the run's ${evals.honestStopped.filter((h) => h.stage === "inline_unavailable").length === 1 ? "false positive" : "false positives"} came from: an honest credit, held because the reviewer ran out of time`
+              : ""}.
+          </p>
+        </figcaption>
+        <div class="scale" role="img" aria-label={marks.map((m) => m.label).join(". ")}>
+          <div class="axis">
+            <span class="band" style={`left: ${x(latency.inline.p50)}; width: calc(${x(latency.inline.p95)} - ${x(latency.inline.p50)})`}></span>
+            {marks.map((m) => <span class={`mark ${m.kind}`} style={`left: ${x(m.ms)}`} title={m.label} />)}
+          </div>
+          <div class="ticks sans lining" aria-hidden="true">
+            {[0, 1000, 2000, 3000, 4000].map((t) => <span style={`left: ${x(t)}`}>{t / 1000} s</span>)}
+          </div>
+          <ol class="mark-labels sans lining">
+            {marks.map((m) => <li class={m.kind}>{m.label}</li>)}
+          </ol>
+        </div>
+        <p class="sans note">
+          Batch review isn't on anyone's critical path: a batch of writes took {secs(latency.batch.p50)} at the
+          median and {secs(latency.batch.p95)} at p95, after the 30 second cycle.
+        </p>
+      </figure>
+
+      <figure class="chart">
+        <figcaption>
+          <h3>How often the model declined to judge</h3>
+          <p class="sans">
+            A model can decline a request it reads as cyber-offensive. Lazaret never lets anything
+            else decide in its place: a declined write is held for a human, never allowed.
+            {escalation && escalation.declined > 0
+              ? ` In this run the stronger escalation model declined ${escalation.declined} of ${escalation.calls}, all of them attacks.`
+              : ""}
+          </p>
+        </figcaption>
+        <table class="declines lining">
+          <thead>
+            <tr>
+              <th scope="col">Reviewer</th>
+              <th scope="col">Calls</th>
+              <th scope="col">Declined</th>
+              <th scope="col">Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              evals.declines.map((d) => (
+                <tr>
+                  <th scope="row">
+                    {d.tier === "batch" ? "Batch (Sonnet 5.5)" : d.tier === "escalation" ? "Escalation (Opus 5.5)" : "Inline (Haiku 5.5)"}
+                  </th>
+                  <td>{d.calls}</td>
+                  <td>
+                    {d.declined} ({pct(d.rate)})
+                  </td>
+                  <td>
+                    {Object.entries(d.byCategory)
+                      .map(([k, v]) => `${k} ${v}`)
+                      .join(", ") || "none"}
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<style>
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: 0 clamp(16px, 3vw, 32px);
+    margin: 0 0 2.5rem;
+  }
+  .tiles > div {
+    border-top: 2px solid var(--ink);
+    padding-top: 0.6rem;
+  }
+  .tiles dt {
+    font: 700 var(--t0) / 1.2 var(--sans);
+  }
+  .tiles dd {
+    margin: 0.2rem 0 0;
+    color: var(--ink-2);
+    font-family: var(--sans);
+    font-size: var(--t-1);
+  }
+  .big {
+    display: block;
+    color: var(--ink);
+    font: 800 var(--t4) / 1.1 var(--serif);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(24px, 4vw, 48px);
+    margin-bottom: 2.5rem;
+  }
+  .chart {
+    margin: 0;
+  }
+  .chart h3 {
+    margin-bottom: 0.4rem;
+  }
+  figcaption p {
+    color: var(--ink-2);
+    font-size: var(--t-1);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 0.35rem 0.5rem 0.35rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  thead th {
+    font: 700 var(--t-1) / 1.2 var(--sans);
+    color: var(--ink-2);
+  }
+  tbody th {
+    font-weight: 400;
+  }
+  .bars th {
+    width: 48%;
+    font-size: var(--t-1);
+  }
+  .bars td {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .bar {
+    display: block;
+    height: 0.75rem;
+    width: var(--w);
+    min-width: 2px;
+    background: var(--lagoon);
+    border-radius: 0 4px 4px 0;
+  }
+  .val {
+    font-family: var(--sans);
+    font-weight: 700;
+  }
+
+  .scale {
+    position: relative;
+    padding-top: 0.5rem;
+  }
+  .axis {
+    position: relative;
+    height: 2.2rem;
+    border-bottom: 1px solid var(--ink-3);
+  }
+  .band {
+    position: absolute;
+    top: 0.7rem;
+    height: 0.8rem;
+    background: color-mix(in srgb, var(--lagoon) 30%, transparent);
+  }
+  .mark {
+    position: absolute;
+    top: 0.2rem;
+    width: 2px;
+    height: 2rem;
+    background: var(--ink);
+    transform: translateX(-1px);
+  }
+  .mark.floor {
+    background: var(--ink-3);
+  }
+  .mark.p50,
+  .mark.p95 {
+    background: var(--lagoon);
+  }
+  .mark.deadline {
+    background: var(--b);
+    width: 3px;
+  }
+  .ticks {
+    position: relative;
+    height: 1.2rem;
+    font-size: 0.7rem;
+    color: var(--ink-3);
+  }
+  .ticks span {
+    position: absolute;
+    transform: translateX(-50%);
+  }
+  .ticks span:first-child {
+    transform: none;
+  }
+  .ticks span:last-child {
+    transform: translateX(-100%);
+  }
+  .mark-labels {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.2rem 1rem;
+    font-size: var(--t-1);
+  }
+  .mark-labels li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .mark-labels li::before {
+    content: "";
+    width: 2px;
+    height: 0.9rem;
+    background: var(--ink);
+    flex: none;
+  }
+  .mark-labels li.floor::before {
+    background: var(--ink-3);
+  }
+  .mark-labels li.p50::before,
+  .mark-labels li.p95::before {
+    background: var(--lagoon);
+  }
+  .mark-labels li.deadline::before {
+    background: var(--b);
+    width: 3px;
+  }
+  .note {
+    color: var(--ink-2);
+    font-size: var(--t-1);
+    margin-top: 1rem;
+  }
+  @media (max-width: 860px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .mark-labels {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

@@ -1,0 +1,24 @@
+{
+  "name": "@gleator/site",
+  "private": true,
+  "version": "0.0.0",
+  "description": "gleator.com: the Lazaret project page and its live demo UI.",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 4321",
+    "build": "astro build",
+    "preview": "astro preview --port 4321",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "record": "node --experimental-strip-types scripts/record.ts"
+  },
+  "dependencies": {
+    "astro": "^7.4.3"
+  },
+  "devDependencies": {
+    "@gleator/lazaret": "*",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5",
+    "@types/node": "^22.15.17"
+  }
+}

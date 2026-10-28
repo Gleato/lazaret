@@ -17,12 +17,17 @@ import { MalformedReviewError, parseVerdicts } from "./schema";
 // in-memory runner that can simulate a crash between any two steps. The harness
 // owns the loop (principle 1), and every step is a checkpoint (principles 3 and 4).
 //
-//   snapshot → memory-context → [begin-review-n → review chunks → escalate]
+//   snapshot → budget-n → memory-context → [begin-review-n → review chunks → escalate]
 //            → record-verdicts → memory-archive → begin-commit
 //            → commit each approved entry → settle → memory-distill
 //
 // Memory steps are best-effort: they never throw, so the Memory being down makes
 // Lazaret less smart, never less safe.
+//
+// Spend cap (review/budget.ts): before review starts, `budget-n` checks the day's
+// spend. If it is spent, the Workflow sleeps durably until the next UTC day and checks
+// again, so the batch waits SEALED: never committed unreviewed, never sent to the
+// human queue for want of money. After a week of waiting it is quarantined.
 //
 // Failure handling:
 //   - Transient errors (429, overload, network) throw inside a step, so the step
@@ -81,6 +86,12 @@ export interface PipelineDeps {
   memory?: MemoryPort;
   /** Proposes rules from past drops. Without it, memory archives but doesn't learn. */
   proposer?: RuleProposer;
+  /** The daily spend cap. Without it, review never waits on budget. */
+  budget?: BudgetCheck;
+}
+
+export interface BudgetCheck {
+  status(): Awaitable<{ exhausted: boolean; resetsAt: number }>;
 }
 
 export type PipelineResult =
@@ -96,6 +107,8 @@ const CHUNK_MAX_ENTRIES = 25;
 const CHUNK_MAX_CHARS = 100_000;
 const LOW_CONFIDENCE_ALLOW = 0.5;
 const ESCALATION_ALLOW_CONFIDENCE = 0.9;
+/** Days a batch waits for budget before it is quarantined. */
+const MAX_BUDGET_WAITS = 7;
 
 export async function runReviewPipeline(
   step: StepRunner,
@@ -109,6 +122,11 @@ export async function runReviewPipeline(
   // If verdicts already landed (e.g. a replay after a crash mid-commit), go straight to commit.
   let hadDrops = false;
   if (snapshot.entries.length > 0 && snapshot.status !== "SETTLED") {
+    if (!(await waitForBudget(step, deps))) {
+      const reason = `review budget spent for ${MAX_BUDGET_WAITS} days running`;
+      await step.do("quarantine", async () => ledger.quarantine(batchId, reason));
+      return { outcome: "quarantined", reason };
+    }
     const hints = await memoryContext(step, deps, snapshot.entries);
     const result = await reviewWithAttempts(step, deps, snapshot, hints);
     if (!result.ok) {
@@ -141,12 +159,51 @@ export async function runReviewPipeline(
   }
   await step.do("settle", async () => ledger.settle(batchId));
 
-  if (hadDrops && deps.memory && deps.proposer && deps.config.memory.distill) {
+  if (
+    hadDrops &&
+    deps.memory &&
+    deps.proposer &&
+    deps.config.memory.distill &&
+    !(await budgetSpent(step, deps, "budget-distill"))
+  ) {
     const { memory, proposer } = deps;
     const distill = await step.do("memory-distill", () => runDistillation(memory, proposer));
     return { outcome: "settled", committed: plan.length, distill };
   }
   return { outcome: "settled", committed: plan.length };
+}
+
+/** Is the day's budget spent? One checkpointed check, so a replay sees the same answer. */
+async function budgetSpent(
+  step: StepRunner,
+  deps: PipelineDeps,
+  name: string,
+): Promise<{ exhausted: boolean; resetsAt: number; at: number } | null> {
+  const { budget } = deps;
+  if (!budget) return null;
+  const result = await step.do(name, async () => {
+    try {
+      const s = await budget.status();
+      return { exhausted: s.exhausted, resetsAt: s.resetsAt, at: Date.now() };
+    } catch (err) {
+      // The cap guards spend; an unreachable counter must not stall every review.
+      console.error(JSON.stringify({ lazaret: "budget_unavailable", error: String(err) }));
+      return { exhausted: false, resetsAt: 0, at: Date.now() };
+    }
+  });
+  return result.exhausted ? result : null;
+}
+
+/** Wait (durably) while the budget is spent. False if it stayed spent too long. */
+async function waitForBudget(step: StepRunner, deps: PipelineDeps): Promise<boolean> {
+  for (let n = 1; n <= MAX_BUDGET_WAITS; n++) {
+    const spent = await budgetSpent(step, deps, `budget-${n}`);
+    if (!spent) return true;
+    console.log(JSON.stringify({ lazaret: "budget_wait", until: spent.resetsAt }));
+    // A minute past midnight, so the new day has begun when we look again.
+    await step.sleep(`budget-wait-${n}`, Math.max(60_000, spent.resetsAt - spent.at + 60_000));
+  }
+  return false;
 }
 
 async function memoryContext(

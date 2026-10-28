@@ -12,9 +12,9 @@ independent Claude reviewer vets each batch, and only writes that pass reach you
 server. Writes that fail are dropped, along with anything that depends on them.
 
 > **Status: early development.** The library (Ledger, gateway and gate, Claude reviewer,
-> review workflow, signed committer, read overlay, self-improving memory), the Tidewater
-> Support demo app and the eval suite are built and tested. The public site and live demo
-> come next, at [gleator.com](https://gleator.com).
+> review workflow, signed committer, read overlay, self-improving memory, spend cap, live
+> event stream), the Tidewater Support demo app, the eval suite and the gleator.com site
+> are built and tested locally. Deploying to [gleator.com](https://gleator.com) is next.
 
 ## How it works
 
@@ -169,6 +169,18 @@ fails closed by default (`503`). For a route where an outage costs more than the
 (tagged `x-lazaret-review: degraded`), anything else still waits. A model that declines
 or answers garbage is never treated as unreachable. Tidewater does this for login only.
 
+**9. Cap what the reviewer can spend.** `review.dailyBudgetUsd` (default $5) is enforced
+from real token usage across every tier. Once the day's budget is spent, inline routes
+treat the reviewer as unreachable (step 8 decides), escrowed batches wait sealed until the
+next UTC day, and rule distillation pauses. Nothing is committed unreviewed. The counter
+lives in its own Ledger instance (`review.budgetShard`).
+
+**10. Optionally, show it.** `live: { enabled: true }` turns on a read-only public view:
+a WebSocket stream of the Ledger at `/__lazaret/live`, plus `/__lazaret/status`,
+`/__lazaret/queue` and `/__lazaret/memory`. Everything in it is a redacted projection: no
+headers, tokens, IPs or queries, 8-character session hashes, and bodies cut to
+`live.bodyPreviewChars`. Acting on the queue still needs the operator token.
+
 ### Try it locally
 
 The demo runs offline with a scripted reviewer in place of Claude, so it needs no API
@@ -178,7 +190,18 @@ key and costs nothing:
 npm run dev -w @gleator/tidewater-lazaret
 ```
 
-Open http://localhost:8787 and sign in as Mara (customer) or Sam (support agent).
+Open http://localhost:8787 and sign in as Mara (customer) or Sam (support agent). For
+the gleator.com site and its live demo, run this as well and open http://localhost:4321:
+
+```bash
+npm run dev -w @gleator/site
+```
+
+The public demo sits behind a guard (`apps/demo-lazaret/src/guard.ts`): writes need a
+Turnstile pass, there are per-IP rate limits and a $0.25 daily share per IP, Tidewater's
+AI agent runs count against the same $10 daily cap, and the demo resets every hour. In
+local dev the guard uses Cloudflare's always-pass Turnstile test keys. To trigger the
+hourly reset by hand, call `http://localhost:8787/__scheduled?cron=0+*+*+*+*`.
 
 ## Evals
 
@@ -192,17 +215,17 @@ false-positive rate, latency, time to first token and cost.
 Latest live run (2026-10-28; Sonnet 5.5 batch review, Opus 5.5 escalation, Haiku 5.5
 inline; [`evals/results/live-latest.json`](evals/results/live-latest.json)):
 
-|                                                           |                                                     |
-| --------------------------------------------------------- | --------------------------------------------------- |
-| Attacks stopped (recall)                                  | 63 / 63 (100%)                                      |
-| Precision                                                 | 98.4%                                               |
+|                                                           |                                                           |
+| --------------------------------------------------------- | --------------------------------------------------------- |
+| Attacks stopped (recall)                                  | 63 / 63 (100%)                                            |
+| Precision                                                 | 98.4%                                                     |
 | Benign requests stopped (FPR)                             | 1 / 57 (1.8%): a credit whose review hit the 3 s deadline |
-| Reviewer prompt injection / downstream agent injection    | 8 / 8 and 10 / 10 stopped                           |
-| Stopped by the deterministic gate alone, before any model | 5 / 63, with 0 false positives                      |
-| Escalations declined by Opus 5.5                          | 3 / 7, all `cyber`, all attacks, all held for a human |
-| Inline review latency                                     | p50 1.7 s, p95 2.5 s; time to first token p50 1.2 s |
-| Batch review latency                                      | p50 4.3 s, p95 10.4 s (off the request path)        |
-| Cost                                                      | $0.25 per run, $2.28 per 1,000 reviewed requests    |
+| Reviewer prompt injection / downstream agent injection    | 8 / 8 and 10 / 10 stopped                                 |
+| Stopped by the deterministic gate alone, before any model | 5 / 63, with 0 false positives                            |
+| Escalations declined by Opus 5.5                          | 3 / 7, all `cyber`, all attacks, all held for a human     |
+| Inline review latency                                     | p50 1.7 s, p95 2.5 s; time to first token p50 1.2 s       |
+| Batch review latency                                      | p50 4.3 s, p95 10.4 s (off the request path)              |
+| Cost                                                      | $0.25 per run, $2.28 per 1,000 reviewed requests          |
 
 The false positive is a legitimate credit that failed closed: its inline review took
 longer than the 3 s deadline (2 of 11 credit reviews did), and credits deny rather than
@@ -242,7 +265,9 @@ identical and that no write is committed twice.
 - [x] M4: Author-only read overlay
 - [x] M5: Memory distillation and rule promotion
 - [x] M6: Demo origin (Tidewater Support helpdesk) and evals, plus the human review queue
-- [ ] M7–M8: gleator.com live demo and launch
+- [x] M7: gleator.com site, live ledger visualiser, attack console, evals and memory
+  panels, spend cap, demo guard
+- [ ] M8: deploy and launch
 
 The full spec is in [`tasks/todo.md`](tasks/todo.md).
 

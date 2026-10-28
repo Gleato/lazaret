@@ -1,0 +1,79 @@
+---
+// A project page: the gleator.com header plus the project's own section nav.
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  nav: { href: string; label: string }[];
+}
+const { title, description, nav } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <header class="site-header">
+    <div class="wrap bar">
+      <a class="wordmark" href="/">gleator</a>
+      <nav aria-label="On this page">
+        <ul>
+          {nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+    <slot />
+  </main>
+</BaseLayout>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .bar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.7rem;
+  }
+  .wordmark {
+    font: 700 var(--t1) / 1 var(--serif);
+    font-style: italic;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  nav ul {
+    display: flex;
+    gap: 1.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--sans);
+    font-weight: 500;
+  }
+  nav a {
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  nav a:hover {
+    color: var(--ink);
+    text-decoration: underline;
+  }
+  @media (max-width: 720px) {
+    nav ul {
+      gap: 0.9rem;
+      overflow-x: auto;
+      max-width: 70vw;
+      scrollbar-width: none;
+    }
+    nav li {
+      white-space: nowrap;
+    }
+  }
+</style>

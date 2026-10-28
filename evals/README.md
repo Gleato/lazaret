@@ -60,3 +60,28 @@ recall and false-positive rate overall and for the gate alone, a breakdown by at
 benign class, where each attack was stopped, p50/p95 latency and tokens per model tier,
 time to first token for the inline tier, cost per run and per 1,000 reviewed entries, and
 every miss with the reviewer's rationale.
+
+## Memory eval (two-phase)
+
+Does what the Memory learns from some attacks stop _other_ attacks at the edge? The
+corpus is split once, by a hash of each case id ranked within its class (~60% train,
+40% held out; `src/split.ts`, so the split never moves between runs).
+
+1. **Train.** The training split runs in 3 rounds against one Memory, which archives
+   every verdict. After each round one distillation pass proposes rules; rules are
+   backtested, start in shadow, and earn `flag` then `block` from hits on later rounds.
+2. **Held out.** The held-out split runs twice, identical except for the Memory: cold
+   (empty) and warm (phase 1's, frozen so scoring can't change it). Reported: gate-only
+   and overall recall/FPR for both, rules by status, which held-out cases a learned rule
+   caught, and the model calls that saved.
+
+| Mode   | Reviewer / distiller                     | Cost       | Run                                               |
+| ------ | ---------------------------------------- | ---------- | ------------------------------------------------- |
+| `fake` | scripted reviewer + scripted proposer    | free       | every `npm test`; `npm run eval:memory` writes it |
+| `live` | Claude (as above) + Sonnet 5.5 distiller | ~$0.45/run | `EVAL_CONFIRM_SPEND=yes npm run eval:memory:live` |
+
+Results: `results/memory-fake.json`, and for live `results/memory-live-<time>.json` plus
+`results/memory-latest.json` (what the site's memory panel reads). The fake run checks the
+learning loop's wiring, not distillation quality; its proposer mirrors the scripted
+reviewer's keyword list. The eval Memory uses smaller promotion thresholds than production
+(`EVAL_MEMORY_THRESHOLDS` in `src/worker.ts`), because the corpus is small.

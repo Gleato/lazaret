@@ -11,12 +11,14 @@ import { parseVerdicts } from "./schema";
 // rises when the gate already saw strong evidence.
 
 /**
- * Why there's no verdict. Only `timeout` and `error` mean the reviewer couldn't be
- * reached; a route may then fall back to the gate (RouteConfig.onReviewUnavailable).
+ * Why there's no verdict. `timeout`, `error` and `budget` (the daily spend cap is
+ * reached, review/budget.ts; the gateway decides that before calling) mean the
+ * reviewer couldn't be reached; a route may then fall back to the gate
+ * (RouteConfig.onReviewUnavailable).
  * `declined` and `unusable` mean the model saw the request and wouldn't, or couldn't,
  * judge it: those always fail closed, since an attacker can provoke them.
  */
-export type UnavailableCause = "timeout" | "error" | "declined" | "unusable";
+export type UnavailableCause = "timeout" | "error" | "budget" | "declined" | "unusable";
 
 export type InlineDecision =
   | { verdict: VerdictRecord }

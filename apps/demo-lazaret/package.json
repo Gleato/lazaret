@@ -13,7 +13,7 @@
     "predev": "for d in . ../demo-origin; do [ -f $d/.dev.vars ] || cp $d/.dev.vars.example $d/.dev.vars; done && wrangler d1 migrations apply tidewater --local -c ../demo-origin/wrangler.jsonc --persist-to .wrangler/state",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "dev": "wrangler dev -c wrangler.dev.jsonc -c ../demo-origin/wrangler.jsonc --persist-to .wrangler/state"
+    "dev": "wrangler dev -c wrangler.dev.jsonc -c ../demo-origin/wrangler.jsonc --persist-to .wrangler/state --test-scheduled"
   },
   "dependencies": {
     "@gleator/lazaret": "*"

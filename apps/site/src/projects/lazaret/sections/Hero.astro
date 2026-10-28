@@ -1,0 +1,118 @@
+---
+// The 1423 story, told in one breath, with the one loud element on the page: the
+// yellow Q flag, which ships flew to say they were in quarantine.
+---
+
+<section class="hero">
+  <div class="wrap grid">
+    <div class="copy">
+      <h1>AI agents are the new plague ships.</h1>
+      <p class="lede">
+        In 1423 Venice stopped letting ships sail straight into the city. Their cargo waited
+        on an island, the lazaretto, until inspectors cleared it. Contaminated goods were
+        burned. Clean goods came ashore.
+      </p>
+      <p class="lede">
+        Lazaret does the same for your API. Every write waits in a ledger at the edge, an
+        independent Claude reviewer inspects it, and only what passes reaches your database.
+        The reviewer can only judge; it has no way to act.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="#demo">Try an attack</a>
+        <a class="btn" href="https://github.com/Gleato/lazaret">Read the code</a>
+      </div>
+    </div>
+    <figure class="mast" aria-hidden="true">
+      <svg viewBox="0 0 220 420" role="presentation">
+        <line x1="40" y1="8" x2="40" y2="412" class="pole"></line>
+        <circle cx="40" cy="8" r="6" class="truck"></circle>
+        <rect x="44" y="24" width="154" height="112" class="qflag"></rect>
+      </svg>
+      <figcaption class="sans">
+        Q, the yellow jack. A ship flying it is held until it is cleared.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<style>
+  .hero {
+    padding-block: clamp(40px, 7vw, 96px) clamp(48px, 8vw, 104px);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 0.42fr);
+    gap: clamp(24px, 5vw, 72px);
+    align-items: start;
+  }
+  h1 {
+    font-size: clamp(var(--t4), 7vw, 5.2rem);
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    line-height: 1.02;
+    max-width: 13ch;
+    margin-bottom: 1.6rem;
+  }
+  .lede {
+    font-size: var(--t1);
+    line-height: 1.5;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.8rem;
+  }
+  .mast {
+    margin: 0;
+  }
+  .mast svg {
+    width: 100%;
+    max-width: 240px;
+    height: auto;
+    display: block;
+  }
+  .pole {
+    stroke: var(--ink);
+    stroke-width: 5;
+  }
+  .truck {
+    fill: var(--ink);
+  }
+  .qflag {
+    fill: var(--q);
+    transform-origin: 44px 80px;
+    animation: hoist 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .mast figcaption {
+    color: var(--ink-2);
+    font-size: var(--t-1);
+    max-width: 22ch;
+    margin-top: 0.5rem;
+  }
+  /* The page's single orchestrated moment: the flag is hoisted once, on load. */
+  @keyframes hoist {
+    from {
+      transform: translateY(260px) scaleY(0.6);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+  @media (max-width: 720px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .mast {
+      order: -1;
+      display: flex;
+      align-items: end;
+      gap: 0.75rem;
+    }
+    .mast svg {
+      width: 72px;
+    }
+  }
+</style>

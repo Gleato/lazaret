@@ -1,0 +1,89 @@
+---
+// The five principles from the README, each paired with where to see it working.
+// Not numbered on purpose: they're principles, not steps.
+import { evals } from "../data/evals";
+
+function rpiEvidence(): string {
+  const c = evals.classes.find((x) => x.key === "reviewer_injection");
+  if (!c) return "The evals include prompt injections aimed at the reviewer itself.";
+  return c.stopped === c.cases
+    ? `All ${c.cases} prompt injections aimed at the reviewer were stopped in the last live eval.`
+    : `${c.stopped} of ${c.cases} prompt injections aimed at the reviewer were stopped in the last live eval.`;
+}
+
+const principles = [
+  {
+    name: "The harness owns the loop",
+    text: "The Ledger runs the state machine. The reviewer is called by it, sandboxed, and can only return a verdict.",
+    evidence:
+      "Watch a batch step through its states in the ledger above. The reviewer never starts or ends anything.",
+  },
+  {
+    name: "The brain is separate from the hands",
+    text: "The reviewer judges and a separate committer acts. A prompt-injected reviewer has nothing to act with.",
+    evidence: rpiEvidence(),
+  },
+  {
+    name: "The log is the source of truth",
+    text: "State is rebuilt by replaying the event log, so an eviction or crash loses nothing that was acknowledged.",
+    evidence:
+      "The ledger view is itself a replay: reload this page and it rebuilds from the same event log.",
+  },
+  {
+    name: "Retry instead of restarting",
+    text: "Review resumes from checkpoints, and commits carry an idempotency key, so a retry never commits twice.",
+    evidence:
+      "A failed review attempt shows as Retrying on its batch, and resumes from the last finished step.",
+  },
+  {
+    name: "Learn from the logs",
+    text: "Patterns the reviewer confirms become deterministic gate rules, so the system gets cheaper and faster over time.",
+    evidence: "The Memory section below shows the rules learned so far and what they caught.",
+  },
+];
+---
+
+<section class="section" id="principles" aria-labelledby="principles-title">
+  <div class="wrap">
+    <header>
+      <h2 id="principles-title">Five rules it is built on</h2>
+    </header>
+    <dl class="principles">
+      {
+        principles.map((p) => (
+          <div>
+            <dt>{p.name}</dt>
+            <dd>
+              <p>{p.text}</p>
+              <p class="evidence sans">{p.evidence}</p>
+            </dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+</section>
+
+<style>
+  .principles {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    gap: 0 clamp(20px, 3vw, 40px);
+  }
+  .principles > div {
+    border-top: 1px solid var(--rule);
+    padding: 1rem 0 0.5rem;
+  }
+  dt {
+    font: 700 var(--t1) / 1.2 var(--serif);
+    margin-bottom: 0.4rem;
+  }
+  dd {
+    margin: 0;
+  }
+  .evidence {
+    color: var(--lagoon);
+    font-size: var(--t-1);
+  }
+</style>

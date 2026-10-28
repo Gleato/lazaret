@@ -1,0 +1,33 @@
+---
+// The Lazaret project page, in the order §7 of tasks/todo.md sets out.
+import ProjectLayout from "../../layouts/ProjectLayout.astro";
+import Architecture from "./sections/Architecture.astro";
+import Code from "./sections/Code.astro";
+import Demo from "./sections/Demo.astro";
+import Evals from "./sections/Evals.astro";
+import Hero from "./sections/Hero.astro";
+import Memory from "./sections/Memory.astro";
+import Principles from "./sections/Principles.astro";
+
+const nav = [
+  { href: "#demo", label: "Demo" },
+  { href: "#how", label: "How it works" },
+  { href: "#evals", label: "Evals" },
+  { href: "#memory", label: "Memory" },
+  { href: "#code", label: "Code" },
+];
+---
+
+<ProjectLayout
+  title="Lazaret: an AI quarantine for your writes"
+  description="An edge gateway on Cloudflare that holds every write to your API in a ledger until an independent Claude reviewer clears it. Live demo, evals and code."
+  nav={nav}
+>
+  <Hero />
+  <Demo />
+  <Architecture />
+  <Principles />
+  <Evals />
+  <Memory />
+  <Code />
+</ProjectLayout>

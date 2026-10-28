@@ -1,0 +1,58 @@
+---
+// The shell every gleator.com page shares: head, fonts, tokens, footer. Projects get
+// their own layout on top (ProjectLayout), so adding /projects/<name> later, or an
+// index homepage, reuses this without a redesign.
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+}
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#eceee6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1b1f" media="(prefers-color-scheme: dark)" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400..800;1,400..800&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    />
+  </head>
+  <body>
+    <slot />
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>
+          Built by <a href="https://github.com/Gleato">Gleato</a>. Lazaret's code, evals and
+          this site are open source on <a href="https://github.com/Gleato/lazaret">GitHub</a>.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--rule);
+    padding-block: 2rem 3rem;
+    color: var(--ink-2);
+    font-family: var(--sans);
+  }
+  .site-footer p {
+    margin: 0;
+  }
+</style>

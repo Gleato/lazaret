@@ -1,10 +1,19 @@
-// Eval worker: a Ledger Durable Object for the corpus run. The reviewer is chosen
-// per mode in test/eval.test.ts; the API key (live mode only) arrives as a binding
-// from vitest.config.ts, read from your shell environment.
+// Eval worker: a Ledger Durable Object for the corpus run, and a Memory for the
+// two-phase Memory eval (each phase names its own instance, so cold and warm never
+// share state). The reviewer is chosen per mode in test/eval.test.ts; the API key
+// (live mode only) arrives as a binding from vitest.config.ts, read from your shell.
 {
   "name": "lazaret-evals",
   "main": "../src/worker.ts",
   "compatibility_date": "2026-10-01",
-  "durable_objects": { "bindings": [{ "name": "EVAL_LEDGER", "class_name": "EvalLedger" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["EvalLedger"] }]
+  "durable_objects": {
+    "bindings": [
+      { "name": "EVAL_LEDGER", "class_name": "EvalLedger" },
+      { "name": "EVAL_MEMORY", "class_name": "EvalMemory" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["EvalLedger"] },
+    { "tag": "v2", "new_sqlite_classes": ["EvalMemory"] }
+  ]
 }

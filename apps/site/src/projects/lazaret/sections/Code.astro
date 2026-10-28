@@ -1,0 +1,67 @@
+---
+// Where to go next: the repository, the guide, and what isn't done yet.
+---
+
+<section class="section" id="code" aria-labelledby="code-title">
+  <div class="wrap cols">
+    <header>
+      <h2 id="code-title">Put it in front of your own API</h2>
+      <p>
+        Lazaret is a TypeScript library for Cloudflare Workers. The deployment that protects
+        Tidewater is one config file: which routes are held, which are reviewed inline, which
+        never reach origin, and what each write touches.
+      </p>
+    </header>
+    <div>
+      <pre class="snippet"><code>{`export const config = defineLazaret({
+  origin: "https://api.example.com",
+  routes: [
+    { match: "POST /api/login", policy: "INLINE_REVIEW" },
+    { match: "POST /api/tickets", policy: "ESCROW",
+      resources: ["ticket:{receipt}"] },
+    { match: "* /admin/*", policy: "BLOCK" },
+    { match: "GET /*", policy: "PASS" },
+  ],
+  review: { dailyBudgetUsd: 10 },
+});`}</code></pre>
+      <ul class="links sans">
+        <li><a href="https://github.com/Gleato/lazaret">The repository</a>, with the library, Tidewater, the evals and this site</li>
+        <li><a href="https://github.com/Gleato/lazaret#put-lazaret-in-front-of-your-own-api">The guide</a> to adding Lazaret to an existing API</li>
+        <li><a href="https://github.com/Gleato/lazaret/tree/main/evals">The eval corpus and runner</a>, to check the numbers above yourself</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: clamp(24px, 4vw, 56px);
+    align-items: start;
+  }
+  .snippet {
+    margin: 0 0 1.25rem;
+    background: var(--term);
+    color: var(--term-ink);
+    padding: 1rem 1.1rem;
+    border-radius: 3px;
+    overflow-x: auto;
+    font: 400 0.8rem / 1.6 var(--mono);
+  }
+  .snippet code {
+    font-size: inherit;
+  }
+  .links {
+    margin: 0;
+    padding-left: 1.1rem;
+  }
+  .links li {
+    margin-bottom: 0.4rem;
+  }
+  @media (max-width: 860px) {
+    .cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
