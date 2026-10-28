@@ -15,7 +15,10 @@ export interface RouteConfig {
   /** "METHOD /path/:param/*", e.g. "PATCH /api/tickets/:id". */
   match: string;
   policy: Policy;
-  /** Resource keys this write touches, e.g. ["ticket:{id}"]. Drives taint propagation. */
+  /**
+   * Resource keys this write touches, e.g. ["ticket:{id}"]. Drives taint propagation.
+   * `{receipt}` is the write's own entry id, for creations whose origin id is the receipt.
+   */
   resources?: string[];
   /**
    * Show this route's pending writes to their author when they read another route
@@ -184,6 +187,9 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
     }
     const pattern = attempt(() => compilePattern(route.match));
     if (!pattern) continue;
+    if (pattern.params.includes("receipt")) {
+      problems.push(`route "${route.match}": ":receipt" is reserved for the {receipt} placeholder`);
+    }
     for (const template of route.resources ?? []) {
       for (const name of templateParams(template)) {
         if (!pattern.params.includes(name)) {

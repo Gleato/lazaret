@@ -4,13 +4,16 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/*",
+    "evals"
   ],
   "scripts": {
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "biome check .",
-    "format": "biome check --write ."
+    "format": "biome check --write .",
+    "eval:gate": "npm run eval:gate -w @gleator/lazaret-evals",
+    "eval:live": "npm run eval:live -w @gleator/lazaret-evals"
   },
   "engines": {
     "node": ">=22"

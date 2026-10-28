@@ -73,4 +73,8 @@ describe("route patterns", () => {
   it("fills resource templates from params", () => {
     expect(fillTemplate("ticket:{id}", { id: "42" })).toBe("ticket:42");
   });
+
+  it("leaves {receipt} for the Ledger to fill with the entry's own id", () => {
+    expect(fillTemplate("ticket:{receipt}", { receipt: "spoofed" })).toBe("ticket:{receipt}");
+  });
 });

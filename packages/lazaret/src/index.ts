@@ -90,6 +90,7 @@ export {
   type Reviewer,
   type ReviewOutcome,
   type ReviewTier,
+  type ReviewUsage,
   TransientReviewError,
 } from "./review/client";
 export { type InlineDecision, inlineReview } from "./review/inline";

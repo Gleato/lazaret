@@ -80,6 +80,84 @@ describe("review pipeline", () => {
     });
   });
 
+  it("taints a reply addressed to a pending ticket by its receipt id ({receipt} resources)", async () => {
+    const { reviewer } = fakeReviewer((e) =>
+      looksMalicious(e.body) ? verdict("drop") : verdict("allow"),
+    );
+    const { stub, origin, deps } = await setup(reviewer);
+    // The ticket's resource is its own entry id, filled in by the Ledger.
+    const ticket = await stub.append(
+      entry({
+        sessionId: "mallory",
+        resources: ["ticket:{receipt}"],
+        request: body("<script>steal()</script>"),
+      }),
+    );
+    // The follow-up reply addresses /api/tickets/<receipt>/replies, so the gateway
+    // fills `ticket:{id}` with the receipt: the same key.
+    const reply = await stub.append(
+      entry({
+        sessionId: "mallory",
+        resources: [`ticket:${ticket.entryId}`],
+        params: { id: ticket.entryId },
+        request: {
+          ...body("see attachment"),
+          path: `/api/tickets/${ticket.entryId}/replies`,
+        },
+      }),
+    );
+    // A different session's write to a key of the same shape is never linked.
+    const other = await stub.append(
+      entry({ sessionId: "ann", resources: [`ticket:${ticket.entryId}`], request: body("hi") }),
+    );
+
+    const state0 = await stub.getState();
+    expect(state0.entries[ticket.entryId]?.resources).toEqual([`ticket:${ticket.entryId}`]);
+
+    await runReviewPipeline(new MemoryStepRunner(), deps, ticket.batchId);
+    const state = await stub.getState();
+    expect(state.entries[ticket.entryId]?.status).toBe("DROPPED");
+    expect(state.entries[reply.entryId]).toMatchObject({
+      status: "DROPPED",
+      verdict: { category: "tainted" },
+    });
+    expect(state.entries[other.entryId]?.status).toBe("COMMITTED");
+    expect(origin.received).toHaveLength(1);
+  });
+
+  it("taints across a batch boundary when a risk spike sealed the parent's batch early", async () => {
+    const { reviewer } = fakeReviewer((e) =>
+      looksMalicious(e.body) ? verdict("drop") : verdict("allow"),
+    );
+    const { stub, deps } = await setup(reviewer);
+    const ticket = await stub.append(
+      entry({
+        sessionId: "mallory",
+        riskScore: 0.9, // trips the risk-spike seal: its batch closes now
+        resources: ["ticket:{receipt}"],
+        request: body("<script>steal()</script>"),
+      }),
+    );
+    expect(ticket.sealed).toBe("risk");
+    const reply = await stub.append(
+      entry({
+        sessionId: "mallory",
+        resources: [`ticket:${ticket.entryId}`],
+        request: body("ok?"),
+      }),
+    );
+    expect(reply.batchId).not.toBe(ticket.batchId);
+
+    // One step runner per batch, as each batch gets its own Workflow in production.
+    await runReviewPipeline(new MemoryStepRunner(), deps, ticket.batchId);
+    await stub.seal();
+    await runReviewPipeline(new MemoryStepRunner(), deps, reply.batchId);
+    expect((await stub.getState()).entries[reply.entryId]).toMatchObject({
+      status: "DROPPED",
+      verdict: { category: "tainted" },
+    });
+  });
+
   it("escalates a high-risk allow and keeps it only if the second opinion is confident", async () => {
     const { reviewer, calls } = fakeReviewer((e, tier) =>
       tier === "escalation"

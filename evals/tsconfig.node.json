@@ -1,0 +1,6 @@
+// Node-side files: the vitest config, the corpus loader and the results reporter.
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": { "types": ["node"] },
+  "include": ["vitest.config.ts", "src/reporter.ts", "src/corpus.ts", "test/meta.d.ts"]
+}

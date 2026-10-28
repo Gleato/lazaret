@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tidewater Support</title>
+    <meta name="description" content="Tidewater's helpdesk, protected by Lazaret." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="wordmark" href="/" aria-label="Tidewater Support home">
+        <svg viewBox="0 0 32 32" aria-hidden="true" class="mark">
+          <path d="M3 19c4 0 4-3 8-3s4 3 8 3 4-3 8-3 2 1 2 1" />
+          <path d="M3 25c4 0 4-3 8-3s4 3 8 3 4-3 8-3 2 1 2 1" />
+          <circle cx="16" cy="9" r="4" />
+        </svg>
+        <span>Tidewater <b>Support</b></span>
+      </a>
+      <nav class="personas" aria-label="Sign in as">
+        <span class="personas-hint">Sign in as</span>
+        <button type="button" data-persona="mara">Mara <small>customer</small></button>
+        <button type="button" data-persona="theo">Theo <small>customer</small></button>
+        <button type="button" data-persona="sam">Sam <small>support agent</small></button>
+      </nav>
+    </header>
+
+    <p class="protected">
+      Every change you make here is held at the edge and checked by
+      <a href="https://gleator.com">Lazaret</a> before it reaches Tidewater.
+    </p>
+
+    <main id="app" tabindex="-1">
+      <section class="welcome">
+        <h1>How can we help?</h1>
+        <p>Pick someone to sign in as. Mara and Theo are customers; Sam works the support queue.</p>
+      </section>
+    </main>
+
+    <div id="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

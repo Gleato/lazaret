@@ -1,0 +1,21 @@
+// Tidewater Support, the demo origin. It has no public route on purpose
+// (workers_dev: false): the only way in is the service binding from the Lazaret
+// deployment in apps/demo-lazaret, and every request must carry Lazaret's HMAC
+// signature anyway. Static UI files are served from ./public.
+{
+  "name": "tidewater-origin",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "assets": { "directory": "./public", "run_worker_first": ["/api/*", "/admin/*"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tidewater",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ]
+  // Secret (set by you, never committed): LAZARET_SIGNING_SECRET, shared with demo-lazaret.
+  //   npx wrangler secret put LAZARET_SIGNING_SECRET
+}

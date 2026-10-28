@@ -67,11 +67,26 @@ export function matchPattern(
   return segments.length === pattern.segments.length ? params : null;
 }
 
+/**
+ * `{receipt}` in a resource template stands for the write's own Ledger entry id.
+ * The gateway can't fill it (the id doesn't exist yet), so it passes through
+ * untouched and the Ledger substitutes it inside `append`. With an origin that uses
+ * the receipt as the created resource's id, `ticket:{receipt}` on create and
+ * `ticket:{id}` on reply name the same resource, so taint can link them before
+ * the ticket ever reaches origin (tasks/todo.md, M6 step B).
+ */
+export const RECEIPT_PLACEHOLDER = "{receipt}";
+
 /** Fill a resource template like `ticket:{id}` from route params. */
 export function fillTemplate(template: string, params: Record<string, string>): string {
-  return template.replace(/\{(\w+)\}/g, (_, name: string) => params[name] ?? "");
+  return template.replace(/\{(\w+)\}/g, (m, name: string) =>
+    m === RECEIPT_PLACEHOLDER ? m : (params[name] ?? ""),
+  );
 }
 
+/** Route params a template refers to (`{receipt}` is not a route param). */
 export function templateParams(template: string): string[] {
-  return [...template.matchAll(/\{(\w+)\}/g)].map((m) => m[1] ?? "");
+  return [...template.matchAll(/\{(\w+)\}/g)]
+    .filter((m) => m[0] !== RECEIPT_PLACEHOLDER)
+    .map((m) => m[1] ?? "");
 }

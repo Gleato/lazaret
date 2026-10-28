@@ -1,0 +1,8 @@
+// Test config: same Worker and migrations, plus a fixed test signing secret.
+{
+  "name": "tidewater-origin-test",
+  "main": "../src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "vars": { "LAZARET_SIGNING_SECRET": "test-signing-secret-0123456789" },
+  "d1_databases": [{ "binding": "DB", "database_name": "tidewater-test", "database_id": "test" }]
+}

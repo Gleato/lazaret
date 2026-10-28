@@ -18,10 +18,21 @@ export interface ReviewCall {
   signal?: AbortSignal;
 }
 
+/**
+ * Token usage of one call, for cost accounting (evals, and the M7 spend cap). Absent
+ * for reviewers that don't call a model.
+ */
+export interface ReviewUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+}
+
 export type ReviewOutcome =
-  | { kind: "output"; output: unknown; model: string }
-  | { kind: "refusal"; category: string | null; model: string }
-  | { kind: "incomplete"; reason: string };
+  | { kind: "output"; output: unknown; model: string; usage?: ReviewUsage }
+  | { kind: "refusal"; category: string | null; model: string; usage?: ReviewUsage }
+  | { kind: "incomplete"; reason: string; usage?: ReviewUsage };
 
 export interface Reviewer {
   review(call: ReviewCall): Promise<ReviewOutcome>;
@@ -110,22 +121,30 @@ export async function structuredCall(
     throw new FatalReviewError(`model request failed: ${(err as Error).message}`, { cause: err });
   }
 
+  const usage: ReviewUsage = {
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+    cacheWriteTokens: response.usage.cache_creation_input_tokens ?? 0,
+  };
   if (response.stop_reason === "refusal") {
     return {
       kind: "refusal",
       category: response.stop_details?.category ?? null,
       model: response.model,
+      usage,
     };
   }
-  if (response.stop_reason === "max_tokens") return { kind: "incomplete", reason: "max_tokens" };
+  if (response.stop_reason === "max_tokens")
+    return { kind: "incomplete", reason: "max_tokens", usage };
   const text = response.content
     .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
     .map((b) => b.text)
     .join("");
   try {
-    return { kind: "output", output: JSON.parse(text), model: response.model };
+    return { kind: "output", output: JSON.parse(text), model: response.model, usage };
   } catch {
-    return { kind: "incomplete", reason: "unparseable output" };
+    return { kind: "incomplete", reason: "unparseable output", usage };
   }
 }
 

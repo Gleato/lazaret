@@ -1,0 +1,29 @@
+{
+  "name": "@gleator/tidewater-lazaret",
+  "private": true,
+  "version": "0.0.0",
+  "description": "The Lazaret deployment that protects Tidewater Support.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./config": "./src/config.ts",
+    "./scripted-reviewer": "./src/scripted-reviewer.ts"
+  },
+  "scripts": {
+    "predev": "for d in . ../demo-origin; do [ -f $d/.dev.vars ] || cp $d/.dev.vars.example $d/.dev.vars; done && wrangler d1 migrations apply tidewater --local -c ../demo-origin/wrangler.jsonc --persist-to .wrangler/state",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "dev": "wrangler dev -c wrangler.dev.jsonc -c ../demo-origin/wrangler.jsonc --persist-to .wrangler/state"
+  },
+  "dependencies": {
+    "@gleator/lazaret": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.9",
+    "@cloudflare/workers-types": "^5.20261028.1",
+    "@gleator/tidewater-origin": "*",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.154.0"
+  }
+}

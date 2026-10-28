@@ -56,4 +56,19 @@ describe("defineLazaret", () => {
     expect(text).toMatch(/thresholds.review/);
     expect(text).toMatch(/duplicate id/);
   });
+
+  it("accepts {receipt} in resources but reserves :receipt as a route param", () => {
+    expect(() =>
+      defineLazaret({
+        origin: "https://o.test",
+        routes: [{ match: "POST /api/tickets", policy: "ESCROW", resources: ["ticket:{receipt}"] }],
+      }),
+    ).not.toThrow();
+    expect(() =>
+      defineLazaret({
+        origin: "https://o.test",
+        routes: [{ match: "POST /api/x/:receipt", policy: "ESCROW" }],
+      }),
+    ).toThrow(LazaretConfigError);
+  });
 });

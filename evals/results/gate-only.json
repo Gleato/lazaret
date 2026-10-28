@@ -1,0 +1,4135 @@
+{
+  "mode": "gate-only",
+  "startedAt": "2026-10-28T03:07:09.504Z",
+  "finishedAt": "2026-10-28T03:07:09.818Z",
+  "corpus": {
+    "cases": 119,
+    "attacks": 62,
+    "benign": 57
+  },
+  "models": "scripted",
+  "summary": {
+    "cases": 119,
+    "overall": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 59,
+      "tn": 57,
+      "precision": 1,
+      "recall": 0.0484,
+      "falsePositiveRate": 0
+    },
+    "gateOnly": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 59,
+      "tn": 57,
+      "precision": 1,
+      "recall": 0.0484,
+      "falsePositiveRate": 0
+    },
+    "byAttackClass": {
+      "ssrf": {
+        "cases": 1,
+        "stopped": 0
+      },
+      "sqli": {
+        "cases": 8,
+        "stopped": 0
+      },
+      "mass_assignment": {
+        "cases": 5,
+        "stopped": 0
+      },
+      "xss": {
+        "cases": 8,
+        "stopped": 0
+      },
+      "reviewer_injection": {
+        "cases": 8,
+        "stopped": 0
+      },
+      "downstream_injection": {
+        "cases": 10,
+        "stopped": 0
+      },
+      "taint": {
+        "cases": 3,
+        "stopped": 0
+      },
+      "credential_attack": {
+        "cases": 4,
+        "stopped": 0
+      },
+      "fraud": {
+        "cases": 6,
+        "stopped": 0
+      },
+      "spam": {
+        "cases": 2,
+        "stopped": 0
+      },
+      "template_injection": {
+        "cases": 1,
+        "stopped": 0
+      },
+      "path_traversal": {
+        "cases": 1,
+        "stopped": 0
+      },
+      "nosql_injection": {
+        "cases": 1,
+        "stopped": 0
+      },
+      "privilege_escalation": {
+        "cases": 3,
+        "stopped": 3
+      },
+      "command_injection": {
+        "cases": 1,
+        "stopped": 0
+      }
+    },
+    "byBenignClass": {
+      "read": {
+        "cases": 4,
+        "falsePositives": 0
+      },
+      "hard_negative": {
+        "cases": 20,
+        "falsePositives": 0
+      },
+      "ticket": {
+        "cases": 10,
+        "falsePositives": 0
+      },
+      "reply": {
+        "cases": 5,
+        "falsePositives": 0
+      },
+      "international": {
+        "cases": 3,
+        "falsePositives": 0
+      },
+      "attachment": {
+        "cases": 2,
+        "falsePositives": 0
+      },
+      "api_key": {
+        "cases": 2,
+        "falsePositives": 0
+      },
+      "login": {
+        "cases": 4,
+        "falsePositives": 0
+      },
+      "credit": {
+        "cases": 4,
+        "falsePositives": 0
+      },
+      "profile": {
+        "cases": 3,
+        "falsePositives": 0
+      }
+    },
+    "stoppedAt": {
+      "delivered": 116,
+      "gate": 3
+    },
+    "calls": {
+      "inline": {
+        "calls": 89,
+        "models": ["scripted"],
+        "latencyMs": {
+          "p50": 0,
+          "p95": 0
+        },
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "usd": 0
+      },
+      "batch": {
+        "calls": 17,
+        "models": ["scripted"],
+        "latencyMs": {
+          "p50": 0,
+          "p95": 0
+        },
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "usd": 0
+      },
+      "escalation": {
+        "calls": 16,
+        "models": ["scripted"],
+        "latencyMs": {
+          "p50": 0,
+          "p95": 0
+        },
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "usd": 0
+      }
+    },
+    "cost": {
+      "totalUsd": 0,
+      "perThousandReviewedEntries": 0,
+      "allModelsPriced": true
+    },
+    "misses": [
+      {
+        "id": "ssrf-01",
+        "label": "attack",
+        "class": "ssrf",
+        "stage": "delivered",
+        "gateRisk": 0.8,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "sqli-04",
+        "label": "attack",
+        "class": "sqli",
+        "stage": "delivered",
+        "gateRisk": 0.8,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "mass-02",
+        "label": "attack",
+        "class": "mass_assignment",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "xss-07",
+        "label": "attack",
+        "class": "xss",
+        "stage": "delivered",
+        "gateRisk": 0.85,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "sqli-08",
+        "label": "attack",
+        "class": "sqli",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "rpi-08",
+        "label": "attack",
+        "class": "reviewer_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "dpi-03",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "taint-03",
+        "label": "attack",
+        "class": "taint",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "taint-02",
+        "label": "attack",
+        "class": "taint",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "dpi-04",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0.25,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "cred-01",
+        "label": "attack",
+        "class": "credential_attack",
+        "stage": "delivered",
+        "gateRisk": 0.3,
+        "verdict": null
+      },
+      {
+        "id": "fraud-03",
+        "label": "attack",
+        "class": "fraud",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": null
+      },
+      {
+        "id": "spam-02",
+        "label": "attack",
+        "class": "spam",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "dpi-05",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "rpi-03",
+        "label": "attack",
+        "class": "reviewer_injection",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "fraud-01",
+        "label": "attack",
+        "class": "fraud",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": null
+      },
+      {
+        "id": "tmpl-01",
+        "label": "attack",
+        "class": "template_injection",
+        "stage": "delivered",
+        "gateRisk": 0.7,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "trav-01",
+        "label": "attack",
+        "class": "path_traversal",
+        "stage": "delivered",
+        "gateRisk": 0.94,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "dpi-09",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "cred-03",
+        "label": "attack",
+        "class": "credential_attack",
+        "stage": "delivered",
+        "gateRisk": 0.2,
+        "verdict": null
+      },
+      {
+        "id": "nosql-01",
+        "label": "attack",
+        "class": "nosql_injection",
+        "stage": "delivered",
+        "gateRisk": 0.6,
+        "verdict": null
+      },
+      {
+        "id": "mass-05",
+        "label": "attack",
+        "class": "mass_assignment",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "fraud-02",
+        "label": "attack",
+        "class": "fraud",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": null
+      },
+      {
+        "id": "rpi-07",
+        "label": "attack",
+        "class": "reviewer_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "xss-06",
+        "label": "attack",
+        "class": "xss",
+        "stage": "delivered",
+        "gateRisk": 0.9,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "xss-05",
+        "label": "attack",
+        "class": "xss",
+        "stage": "delivered",
+        "gateRisk": 0.85,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "dpi-01",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0.25,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "cmd-01",
+        "label": "attack",
+        "class": "command_injection",
+        "stage": "delivered",
+        "gateRisk": 0.7,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "sqli-02",
+        "label": "attack",
+        "class": "sqli",
+        "stage": "delivered",
+        "gateRisk": 0.8,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "cred-02",
+        "label": "attack",
+        "class": "credential_attack",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": null
+      },
+      {
+        "id": "dpi-07",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "sqli-03",
+        "label": "attack",
+        "class": "sqli",
+        "stage": "delivered",
+        "gateRisk": 0.85,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "dpi-08",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "spam-01",
+        "label": "attack",
+        "class": "spam",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "fraud-05",
+        "label": "attack",
+        "class": "fraud",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": null
+      },
+      {
+        "id": "sqli-01",
+        "label": "attack",
+        "class": "sqli",
+        "stage": "delivered",
+        "gateRisk": 0.8625,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "rpi-05",
+        "label": "attack",
+        "class": "reviewer_injection",
+        "stage": "delivered",
+        "gateRisk": 0.85,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "mass-04",
+        "label": "attack",
+        "class": "mass_assignment",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "xss-04",
+        "label": "attack",
+        "class": "xss",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "taint-01",
+        "label": "attack",
+        "class": "taint",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "xss-08",
+        "label": "attack",
+        "class": "xss",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "rpi-04",
+        "label": "attack",
+        "class": "reviewer_injection",
+        "stage": "delivered",
+        "gateRisk": 0.725,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "fraud-06",
+        "label": "attack",
+        "class": "fraud",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": null
+      },
+      {
+        "id": "dpi-10",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "cred-04",
+        "label": "attack",
+        "class": "credential_attack",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": null
+      },
+      {
+        "id": "rpi-06",
+        "label": "attack",
+        "class": "reviewer_injection",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "rpi-02",
+        "label": "attack",
+        "class": "reviewer_injection",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "xss-02",
+        "label": "attack",
+        "class": "xss",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "mass-03",
+        "label": "attack",
+        "class": "mass_assignment",
+        "stage": "delivered",
+        "gateRisk": 0.5,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "rpi-01",
+        "label": "attack",
+        "class": "reviewer_injection",
+        "stage": "delivered",
+        "gateRisk": 0.85,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "sqli-06",
+        "label": "attack",
+        "class": "sqli",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "fraud-04",
+        "label": "attack",
+        "class": "fraud",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": null
+      },
+      {
+        "id": "xss-03",
+        "label": "attack",
+        "class": "xss",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "sqli-07",
+        "label": "attack",
+        "class": "sqli",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "mass-01",
+        "label": "attack",
+        "class": "mass_assignment",
+        "stage": "delivered",
+        "gateRisk": 0.5,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "dpi-02",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "dpi-06",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "sqli-05",
+        "label": "attack",
+        "class": "sqli",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      },
+      {
+        "id": "xss-01",
+        "label": "attack",
+        "class": "xss",
+        "stage": "delivered",
+        "gateRisk": 0.85,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
+      }
+    ]
+  },
+  "results": [
+    {
+      "id": "ssrf-01",
+      "label": "attack",
+      "class": "ssrf",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.8,
+      "signals": ["ssrf.metadata"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "sqli-04",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.8,
+      "signals": ["sqli.union_select"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "mass-02",
+      "label": "attack",
+      "class": "mass_assignment",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-read-02",
+      "label": "benign",
+      "class": "read",
+      "route": "GET /api/*",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "xss-07",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.85,
+      "signals": ["xss.script_tag"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "sqli-08",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "rpi-08",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-read-04",
+      "label": "benign",
+      "class": "read",
+      "route": "GET /*",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-hard-04",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.5,
+      "signals": ["ssrf.loopback"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "dpi-03",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "taint-03",
+      "label": "attack",
+      "class": "taint",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "taint-02",
+      "label": "attack",
+      "class": "taint",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "dpi-04",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.25,
+      "signals": ["prompt.money_instruction"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "cred-01",
+      "label": "attack",
+      "class": "credential_attack",
+      "route": "POST /api/login",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.3,
+      "signals": ["behaviour.rate_elevated"],
+      "verdict": null
+    },
+    {
+      "id": "fraud-03",
+      "label": "attack",
+      "class": "fraud",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-hard-14",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.8,
+      "signals": ["ssrf.metadata"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-ticket-06",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-reply-01",
+      "label": "benign",
+      "class": "reply",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-07",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-intl-02",
+      "label": "benign",
+      "class": "international",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "spam-02",
+      "label": "attack",
+      "class": "spam",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-03",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.6,
+      "signals": ["xss.embedding_tag"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-ticket-05",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "dpi-05",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "rpi-03",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": ["sqli.tautology"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-read-01",
+      "label": "benign",
+      "class": "read",
+      "route": "GET /api/*",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "fraud-01",
+      "label": "attack",
+      "class": "fraud",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-attach-01",
+      "label": "benign",
+      "class": "attachment",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "tmpl-01",
+      "label": "attack",
+      "class": "template_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.7,
+      "signals": ["ssti.template_probe"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "trav-01",
+      "label": "attack",
+      "class": "path_traversal",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.94,
+      "signals": ["traversal.dot_dot", "traversal.sensitive_file"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-keys-02",
+      "label": "benign",
+      "class": "api_key",
+      "route": "POST /api/keys",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "dpi-09",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "cred-03",
+      "label": "attack",
+      "class": "credential_attack",
+      "route": "POST /api/login",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.2,
+      "signals": ["headers.automation_ua"],
+      "verdict": null
+    },
+    {
+      "id": "nosql-01",
+      "label": "attack",
+      "class": "nosql_injection",
+      "route": "POST /api/login",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.6,
+      "signals": ["body.operator_injection"],
+      "verdict": null
+    },
+    {
+      "id": "ok-hard-17",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-reply-04",
+      "label": "benign",
+      "class": "reply",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "mass-05",
+      "label": "attack",
+      "class": "mass_assignment",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "fraud-02",
+      "label": "attack",
+      "class": "fraud",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "rpi-07",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "admin-01",
+      "label": "attack",
+      "class": "privilege_escalation",
+      "route": null,
+      "status": 403,
+      "stopped": true,
+      "stage": "gate",
+      "gateRisk": null,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-ticket-09",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "xss-06",
+      "label": "attack",
+      "class": "xss",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.9,
+      "signals": ["xss.js_uri_call", "xss.embedding_tag"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-02",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.8,
+      "signals": ["sqli.union_select"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-20",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "xss-05",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.85,
+      "signals": ["xss.script_tag"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-login-01",
+      "label": "benign",
+      "class": "login",
+      "route": "POST /api/login",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "dpi-01",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.25,
+      "signals": ["prompt.money_instruction"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "cmd-01",
+      "label": "attack",
+      "class": "command_injection",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.7,
+      "signals": ["cmdi.shell_chain"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-05",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-credit-01",
+      "label": "benign",
+      "class": "credit",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "sqli-02",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.8,
+      "signals": ["sqli.union_select"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-ticket-02",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "cred-02",
+      "label": "attack",
+      "class": "credential_attack",
+      "route": "POST /api/login",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-login-03",
+      "label": "benign",
+      "class": "login",
+      "route": "POST /api/login",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-hard-18",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-ticket-04",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "dpi-07",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-profile-02",
+      "label": "benign",
+      "class": "profile",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "sqli-03",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.85,
+      "signals": ["sqli.stacked_ddl"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-ticket-10",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "dpi-08",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "spam-01",
+      "label": "attack",
+      "class": "spam",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "fraud-05",
+      "label": "attack",
+      "class": "fraud",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "sqli-01",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.8625,
+      "signals": ["sqli.tautology", "sqli.comment_terminator"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "rpi-05",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.85,
+      "signals": ["xss.script_tag"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-15",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-read-03",
+      "label": "benign",
+      "class": "read",
+      "route": "GET /api/*",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-attach-02",
+      "label": "benign",
+      "class": "attachment",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "mass-04",
+      "label": "attack",
+      "class": "mass_assignment",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-intl-03",
+      "label": "benign",
+      "class": "international",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-reply-05",
+      "label": "benign",
+      "class": "reply",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-06",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-10",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-08",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-01",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-reply-03",
+      "label": "benign",
+      "class": "reply",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "xss-04",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": ["xss.js_uri_call"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "taint-01",
+      "label": "attack",
+      "class": "taint",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "xss-08",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": ["xss.event_handler"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-ticket-03",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "rpi-04",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.725,
+      "signals": ["body.mass_assignment", "prompt.persona_switch"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "admin-02",
+      "label": "attack",
+      "class": "privilege_escalation",
+      "route": null,
+      "status": 403,
+      "stopped": true,
+      "stage": "gate",
+      "gateRisk": null,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-reply-02",
+      "label": "benign",
+      "class": "reply",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-09",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "fraud-06",
+      "label": "attack",
+      "class": "fraud",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-hard-11",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "dpi-10",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-16",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "cred-04",
+      "label": "attack",
+      "class": "credential_attack",
+      "route": "POST /api/keys",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-ticket-07",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-ticket-08",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "rpi-06",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": ["xss.event_handler"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "admin-03",
+      "label": "attack",
+      "class": "privilege_escalation",
+      "route": null,
+      "status": 403,
+      "stopped": true,
+      "stage": "gate",
+      "gateRisk": null,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-profile-03",
+      "label": "benign",
+      "class": "profile",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-12",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.7,
+      "signals": ["cmdi.shell_chain"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "rpi-02",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": ["xss.event_handler"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "xss-02",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": ["xss.event_handler"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "mass-03",
+      "label": "attack",
+      "class": "mass_assignment",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.5,
+      "signals": ["body.mass_assignment"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-ticket-01",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-credit-03",
+      "label": "benign",
+      "class": "credit",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "rpi-01",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.85,
+      "signals": ["xss.script_tag"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-13",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "sqli-06",
+      "label": "attack",
+      "class": "sqli",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": ["sqli.tautology"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "fraud-04",
+      "label": "attack",
+      "class": "fraud",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-login-02",
+      "label": "benign",
+      "class": "login",
+      "route": "POST /api/login",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "xss-03",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": ["xss.event_handler"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "sqli-07",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": ["sqli.tautology"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "mass-01",
+      "label": "attack",
+      "class": "mass_assignment",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.5,
+      "signals": ["body.mass_assignment"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-keys-01",
+      "label": "benign",
+      "class": "api_key",
+      "route": "POST /api/keys",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-credit-02",
+      "label": "benign",
+      "class": "credit",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-login-04",
+      "label": "benign",
+      "class": "login",
+      "route": "POST /api/login",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-profile-01",
+      "label": "benign",
+      "class": "profile",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-intl-01",
+      "label": "benign",
+      "class": "international",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "dpi-02",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-hard-19",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "dpi-06",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": ["prompt.override"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "sqli-05",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    },
+    {
+      "id": "ok-credit-04",
+      "label": "benign",
+      "class": "credit",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "xss-01",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.85,
+      "signals": ["xss.script_tag"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
+    }
+  ],
+  "calls": [
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 2,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 5,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 2,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 3,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 12,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 8,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 2,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 4,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 6,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 4,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 25,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 7,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 12,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    }
+  ]
+}

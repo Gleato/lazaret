@@ -1,0 +1,24 @@
+// Offline local dev (`npm run dev`): same deployment, scripted reviewer, no API key.
+// See dev/worker.ts. Never deployed.
+{
+  "name": "tidewater-lazaret-dev",
+  "main": "dev/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "services": [{ "binding": "ORIGIN", "service": "tidewater-origin" }],
+  "durable_objects": {
+    "bindings": [
+      { "name": "LAZARET_LEDGER", "class_name": "TidewaterLedger" },
+      { "name": "LAZARET_MEMORY", "class_name": "TidewaterMemory" }
+    ]
+  },
+  "workflows": [
+    {
+      "binding": "LAZARET_REVIEW",
+      "name": "tidewater-lazaret-dev-review",
+      "class_name": "DevReviewWorkflow"
+    }
+  ],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TidewaterLedger", "TidewaterMemory"] }],
+  // Sweep re-dispatches any sealed batch whose review never started.
+  "triggers": { "crons": ["* * * * *"] }
+}

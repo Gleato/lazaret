@@ -28,6 +28,33 @@ describe("taint propagation", () => {
     expect(result.tainted).toBe(2);
   });
 
+  it("links back to drops and holds from earlier batches", () => {
+    const parent = {
+      ...e("parent", "mallory", ["ticket:42"]),
+      status: "DROPPED" as const,
+      verdict: verdict("drop"),
+    };
+    const held = {
+      ...e("held", "mallory", ["ticket:7"]),
+      status: "QUARANTINED" as const,
+      verdict: verdict("quarantine"),
+    };
+    const result = applyTaint(
+      [
+        e("reply", "mallory", ["ticket:42"]),
+        e("other", "mallory", ["ticket:7"]),
+        e("fine", "mallory", ["ticket:9"]),
+      ],
+      { reply: verdict("allow"), other: verdict("allow"), fine: verdict("allow") },
+      [parent, held],
+    );
+    expect(result.verdicts.reply).toMatchObject({ verdict: "drop", category: "tainted" });
+    expect(result.verdicts.other).toMatchObject({ verdict: "quarantine", category: "tainted" });
+    expect(result.verdicts.fine?.verdict).toBe("allow");
+    // Earlier drops were already counted when their own batch was reviewed.
+    expect(result.flaggedSessions).toEqual([]);
+  });
+
   it("never punishes a different session for touching the same resource", () => {
     const entries = [e("attack", "mallory", ["ticket:42"]), e("honest", "ann", ["ticket:42"])];
     const result = applyTaint(entries, { attack: verdict("drop"), honest: verdict("allow") });

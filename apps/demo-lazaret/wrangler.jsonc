@@ -1,0 +1,27 @@
+// The Lazaret deployment in front of Tidewater Support. Public traffic lands here;
+// origin is reachable only through the ORIGIN service binding.
+{
+  "name": "tidewater-lazaret",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "services": [{ "binding": "ORIGIN", "service": "tidewater-origin" }],
+  "durable_objects": {
+    "bindings": [
+      { "name": "LAZARET_LEDGER", "class_name": "TidewaterLedger" },
+      { "name": "LAZARET_MEMORY", "class_name": "TidewaterMemory" }
+    ]
+  },
+  "workflows": [
+    {
+      "binding": "LAZARET_REVIEW",
+      "name": "tidewater-lazaret-review",
+      "class_name": "TidewaterReviewWorkflow"
+    }
+  ],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TidewaterLedger", "TidewaterMemory"] }],
+  // Sweep re-dispatches any sealed batch whose review never started.
+  "triggers": { "crons": ["* * * * *"] }
+  // Secrets (set by you, never committed):
+  //   npx wrangler secret put LAZARET_SIGNING_SECRET   (same value as tidewater-origin)
+  //   npx wrangler secret put ANTHROPIC_API_KEY
+}

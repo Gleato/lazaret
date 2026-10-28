@@ -13,6 +13,9 @@ import type { EntryState, VerdictRecord } from "./types";
 //     that depends on a quarantined A is quarantined. Taint is transitive.
 //   - Any session with a reviewer drop (not a taint drop) is flagged. Its future
 //     writes arrive with a risk boost and get strict review.
+//   - Links also reach back into earlier batches (`prior`). Found by the evals: a
+//     high-risk ticket trips the risk-spike seal, so its batch closes before the
+//     follow-up reply arrives, and in-batch taint alone would let the reply through.
 
 export interface TaintResult {
   verdicts: Record<string, VerdictRecord>;
@@ -23,6 +26,8 @@ export interface TaintResult {
 export function applyTaint(
   entries: EntryState[],
   reviewed: Record<string, VerdictRecord>,
+  /** Entries from earlier batches that were already dropped or quarantined. */
+  prior: EntryState[] = [],
 ): TaintResult {
   const verdicts: Record<string, VerdictRecord> = {};
   const dropped = new Map<string, Map<string, string>>(); // session → resource → entry id
@@ -44,6 +49,11 @@ export function applyTaint(
     for (const r of entry.resources) keys.set(r, entry.id);
     index.set(entry.sessionId, keys);
   };
+
+  for (const entry of prior) {
+    if (entry.verdict?.verdict === "drop") remember(dropped, entry);
+    else if (entry.verdict?.verdict === "quarantine") remember(held, entry);
+  }
 
   for (const entry of entries) {
     let verdict = reviewed[entry.id];

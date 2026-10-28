@@ -1,0 +1,23 @@
+// Whole-stack test Worker: Tidewater's Lazaret classes with a scripted reviewer,
+// and the real Tidewater origin running in-process on a local D1.
+{
+  "name": "tidewater-lazaret-test",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "vars": { "LAZARET_SIGNING_SECRET": "test-signing-secret-0123456789" },
+  "d1_databases": [{ "binding": "DB", "database_name": "tidewater-test", "database_id": "test" }],
+  "durable_objects": {
+    "bindings": [
+      { "name": "LAZARET_LEDGER", "class_name": "TestLedger" },
+      { "name": "LAZARET_MEMORY", "class_name": "TidewaterMemory" }
+    ]
+  },
+  "workflows": [
+    {
+      "binding": "LAZARET_REVIEW",
+      "name": "tidewater-review-test",
+      "class_name": "TestReviewWorkflow"
+    }
+  ],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TestLedger", "TidewaterMemory"] }]
+}

@@ -11,11 +11,10 @@ Workers that holds every write bound for your origin in a stateful ledger. An
 independent Claude reviewer vets each batch, and only writes that pass reach your
 server. Writes that fail are dropped, along with anything that depends on them.
 
-> **Status: early development.** The Ledger (M1), the gateway and deterministic gate
-> (M2), the Claude reviewer, review workflow and signed committer (M3), and the author-only
-> read overlay (M4), and the self-improving memory (M5) are built and tested. The demo app
-> comes next. A live demo will run at
-> [gleator.com](https://gleator.com).
+> **Status: early development.** The library (Ledger, gateway and gate, Claude reviewer,
+> review workflow, signed committer, read overlay, self-improving memory), the Tidewater
+> Support demo app and the eval suite are built and tested. The public site and live demo
+> come next, at [gleator.com](https://gleator.com).
 
 ## How it works
 
@@ -65,13 +64,118 @@ randomness. The Durable Object
 ([`durable-object.ts`](packages/lazaret/src/ledger/durable-object.ts)) is a thin
 shell that persists events atomically in SQLite and replays them on startup.
 
+## Put Lazaret in front of your own API
+
+Lazaret is a Cloudflare Worker that sits in front of your origin. The worked example
+is [Tidewater Support](apps/demo-origin), a helpdesk that knew nothing about Lazaret,
+and [its Lazaret deployment](apps/demo-lazaret). The steps below follow that example.
+
+**1. Describe your routes.** One config holds the whole policy. Each route is passed
+through, reviewed inline, escrowed, or blocked. Escrowed writes declare the resources
+they touch, so dropping one drops what depends on it.
+
+```ts
+// lazaret.config.ts (from apps/demo-lazaret/src/config.ts)
+import { defineLazaret } from "@gleator/lazaret";
+
+export const config = defineLazaret({
+  origin: "https://api.example.com",
+  session: { header: "authorization" }, // your login is Lazaret's session (hashed)
+  routes: [
+    { match: "POST /api/login", policy: "INLINE_REVIEW" },
+    { match: "POST /api/accounts/:id/credits", policy: "INLINE_REVIEW" },
+    {
+      match: "POST /api/tickets",
+      policy: "ESCROW",
+      resources: ["ticket:{receipt}"],
+      overlay: { on: "GET /api/tickets", merge: "append-json-array", path: "tickets" },
+    },
+    { match: "POST /api/tickets/:id/replies", policy: "ESCROW", resources: ["ticket:{id}"] },
+    { match: "* /admin/*", policy: "BLOCK" },
+    { match: "GET /*", policy: "PASS" },
+  ],
+});
+```
+
+Unmatched writes are escrowed, not passed, so a route you forgot is still quarantined.
+`overlay` shows authors their own pending writes (and nobody else), so the app doesn't
+feel broken while a write waits for review.
+
+**2. Deploy the gateway.** Subclass the three runtime classes to hand them your config,
+and export the gateway. See [`apps/demo-lazaret/src/index.ts`](apps/demo-lazaret/src/index.ts)
+and its [`wrangler.jsonc`](apps/demo-lazaret/wrangler.jsonc) for the bindings
+(a Ledger and a Memory Durable Object, a review Workflow, and a cron for the recovery sweep).
+
+```ts
+export class Ledger extends LazaretLedger {}
+export class Memory extends LazaretMemory {}
+export class ReviewWorkflow extends LazaretReviewWorkflow<Env> {
+  protected override lazaretConfig() {
+    return config;
+  }
+}
+const gateway = createGateway(config);
+export default { fetch: gateway.fetch, scheduled: gateway.scheduled };
+```
+
+**3. Make origin refuse anything that didn't come through Lazaret.** Otherwise an
+attacker just skips the edge. Every request Lazaret sends is HMAC-signed, and the
+signature covers the method, path, query, body and a timestamp.
+
+```ts
+import { verifyLazaretRequest } from "@gleator/lazaret/origin";
+
+const check = await verifyLazaretRequest(request, env.LAZARET_SIGNING_SECRET);
+if (!check.ok) return new Response("Forbidden", { status: 403 });
+// check.id is the Ledger entry id: an idempotency key for writes.
+```
+
+**4. Dedupe writes by `x-lazaret-id`.** The Committer retries after crashes and
+network errors, so the same write can arrive twice. Store each write's response in
+the same transaction as the write and replay it on a repeat. Tidewater does this in
+one small module: [`apps/demo-origin/src/dedupe.ts`](apps/demo-origin/src/dedupe.ts).
+
+**5. Use the receipt as the id of what a write creates (optional, recommended).** An
+escrowed write answers `202` with a receipt. If origin uses that receipt as the new
+resource's id, clients can refer to it before it commits (a reply to a pending
+ticket), and `ticket:{receipt}` lets taint link the two. Commits replay in order
+within a batch, so the reference resolves.
+
+**6. Set the secrets** (`wrangler secret put`, never in code): `LAZARET_SIGNING_SECRET`
+(at least 16 characters, the same value on gateway and origin) and `ANTHROPIC_API_KEY`.
+
+### Try it locally
+
+The demo runs offline with a scripted reviewer in place of Claude, so it needs no API
+key and costs nothing:
+
+```bash
+npm run dev -w @gleator/tidewater-lazaret
+```
+
+Open http://localhost:8787 and sign in as Mara (customer) or Sam (support agent).
+
+## Evals
+
+[`evals/`](evals) holds a labelled corpus of 119 cases: 62 attacks and 57 benign
+requests, including hard negatives such as tickets that quote SQL errors or mention
+`localhost`. The attacks include prompt injection aimed at Lazaret's own reviewer and
+indirect injection aimed at Tidewater's AI support agent. The runner pushes the corpus
+through the real gateway, Ledger and review pipeline, and reports precision, recall,
+false-positive rate, latency, time to first token and cost.
+
+```bash
+npm run eval:gate        # deterministic modes, free: evals/results/{gate-only,fake}.json
+EVAL_CONFIRM_SPEND=yes npm run eval:live   # real Claude, about $3, capped by EVAL_MAX_USD
+```
+
 ## Development
 
 Requires Node 22+.
 
 ```bash
 npm install
-npm test          # Vitest inside workerd: real SQLite, alarms and eviction
+npm test          # Vitest inside workerd: real SQLite, D1, alarms and eviction
 npm run typecheck
 npm run lint
 ```
@@ -87,7 +191,7 @@ identical and that no write is committed twice.
 - [x] M3: Claude reviewer, review workflow, committer, taint propagation
 - [x] M4: Author-only read overlay
 - [x] M5: Memory distillation and rule promotion
-- [ ] M6: Demo origin (Tidewater Support helpdesk) and evals
+- [x] M6: Demo origin (Tidewater Support helpdesk) and evals
 - [ ] M7–M8: gleator.com live demo and launch
 
 The full spec is in [`tasks/todo.md`](tasks/todo.md).

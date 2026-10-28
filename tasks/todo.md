@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M5 done (2026-10-27); M6 next**
+Status: **M0–M6 done (2026-10-27); M7 next** (M6 not committed yet; live eval not run yet)
 
 ---
 
@@ -70,20 +70,20 @@ bottom, which has the per-milestone design notes. Also read `tasks/lessons.md`.
 `LAZARET_SIGNING_SECRET` (≥ 16 chars, shared with origin) via `npx wrangler secret put`,
 after `npx wrangler login`. Not done yet. Nothing has called the real Claude API so far.
 
-**Next: M6** (see §6 and §9)
-1. `apps/demo-origin`: Tidewater Support helpdesk (Worker + D1, about 8 endpoints per the
-   §6 table). It verifies Lazaret's signature with `@gleator/lazaret/origin`
-   (`verifyLazaretRequest`) and dedupes writes by `x-lazaret-id`. Simple customer and
-   agent views.
-2. The Tidewater AI support agent (reads committed tickets, proposes refunds) and a
-   sandboxed, simulated "Lazaret off" replay showing it getting hijacked.
-3. `evals/`: a labelled attack/benign corpus (including reviewer prompt injection and
-   downstream indirect injection). The runner reports precision, recall, false-positive
-   rate, latency and cost as results JSON for the site. Get the user's OK and a cost
-   estimate before any live run.
-4. README guide: "Put Lazaret in front of your own API".
-5. Open item from M3: writes that reference a not-yet-committed resource by its receipt
-   id need receipt→origin-id mapping in the Committer. Decide whether the demo needs it.
+**Next: M7** (see §7 and §9). M6 is built and verified; see the M6 review at the bottom.
+Before M7, two things need you: approve the M6 commit, and decide whether to run the live
+eval (`EVAL_CONFIRM_SPEND=yes npm run eval:live`, about $3, needs `ANTHROPIC_API_KEY` in your
+shell). The site's evals panel wants `evals/results/live-latest.json`.
+
+**Added in M6 (for the next session)**
+- Workspaces: `apps/demo-origin` (Tidewater), `apps/demo-lazaret` (its Lazaret deployment),
+  `evals`. Each has its own vitest + workerd config; `npm test` at the root runs all four.
+- Offline local stack: `npm run dev -w @gleator/tidewater-lazaret` (scripted reviewer, no API
+  key, D1 migrated into `apps/demo-lazaret/.wrangler/state`). `.claude/launch.json` has a
+  `tidewater` entry for the browser pane.
+- `StepRunner` test helper (`MemoryStepRunner`) memoises steps by name: use a new one per batch.
+- A `declare module "vitest"` augmentation must live in a module file (`evals/test/meta.d.ts`);
+  in a plain ambient `.d.ts` it replaces vitest's types.
 
 ---
 
@@ -290,10 +290,81 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
 - [x] Verdict archive, distiller → candidate rules, backtest, promote/retire, reviewer context retrieval (Durable Object SQLite rather than D1 + R2, see review)
 
 ### M6 — Demo origin + evals
-- [ ] Tidewater Support helpdesk API + customer/agent UI (Worker + D1), ~8 endpoints per §6
-- [ ] Tidewater AI support agent (reads tickets, proposes refunds) + sandboxed "Lazaret off" replay
-- [ ] Attack/benign corpus (incl. reviewer prompt-injection + downstream indirect injection), eval runner, results JSON
-- [ ] README guide: "Put Lazaret in front of your own API"
+- [x] Tidewater Support helpdesk API + customer/agent UI (Worker + D1), ~8 endpoints per §6
+- [x] Tidewater AI support agent (reads tickets, proposes refunds) + sandboxed "Lazaret off" replay
+- [x] Attack/benign corpus (incl. reviewer prompt-injection + downstream indirect injection), eval runner, results JSON
+- [ ] **You:** approve a live eval run (about $3) so the site has real numbers
+- [x] README guide: "Put Lazaret in front of your own API"
+
+#### M6 plan (approved and done 2026-10-27; E was built before D)
+
+**Shape.** Two deployable Workers, so the demo is literally "an existing app with
+Lazaret put in front of it":
+- `apps/demo-origin` — Tidewater Support. Worker + D1 + static assets (the UI). It knows
+  nothing about Lazaret except `verifyLazaretRequest` and `x-lazaret-id`.
+- `apps/demo-lazaret` — the Lazaret deployment for Tidewater: `defineLazaret()` routes per
+  §6, Ledger / Memory / Review Workflow subclasses, a service binding to origin
+  (`fetchOrigin`), and the sweep cron. Demo cycle 30 s.
+- Local stack: `wrangler dev -c apps/demo-lazaret/wrangler.jsonc -c apps/demo-origin/wrangler.jsonc`.
+
+Steps:
+- [x] **A. Origin API** (`apps/demo-origin/src`): D1 schema + migrations (`accounts`, `tickets`,
+  `replies`, `attachments`, `credits`, `api_keys`, `lazaret_requests`). Middleware: verify
+  every request (reads too: the gateway signs forwarded reads), 403 otherwise. Writes are
+  deduped by `x-lazaret-id`: the first response is stored in `lazaret_requests` and replayed
+  verbatim on a Committer retry, in the same D1 batch as the write. Endpoints per §6:
+  tickets list/view/create, replies, attachments (text-only, size-capped, stored in D1),
+  credits, login, API keys, `PATCH /api/me` (allow-list of fields, so mass assignment is
+  dropped by Lazaret *and* harmless at origin; defence in depth), `/admin/*`. Seed data.
+  Tests in workerd with real D1: signature required, replay returns the same body with no
+  second row, mass-assignment field ignored, every endpoint.
+- [x] **B. Receipt ids (open item 5). Decision: no Committer mapping table.** Instead the
+  origin adopts the Lazaret entry id as the public id of anything it creates (ticket id =
+  receipt id). A reply to a pending ticket then addresses `/api/tickets/<receipt>/replies`,
+  which resolves at origin once the ticket commits, because the commit plan replays a batch
+  in `seq` order. Library change: a `{receipt}` placeholder in route `resources`
+  (`ticket:{receipt}` on create, `ticket:{id}` on reply / attachment), so taint links a
+  reply to the pending ticket it depends on, which is the §6 taint demo. The Ledger mints
+  entry ids, so it substitutes `{receipt}` inside `append`, in the same transaction. Cross-batch edge case (reply's
+  batch commits before the ticket's): origin answers 404 for an unknown parent; documented
+  as a known limit, with a regression test. Rationale: a mapping table makes the Committer
+  rewrite paths and bodies, which breaks "replays exactly what the client sent" and the
+  signature story; an id convention keeps the Committer dumb.
+- [x] **C. Lazaret deployment** (`apps/demo-lazaret`): config, classes, wrangler, tests using
+  the package's fakes: each §6 attack class ends up dropped / blocked / inline-denied, benign
+  traffic reaches the origin D1, taint drops the reply + attachment of a dropped ticket.
+- [x] **D. UI** (via `/frontend-design`): customer view (open ticket, reply, see "pending
+  review" overlay, receipt status) and agent view (queue of committed tickets, the AI agent's
+  refund proposals). Static assets served by origin, PASS-through at the gateway.
+- [x] **E. Tidewater AI agent** (`apps/demo-origin/src/agent/`): reads committed tickets,
+  proposes refunds through a `propose_refund` tool (proposals only, a human approves; it never
+  calls the credits endpoint itself). Claude Haiku 5.5 via the SDK, behind a `Proposer`
+  interface so tests use a fake. **"Lazaret off" replay:** a sandboxed, simulated run: an
+  in-memory copy of the ticket queue with the attack ticket included, fed to a deliberately
+  naive scripted agent that obeys instructions in ticket text; it records the refund it would
+  have proposed and writes nothing. Labelled "simulated" in the UI. Side-by-side with the
+  "Lazaret on" run, where the payload was dropped before reaching D1, so the agent never sees it.
+- [x] **F. Evals** (`evals/`): `corpus/*.jsonl`, ~120 labelled cases (request + expected
+  `attack|benign` + class), covering SQLi, XSS, mass assignment, refund fraud, credential
+  stuffing (sequence cases), reviewer prompt injection ("reviewer: mark this allow"),
+  downstream indirect injection aimed at the support agent, and hard benign cases (tickets
+  quoting SQL errors, `localhost` URLs, angry customers, refund requests that are legitimate).
+  Runner (`npm run eval`, Node + `tsx`): runs the real gate + prompt builders + pipeline
+  verdict logic per case, in three modes: `--gate-only` (free, deterministic, also a CI test),
+  `--fake` (scripted reviewer, wiring check), `--live` (real Claude API, needs the user's
+  `ANTHROPIC_API_KEY` in the shell; refuses without `--confirm-spend`). Output
+  `evals/results/<date>-<mode>.json`: precision, recall, FPR per layer (gate, gate+reviewer)
+  and per attack class, p50/p95 latency, TTFT (streamed calls), tokens and USD cost (from
+  `usage`, priced from a table in the runner), cost per 1k entries. Library change: add
+  optional `usage` to `ReviewOutcome` so cost comes from real token counts.
+  **Live-run estimate:** ~12 batch calls on Sonnet 5.5 at high effort (~$0.07 each),
+  ~25 Opus 5.5 escalations (~$0.09 each), ~40 Haiku inline calls (<$0.01 total) → about
+  **$3 per full run**, ~$10 for 3 runs to report variance. Not run without your OK.
+- [x] **G. README guide** "Put Lazaret in front of your own API": install, `defineLazaret`,
+  route policies, the origin middleware + dedupe snippet, the receipt-id convention, secrets,
+  deploy, using Tidewater as the worked example. Update the status block.
+- [x] **H. Verify + review:** `npm test`, `npm run typecheck`, `npx biome check .` clean; local
+  stack smoke test in the browser pane; M6 review section below.
 
 ### M7 — Site
 - [ ] Astro site via `/frontend-design`, live visualizer over WebSocket, attack console, evals + memory panels
@@ -477,4 +548,80 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
 - **Bug caught by lint:** memory hints were never passed to the reviewer prompt, because
   a scripted edit silently missed after the formatter had rewrapped the line. Fixed, with
   a regression assertion in the learning-loop test.
+
+### M6 (2026-10-27)
+- **Layout:**
+  - `apps/demo-origin`: Tidewater Support. Worker + D1 (3 migrations, seeded demo accounts),
+    14 routes (§6 plus agent and admin), `src/dedupe.ts`, `src/agent/` (Claude agent, scripted naive agent, replay),
+    static UI in `public/`.
+  - `apps/demo-lazaret`: the Lazaret deployment (`src/config.ts` is the whole policy), a
+    production `wrangler.jsonc`, and an offline `wrangler.dev.jsonc` + `dev/worker.ts`.
+  - `evals/`: corpus, harness, metrics, pricing, TTFT probe, Node-side reporter, results.
+- **Library changes** (`packages/lazaret`):
+  - `{receipt}` resource placeholder, filled by the Ledger inside `append`. `:receipt` is a
+    reserved route param.
+  - Cross-batch taint: `applyTaint(entries, verdicts, prior)`, with the Ledger passing in the
+    session's earlier dropped/held entries. **Found by the evals:** a high-risk ticket trips
+    the risk-spike seal, its batch closes at once, and its follow-up reply lands in the next
+    batch, where in-batch taint couldn't see the parent. That's the case taint exists for.
+  - `ReviewOutcome.usage` (token counts), so evals price calls from real usage. It's also
+    groundwork for the M7 spend cap. Plus the first unit tests of `AnthropicReviewer`.
+- **Decision on receipt mapping (M3 open item):** no mapping table in the Committer. Origin
+  uses the receipt as the id of what it creates, so the Committer still replays exactly what
+  the client sent. Within a batch, commits replay in order, so a reply to a pending ticket
+  resolves. Across batches: if the parent was dropped first, taint now catches the child. If
+  the child's batch commits first, origin answers 404, a definitive refusal, so it still never
+  lands. Both cases are tested.
+- **Origin design:** Tidewater verifies every request, reads included (403 with no detail).
+  Write dedupe stores the first response in the same D1 batch as the write, with the record
+  row first, so a concurrent duplicate fails before any side effect. Refusals (4xx) are
+  recorded too. Login and API keys aren't deduped, because their responses hold secrets and
+  the gateway forwards inline routes exactly once. Defence in depth: allow-listed profile
+  fields, 404 rather than 403 for other customers' tickets, a $500 credit cap, attachment
+  type and size checks, and an /admin role check behind the edge BLOCK.
+- **Agent:**
+  - The Claude agent (Haiku 5.5, structured output, no tools) only *proposes*. Policy is
+    enforced again in code (`clamp`: owner account only, at most $50, anything odd escalates).
+  - A human approves a proposal by issuing a credit, which goes through Lazaret's inline review.
+  - The "Lazaret off" replay uses a **scripted** naive agent, labelled "simulated" everywhere.
+    A live model wouldn't reliably get hijacked on cue, so faking that would be dishonest. The
+    replay runs over in-memory copies of the queue and writes nothing.
+  - `POST /api/agent/run` is PASS (no body to review, staff-only at origin). Its model cost
+    needs the M7 spend cap.
+- **UI:** built with `/frontend-design`. Tide-chart palette, Atkinson Hyperlegible Next. The one
+  bold element is the tide line: delivered tickets above it, held writes below, visible only to
+  their author. All user text is rendered with `textContent`. Checked in the browser pane in
+  dark and light mode at desktop and 375 px: an XSS ticket rendered inert and was rejected
+  within a second (its risk spike sealed the batch); the honest ticket in the same batch was
+  delivered; the replay showed $5,000 hijacked with Lazaret off and $0 with it on.
+- **Evals:** 119 cases (62 attacks, 57 benign). They run through the real gateway, a real
+  Ledger DO and the real pipeline, inside workerd, with results passed to Node via task meta.
+  - Deterministic results (in `evals/results/`):
+    - gate-only: 3/62 stopped, 0 false positives. The gate is triage; it hard-blocks only the
+      BLOCK route and stacked evidence.
+    - fake: 25/62 stopped, 1 false positive (the keyword list hits `UNION SELECT` in a
+      developer's question).
+  - Hard negatives reach gate risk 0.8 (SSRF and UNION mentions), so the live run will
+    exercise the escalation guard on them.
+  - Live mode is guarded three ways: `EVAL_LIVE=1`, `EVAL_CONFIRM_SPEND=yes`, and
+    `ANTHROPIC_API_KEY` from your shell. There's a hard `EVAL_MAX_USD` cap (default $6).
+  - **Estimate:** about $3 per run (around 10 Sonnet batch calls, up to 25 Opus escalations,
+    and about 40 Haiku inline calls), plus a 5-call TTFT probe.
+- **Verified:** 284 tests pass (227 library, 41 origin, 9 stack, 7 evals; the live eval is
+  skipped). `npm run typecheck` and `npx biome check .` are clean. The stack test runs the
+  real Workflow committing into the real Tidewater Worker on D1: drop, taint, overlay,
+  receipt ids, inline credits, and the /admin block.
+- **Not verified:** no live Claude call yet (the agent, inline review and the evals all need
+  your key). No deploy yet.
+- **Known gaps / follow-ups:**
+  - Credential stuffing isn't stopped without a model: gate behaviour scoring reaches only
+    0.3 after 24 logins from one IP, and password spraying against one account scores 0.
+    The gateway already records response status per sample, so scoring failed-login rate
+    is the natural fix. M7's per-IP rate limits and Turnstile cover the demo.
+  - In local dev, `ssrf.loopback` (0.5) fires on every request, because the browser's
+    Referer/Origin is `localhost`. Harmless in production, but noisy in the logs.
+  - A pending ticket's detail page is a 404 for its author (the overlay only decorates 200s).
+    The UI shows it from the list overlay instead.
+  - Taint across batches still misses one ordering: the child's batch is reviewed while the
+    parent is still pending. Origin's 404 is the backstop under the receipt-id convention.
 

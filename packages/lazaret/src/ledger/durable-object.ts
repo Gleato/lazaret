@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { combineRisk } from "../gate/signals";
+import { RECEIPT_PLACEHOLDER } from "../routing/matcher";
 import type { LedgerEvent, StoredEvent } from "./events";
 import { applyEvent, initialState, nextBatchId } from "./machine";
 import { applyTaint } from "./taint";
@@ -102,14 +103,22 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
   ): Promise<{ entryId: string; batchId: string; sealed: SealReason | null }> {
     validateEntryInput(input);
     const at = this.now();
-    const entry = this.#boostFlaggedSession(input, at);
+    const entryId = crypto.randomUUID();
+    // `{receipt}` resources name this entry itself (see RECEIPT_PLACEHOLDER). Filled
+    // here, before the event is written, so replay sees the concrete key.
+    const entry = this.#boostFlaggedSession(
+      {
+        ...input,
+        resources: input.resources.map((r) => r.replaceAll(RECEIPT_PLACEHOLDER, entryId)),
+      },
+      at,
+    );
     const events: LedgerEvent[] = [];
 
     const opening = this.#state.openBatchId === null;
     const batchId = this.#state.openBatchId ?? nextBatchId(this.#state);
     if (opening) events.push({ type: "BATCH_OPENED", batchId, at });
 
-    const entryId = crypto.randomUUID();
     events.push({ type: "ENTRY_APPENDED", entryId, batchId, entry, at });
 
     // Seal in the same transaction as the append, so a crash can never leave a
@@ -227,7 +236,17 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
     }
     for (const id of given) validateVerdict(verdicts[id]);
 
-    const taint = applyTaint(pending, verdicts);
+    // Earlier batches' dropped/held writes from the same sessions, so taint can link
+    // across a batch boundary (dependencies only ever point backwards).
+    const batchNumber = (id: string) => Number(id.slice(id.lastIndexOf("-") + 1));
+    const sessions = new Set(pending.map((e) => e.sessionId));
+    const prior = Object.values(this.#state.entries).filter(
+      (e) =>
+        sessions.has(e.sessionId) &&
+        (e.status === "DROPPED" || e.status === "QUARANTINED") &&
+        batchNumber(e.batchId) < batchNumber(batchId),
+    );
+    const taint = applyTaint(pending, verdicts, prior);
     const at = this.now();
     this.#commit([
       ...pending.map(
