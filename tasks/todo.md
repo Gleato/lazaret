@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M3 done (2026-10-27); M4 next**
+Status: **M0–M4 done (2026-10-27); M5 next**
 
 ---
 
@@ -207,7 +207,7 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
 - [x] Inline review path with timeout
 
 ### M4 — Read overlay
-- [ ] Author-only overlay, built-in mergers + custom merge hook
+- [x] Author-only overlay, built-in mergers + custom merge hook
 
 ### M5 — Memory
 - [ ] Verdict archive (D1 + R2), distiller → candidate rules, backtest, promote/retire, reviewer context retrieval
@@ -335,4 +335,30 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
   - `dailyBudgetUsd` enforcement (M7).
   - Recording inline verdicts in the Ledger for memory (M5).
   - Mapping receipt ids to origin ids for writes that reference not-yet-committed resources (M6).
+
+### M4 (2026-10-27)
+- **Layout:** `src/overlay/merge.ts` (mergers), `src/overlay/apply.ts` (response rewriting);
+  Ledger `getPendingForSession` / `getReceipt`; gateway receipt endpoint.
+- **Design choices:**
+  - Overlays are declared on the *write* route (`overlay: { on: "GET …", merge }`), because
+    the write knows what it changes. Params the read and write patterns share must
+    match, so an edit to ticket 1 never decorates ticket 2.
+  - Built-in mergers: `append-json-array`, `patch-json-by-id` and `merge-json-object`, each
+    with an optional dot `path`. A custom `MergeFn` is also accepted. Overlaid items get
+    `_lazaret: { pending, receipt }` so the client can show "pending review".
+  - The overlay includes PENDING writes and APPROVED-but-uncommitted ones. Dropped and
+    quarantined writes vanish, and committed writes vanish because origin has them now.
+  - Modified responses get `Cache-Control: private, no-store`, so one user's unvetted data
+    never sits in a shared cache. Only 200 JSON responses up to 2 MB are touched, and a
+    merger exception passes origin's response through unchanged.
+  - `GET /__lazaret/receipts/:id` answers for the author only, and returns 404 otherwise, so
+    receipts can't be probed. The `/__lazaret/` prefix is reserved and never reaches origin.
+  - Entries now store their route `params`.
+- **Verified:** 193 tests pass (12 new). They cover author vs. other-user views, cache
+  headers, param scoping, the drop and commit transitions, receipt privacy, pass-through,
+  and the merger-failure fallback. `tsc` and Biome are clean.
+- **Known limits:**
+  - Each overlaid GET costs one Ledger round trip, but only on routes that have an overlay.
+  - Authors can see their own unvetted content. That is self-XSS only, and is the intended
+    read-your-writes behaviour.
 

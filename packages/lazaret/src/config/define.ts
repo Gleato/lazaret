@@ -1,5 +1,6 @@
 import { type CompiledRule, compileRule, type Rule } from "../gate/rules";
 import { type CycleConfig, DEFAULT_CYCLE, validateCycleConfig } from "../ledger/triggers";
+import { builtinMerge, type MergeFn, type OverlayConfig } from "../overlay/merge";
 import { type CompiledPattern, compilePattern, templateParams } from "../routing/matcher";
 
 // `defineLazaret` is the single place a deployment is described. It validates
@@ -8,6 +9,7 @@ import { type CompiledPattern, compilePattern, templateParams } from "../routing
 
 export type Policy = "PASS" | "INLINE_REVIEW" | "ESCROW" | "BLOCK";
 const POLICIES: readonly Policy[] = ["PASS", "INLINE_REVIEW", "ESCROW", "BLOCK"];
+const BUILTIN_MERGES = ["append-json-array", "patch-json-by-id", "merge-json-object"] as const;
 
 export interface RouteConfig {
   /** "METHOD /path/:param/*", e.g. "PATCH /api/tickets/:id". */
@@ -15,6 +17,12 @@ export interface RouteConfig {
   policy: Policy;
   /** Resource keys this write touches, e.g. ["ticket:{id}"]. Drives taint propagation. */
   resources?: string[];
+  /**
+   * Show this route's pending writes to their author when they read another route
+   * (ESCROW routes only). Params the two patterns share must match, so a pending
+   * edit to ticket 42 only decorates `GET /api/tickets/42`.
+   */
+  overlay?: OverlayConfig | OverlayConfig[];
 }
 
 export interface LazaretConfig {
@@ -72,9 +80,18 @@ export interface CompiledRoute {
   pattern: CompiledPattern;
 }
 
+export interface CompiledOverlay {
+  /** The write route whose pending entries feed this overlay. */
+  writeRoute: string;
+  writePattern: CompiledPattern;
+  on: CompiledPattern;
+  merge: MergeFn;
+}
+
 export interface ResolvedConfig {
   origin: URL;
   routes: CompiledRoute[];
+  overlays: CompiledOverlay[];
   fallback: { read: Policy; write: Policy };
   cycle: CycleConfig;
   ledger: { binding: string; shard: string };
@@ -140,6 +157,7 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
   if (!origin && !problems.length) problems.push("origin is required");
 
   const routes: CompiledRoute[] = [];
+  const overlays: CompiledOverlay[] = [];
   for (const route of config.routes ?? []) {
     if (!POLICIES.includes(route.policy)) {
       problems.push(`route "${route.match}": unknown policy ${String(route.policy)}`);
@@ -157,6 +175,35 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
       }
     }
     routes.push({ route, pattern });
+
+    const overlayList = route.overlay === undefined ? [] : [route.overlay].flat();
+    if (overlayList.length && route.policy !== "ESCROW") {
+      problems.push(`route "${route.match}": overlay only applies to ESCROW routes`);
+      continue;
+    }
+    for (const overlay of overlayList) {
+      const on = attempt(() => compilePattern(overlay.on));
+      if (!on) continue;
+      if (on.methods === null || [...on.methods].some((m) => m !== "GET" && m !== "HEAD")) {
+        problems.push(
+          `route "${route.match}": overlay.on must be a GET route, got "${overlay.on}"`,
+        );
+        continue;
+      }
+      if (typeof overlay.merge !== "function" && !BUILTIN_MERGES.includes(overlay.merge)) {
+        problems.push(`route "${route.match}": unknown overlay merge ${String(overlay.merge)}`);
+        continue;
+      }
+      overlays.push({
+        writeRoute: route.match,
+        writePattern: pattern,
+        on,
+        merge:
+          typeof overlay.merge === "function"
+            ? overlay.merge
+            : builtinMerge(overlay as OverlayConfig & { merge: (typeof BUILTIN_MERGES)[number] }),
+      });
+    }
   }
 
   const fallback = {
@@ -201,6 +248,7 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
   return {
     origin,
     routes,
+    overlays,
     fallback,
     cycle,
     ledger: {

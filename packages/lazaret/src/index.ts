@@ -5,6 +5,7 @@ export {
   TransientCommitError,
 } from "./commit/committer";
 export { signRequest, type VerifyResult, verifyLazaretRequest } from "./commit/sign";
+export type { CompiledOverlay } from "./config/define";
 export {
   type CompiledRoute,
   DEFAULT_SENSITIVE_FIELDS,
@@ -42,6 +43,16 @@ export { applyEvent, IllegalTransition, initialState, replay } from "./ledger/ma
 export { applyTaint, type TaintResult } from "./ledger/taint";
 export { type CycleConfig, DEFAULT_CYCLE } from "./ledger/triggers";
 export type * from "./ledger/types";
+export { overlayResponse } from "./overlay/apply";
+export {
+  type BuiltinMerge,
+  builtinMerge,
+  type MergeContext,
+  type MergeFn,
+  type OverlayConfig,
+  PENDING_MARKER,
+  type PendingWrite,
+} from "./overlay/merge";
 export {
   AnthropicReviewer,
   FatalReviewError,

@@ -50,6 +50,8 @@ export interface EntryInput {
   route: string;
   /** Gate evidence, handed to the reviewer as pre-digested context. */
   signals: GateSignal[];
+  /** Route params of the write (used to scope the author's read overlay). */
+  params?: Record<string, string>;
 }
 
 export interface VerdictRecord {

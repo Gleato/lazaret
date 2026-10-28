@@ -13,6 +13,7 @@ import { inspect } from "../gate/inspect";
 import type { GateSignal } from "../gate/signals";
 import type { LazaretLedger } from "../ledger/durable-object";
 import type { EntryInput } from "../ledger/types";
+import { overlayResponse } from "../overlay/apply";
 import { AnthropicReviewer, type Reviewer } from "../review/client";
 import { inlineReview } from "../review/inline";
 import { fillTemplate, matchPattern } from "../routing/matcher";
@@ -38,6 +39,10 @@ import { deriveSessionId } from "./session";
 // It forwards the *normalised* path, never the raw one, so origin acts on exactly
 // what the route rules saw (see routing/normalize.ts). Every forwarded request is
 // HMAC-signed, so origin can refuse anything that bypassed Lazaret.
+//
+// Reads on routes with an overlay get the session's own pending writes merged in
+// (author-only, see overlay/apply.ts). `GET /__lazaret/receipts/:id` lets an author
+// poll a receipt. The `/__lazaret/` prefix is reserved and never reaches origin.
 //
 // `scheduled` is the cron entrypoint: it sweeps the Ledger for sealed batches
 // whose review never started (see LazaretLedger.sweep).
@@ -94,6 +99,18 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
       const isRead = READ_METHODS.has(method);
       const norm = normalizePath(url.pathname);
       if (norm.anomalies.includes("null_byte")) return reject(400, "bad_request");
+
+      if (norm.segments[0]?.toLowerCase() === "__lazaret") {
+        const [, kind, id] = norm.segments;
+        if (method !== "GET" || kind !== "receipts" || !id || norm.segments.length !== 3) {
+          return reject(404, "not_found");
+        }
+        const { sessionId } = await deriveSessionId(request, config);
+        const receipt = await ledgerFor(env).getReceipt(id, sessionId);
+        return receipt
+          ? tag(json(200, { receipt: id, ...receipt }, { "cache-control": "private, no-store" }))
+          : reject(404, "not_found");
+      }
 
       const matched = matchRoute(config.routes, method, norm.segments);
       const policy: Policy =
@@ -206,6 +223,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
         riskScore: decision.risk,
         signals: decision.signals,
         resources: (matched?.compiled.route.resources ?? []).map((t) => fillTemplate(t, params)),
+        params,
         request: {
           method,
           path: norm.path,
@@ -217,8 +235,13 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
       };
 
       switch (policy) {
-        case "PASS":
-          return forward();
+        case "PASS": {
+          const res = await forward();
+          if (method !== "GET" || !config.overlays.length) return res;
+          return overlayResponse(res, config.overlays, norm.segments, async (routes) =>
+            ledgerFor(env).getPendingForSession(sessionId, routes),
+          );
+        }
 
         case "ESCROW": {
           const receipt = await ledgerFor(env).append(entry);

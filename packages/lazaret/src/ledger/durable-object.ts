@@ -296,6 +296,47 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
 
   // ── Reads ────────────────────────────────────────────────────────────────────
 
+  /**
+   * A session's writes that origin doesn't have yet (PENDING, or APPROVED but not
+   * committed), from the given routes, oldest first. Feeds the author-only read
+   * overlay. Dropped and quarantined writes are excluded: the author shouldn't see
+   * them "succeed".
+   */
+  getPendingForSession(sessionId: string, routes: string[], limit = 50): EntryState[] {
+    const wanted = new Set(routes);
+    const out: EntryState[] = [];
+    for (const batch of Object.values(this.#state.batches)) {
+      if (batch.status === "SETTLED" || batch.status === "QUARANTINED") continue;
+      for (const id of batch.entryIds) {
+        const e = this.#state.entries[id];
+        if (
+          e &&
+          e.sessionId === sessionId &&
+          wanted.has(e.route) &&
+          (e.status === "PENDING" || e.status === "APPROVED")
+        ) {
+          out.push(e);
+        }
+      }
+    }
+    out.sort((a, b) => a.receivedAt - b.receivedAt);
+    return structuredClone(out.slice(-limit));
+  }
+
+  /**
+   * Status of a receipt, for its author only. A receipt from another session
+   * returns null, the same as a missing one, so receipts can't be probed.
+   */
+  getReceipt(
+    entryId: string,
+    sessionId: string,
+  ): { status: EntryState["status"]; batchStatus: BatchStatus; receivedAt: number } | null {
+    const e = this.#state.entries[entryId];
+    if (!e || e.sessionId !== sessionId) return null;
+    const batch = this.#state.batches[e.batchId];
+    return { status: e.status, batchStatus: batch?.status ?? "OPEN", receivedAt: e.receivedAt };
+  }
+
   getState(): LedgerState {
     return structuredClone(this.#state);
   }
@@ -457,6 +498,9 @@ function validateEntryInput(input: EntryInput): void {
   }
   if (!Array.isArray(input.resources)) throw new TypeError("entry.resources must be an array");
   if (!Array.isArray(input.signals)) throw new TypeError("entry.signals must be an array");
+  if (input.params !== undefined && (input.params === null || typeof input.params !== "object")) {
+    throw new TypeError("entry.params must be an object");
+  }
   const { request } = input;
   if (!request || typeof request.method !== "string" || typeof request.path !== "string") {
     throw new TypeError("entry.request must include method and path");
