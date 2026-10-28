@@ -30,6 +30,12 @@ export interface EvalCase {
   note: string;
   /** Client IP. Defaults to one derived from the case id, so cases don't share rate state. */
   ip?: string;
+  /**
+   * Who the client is logged in as, which the stub origin reports on `GET /api/me` for
+   * the gateway's actor lookup. Default "customer". Credit cases, benign and fraud alike,
+   * run as an agent: only staff can issue credits, so that's where fraud would come from.
+   */
+  actor?: "customer" | "agent";
   requests: CaseRequest[];
 }
 
@@ -54,6 +60,8 @@ export interface CaseResult {
   gateRisk: number | null;
   signals: string[];
   verdict: { verdict: string; category: string; confidence: number; rationale: string } | null;
+  /** Escrowed targets only: whether the escalation model saw it (the M6.6 invariant). */
+  escalated?: boolean;
 }
 
 export interface CallRecord {

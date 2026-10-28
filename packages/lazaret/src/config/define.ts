@@ -26,6 +26,12 @@ export interface RouteConfig {
    * edit to ticket 42 only decorates `GET /api/tickets/42`.
    */
   overlay?: OverlayConfig | OverlayConfig[];
+  /**
+   * Requests per minute one session or IP is expected to stay under on this route.
+   * Going over adds risk (`behaviour.route_burst`); far over blocks at the edge. Use it
+   * for writes that are normal when rare and abusive in bulk, e.g. minting API keys.
+   */
+  perMinute?: number;
 }
 
 export interface LazaretConfig {
@@ -62,6 +68,13 @@ export interface LazaretConfig {
     batchModel?: string;
     /** Second opinion when the batch reviewer allows something the gate scored as high risk. */
     escalationModel?: string;
+    /**
+     * Gate risk at or above which a batch reviewer's allow is checked by the escalation
+     * model (default 0.7). Kept apart from `cycle.riskSpikeThreshold`, which decides when
+     * to seal a batch early: sharing it (0.8) let a single strong signature at 0.75
+     * (`sqli.tautology`, eval sqli-06) be allowed by one model alone.
+     */
+    escalateAtRisk?: number;
     /** Synchronous review for INLINE_REVIEW routes (login, payments). */
     inlineModel?: string;
     /** Hard deadline for inline review (default 3000 ms); on timeout the request fails closed. */
@@ -71,6 +84,14 @@ export interface LazaretConfig {
     /** Env binding holding the Anthropic API key. */
     apiKeyBinding?: string;
     dailyBudgetUsd?: number;
+    /**
+     * Who is asking, from origin itself. Before inline review the gateway makes a signed
+     * `GET path` to origin with the client's own headers and picks `fields` (output name →
+     * dotted JSON path) from the answer, e.g. `{ role: "account.role" }`. The reviewer gets
+     * them as facts, so it can judge authorisation (a support agent issuing a small credit)
+     * instead of quarantining what it can't attribute.
+     */
+    actor?: { path: string; fields: Record<string, string>; timeoutMs?: number };
   };
   signing?: {
     /** Env binding holding the HMAC secret shared with origin. */
@@ -120,11 +141,13 @@ export interface ResolvedConfig {
   review: {
     batchModel: string;
     escalationModel: string;
+    escalateAtRisk: number;
     inlineModel: string;
     inlineTimeoutMs: number;
     maxAttempts: number;
     apiKeyBinding: string;
     dailyBudgetUsd: number;
+    actor: { path: string; fields: Record<string, string>; timeoutMs: number } | null;
   };
   signing: { secretBinding: string };
   memory: {
@@ -199,6 +222,12 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
         }
       }
     }
+    if (
+      route.perMinute !== undefined &&
+      !(Number.isInteger(route.perMinute) && route.perMinute >= 1)
+    ) {
+      problems.push(`route "${route.match}": perMinute must be a positive integer`);
+    }
     routes.push({ route, pattern });
 
     const overlayList = route.overlay === undefined ? [] : [route.overlay].flat();
@@ -257,9 +286,25 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
   if (!(inlineTimeoutMs >= 100 && inlineTimeoutMs <= 30_000)) {
     problems.push("review.inlineTimeoutMs must be between 100 and 30000");
   }
+  const escalateAtRisk = config.review?.escalateAtRisk ?? 0.7;
+  if (!(escalateAtRisk > 0 && escalateAtRisk <= 1)) {
+    problems.push("review.escalateAtRisk must be in (0, 1]");
+  }
   const maxAttempts = config.review?.maxAttempts ?? 3;
   if (!(Number.isInteger(maxAttempts) && maxAttempts >= 1 && maxAttempts <= 10)) {
     problems.push("review.maxAttempts must be an integer from 1 to 10");
+  }
+
+  const actorConfig = config.review?.actor;
+  const actor = actorConfig
+    ? { timeoutMs: 500, ...actorConfig, fields: { ...actorConfig.fields } }
+    : null;
+  if (actor) {
+    if (!actor.path.startsWith("/")) problems.push("review.actor.path must start with /");
+    if (!Object.keys(actor.fields).length) problems.push("review.actor.fields must not be empty");
+    if (!(actor.timeoutMs >= 10 && actor.timeoutMs <= 5000)) {
+      problems.push("review.actor.timeoutMs must be between 10 and 5000");
+    }
   }
 
   const rules: CompiledRule[] = [];
@@ -295,11 +340,13 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
     review: {
       batchModel: config.review?.batchModel ?? "claude-sonnet-5-5",
       escalationModel: config.review?.escalationModel ?? "claude-opus-5-5",
+      escalateAtRisk,
       inlineModel: config.review?.inlineModel ?? "claude-haiku-5-5",
       inlineTimeoutMs,
       maxAttempts,
       apiKeyBinding: config.review?.apiKeyBinding ?? "ANTHROPIC_API_KEY",
       dailyBudgetUsd: config.review?.dailyBudgetUsd ?? 5,
+      actor,
     },
     signing: { secretBinding: config.signing?.secretBinding ?? "LAZARET_SIGNING_SECRET" },
     memory: {

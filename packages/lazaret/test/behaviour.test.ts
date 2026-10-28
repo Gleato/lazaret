@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type BehaviourSample, combineRisk, MemoryBehaviourStore, scoreBehaviour } from "../src";
-import { headerSignals } from "../src/gate/behaviour";
+import { headerSignals, scoreRoute } from "../src/gate/behaviour";
 
 const ids = (samples: BehaviourSample[], now: number) =>
   scoreBehaviour(samples, now).map((s) => s.id);
@@ -43,6 +43,58 @@ describe("behaviour scoring", () => {
     expect(headerSignals({ "user-agent": "curl/8.7.1" })[0]?.weight).toBeLessThan(0.3);
     expect(headerSignals({})[0]?.id).toBe("headers.no_user_agent");
     expect(headerSignals({ "user-agent": "Mozilla/5.0 (Macintosh)" })).toEqual([]);
+  });
+});
+
+describe("per-route scoring", () => {
+  const keys = (n: number, status?: number): BehaviourSample[] =>
+    Array.from({ length: n }, (_, i) => ({
+      at: i * 3_000,
+      method: "POST",
+      path: "/api/keys",
+      route: "POST /api/keys",
+      ...(status === undefined ? {} : { status }),
+    }));
+  const weight = (signals: ReturnType<typeof scoreRoute>, id: string) =>
+    signals.find((s) => s.id === id)?.weight;
+
+  it("leaves a route alone within its budget, and without one", () => {
+    expect(scoreRoute(keys(3), "POST /api/keys", 9_000, 3)).toEqual([]);
+    expect(scoreRoute(keys(15), "POST /api/keys", 45_000)).toEqual([]);
+  });
+
+  it("raises a burst over the route's budget in tiers, up to an edge block", () => {
+    expect(weight(scoreRoute(keys(4), "POST /api/keys", 12_000, 3), "behaviour.route_burst")).toBe(
+      0.5,
+    );
+    expect(weight(scoreRoute(keys(7), "POST /api/keys", 21_000, 3), "behaviour.route_burst")).toBe(
+      0.8,
+    );
+    expect(weight(scoreRoute(keys(13), "POST /api/keys", 39_000, 3), "behaviour.route_burst")).toBe(
+      0.95,
+    );
+  });
+
+  it("only counts the route in question, inside the last minute", () => {
+    const other = keys(10).map((s) => ({ ...s, route: "POST /api/tickets" }));
+    expect(scoreRoute(other, "POST /api/keys", 30_000, 3)).toEqual([]);
+    // 15 keys over 42 s, scored 80 s after the first: only the last 8 are in the window.
+    const signals = scoreRoute(keys(15), "POST /api/keys", 80_000, 3);
+    expect(signals[0]?.evidence).toMatch(/^8 requests/);
+  });
+
+  it("counts 401s and 403s as auth failures, but not other errors", () => {
+    expect(scoreRoute(keys(4, 401), "POST /api/keys", 12_000)).toEqual([]);
+    expect(
+      weight(scoreRoute(keys(5, 401), "POST /api/keys", 15_000), "behaviour.auth_failures"),
+    ).toBe(0.5);
+    expect(
+      weight(scoreRoute(keys(10, 403), "POST /api/keys", 30_000), "behaviour.auth_failures"),
+    ).toBe(0.8);
+    expect(
+      weight(scoreRoute(keys(20, 401), "POST /api/keys", 57_000), "behaviour.auth_failures"),
+    ).toBe(0.95);
+    expect(scoreRoute(keys(20, 422), "POST /api/keys", 57_000)).toEqual([]);
   });
 });
 

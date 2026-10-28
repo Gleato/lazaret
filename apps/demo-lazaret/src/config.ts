@@ -8,9 +8,17 @@ import { defineLazaret, type LazaretConfig } from "@gleator/lazaret";
 export const TIDEWATER_ROUTES: LazaretConfig["routes"] = [
   // Credentials and money get a synchronous verdict: the client needs an answer now,
   // and a held login is useless. The fast reviewer fails closed under a 3 s deadline.
+  // `perMinute` is what one session or IP should stay under: nobody needs more than a
+  // few API keys a minute (eval cred-04 minted 15), and an agent issuing over 10
+  // credits a minute is worth a closer look. Failed logins are scored on every route.
   { match: "POST /api/login", policy: "INLINE_REVIEW" },
-  { match: "POST /api/keys", policy: "INLINE_REVIEW" },
-  { match: "POST /api/accounts/:id/credits", policy: "INLINE_REVIEW", resources: ["account:{id}"] },
+  { match: "POST /api/keys", policy: "INLINE_REVIEW", perMinute: 3 },
+  {
+    match: "POST /api/accounts/:id/credits",
+    policy: "INLINE_REVIEW",
+    resources: ["account:{id}"],
+    perMinute: 10,
+  },
 
   // User content is escrowed. A new ticket's resource is its own receipt, because
   // Tidewater uses the receipt as the ticket id. Replies and attachments addressed to
@@ -64,7 +72,12 @@ export function tidewaterConfig(overrides: Partial<LazaretConfig> = {}): Lazaret
     // Demo pacing (§7): a 30 s cycle, so visitors see a batch go through review.
     cycle: { intervalSec: 30, maxEntries: 50, riskSpikeThreshold: 0.8 },
     gate: { maxBodyBytes: 96 * 1024 },
-    review: { dailyBudgetUsd: 5 },
+    // Inline review is told who is asking, from Tidewater itself, so a support agent's
+    // small credit isn't quarantined as "can't tell if the submitter is authorised".
+    review: {
+      dailyBudgetUsd: 5,
+      actor: { path: "/api/me", fields: { id: "account.id", role: "account.role" } },
+    },
     ...overrides,
   };
 }

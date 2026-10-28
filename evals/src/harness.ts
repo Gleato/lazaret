@@ -196,6 +196,10 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
   // Request ids that reached origin. "Delivered" means exactly this: a 401 from origin
   // for a wrong password still counts as delivered, a 403 from Lazaret does not.
   const reached = new Set<string>();
+  const tokenOf = (c: EvalCase) => `Bearer tw_${hex(c.id).repeat(6)}`;
+  const actors = new Map(
+    corpus.map((c) => [tokenOf(c), { id: `acct_${c.id}`, role: c.actor ?? "customer" }]),
+  );
   const origin = async (request: Request) => {
     const id = request.headers.get("x-lazaret-id");
     if (id) reached.add(id);
@@ -212,6 +216,13 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
       return ok
         ? Response.json({ token: `tw_${"0".repeat(48)}` })
         : Response.json({ error: "invalid email or password" }, { status: 401 });
+    }
+    // The gateway's actor lookup before inline review (review.actor in the Tidewater config).
+    if (request.method === "GET" && path === "/api/me") {
+      const account = actors.get(request.headers.get("authorization") ?? "");
+      return account
+        ? Response.json({ account })
+        : Response.json({ error: "login required" }, { status: 401 });
     }
     if (request.method === "GET") return Response.json({ tickets: [] });
     return Response.json({ ok: true }, { status: 201 });
@@ -257,7 +268,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
           new Request(`https://support.tidewater.test${path}`, {
             method: step.method,
             headers: {
-              authorization: `Bearer tw_${hex(c.id).repeat(6)}`,
+              authorization: tokenOf(c),
               "cf-connecting-ip":
                 c.ip ??
                 `10.${parseInt(hex(c.id).slice(0, 2), 16)}.${parseInt(hex(c.id).slice(2, 4), 16)}.7`,
@@ -361,6 +372,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
         confidence: verdict.confidence,
         rationale: verdict.rationale,
       },
+      ...(entry ? { escalated: escalated.has(entry.id) } : {}),
     };
   });
   return { results, calls, batches };

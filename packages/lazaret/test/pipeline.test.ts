@@ -8,7 +8,7 @@ import {
   runReviewPipeline,
   TransientReviewError,
 } from "../src";
-import { fakeOrigin, fakeReviewer, looksMalicious, SECRET, verdict } from "./fakes";
+import { fakeOrigin, fakeReviewer, looksMalicious, promptEntries, SECRET, verdict } from "./fakes";
 import { entry } from "./helpers";
 import { Crash, MemoryStepRunner } from "./step-runner";
 
@@ -180,22 +180,110 @@ describe("review pipeline", () => {
     expect(state.entries[sketchy.entryId]?.status).toBe("QUARANTINED");
   });
 
-  it("quarantines the batch on a refusal, without retrying or committing", async () => {
+  it("holds a declined entry for a human, without retrying or committing it", async () => {
     const { reviewer, calls } = fakeReviewer(
       () => verdict("allow"),
       () => ({ kind: "refusal", category: "cyber", model: "x" }),
     );
     const { stub, origin, deps } = await setup(reviewer);
-    const { batchId } = await stub.append(entry());
+    const { batchId, entryId } = await stub.append(entry());
     await stub.seal();
 
     expect(await runReviewPipeline(new MemoryStepRunner(), deps, batchId)).toEqual({
-      outcome: "quarantined",
-      reason: "reviewer refused (cyber)",
+      outcome: "settled",
+      committed: 0,
     });
     expect(calls).toHaveLength(1);
     expect(origin.received).toHaveLength(0);
-    expect((await stub.getState()).batches[batchId]?.status).toBe("QUARANTINED");
+    expect((await stub.getState()).entries[entryId]).toMatchObject({
+      status: "QUARANTINED",
+      verdict: { category: "review_declined", rationale: expect.stringMatching(/cyber/) },
+    });
+  });
+
+  it("bisects a declined batch to the entry that caused it; the rest get real verdicts", async () => {
+    // The configured model declines any prompt containing the payload. A server-side
+    // fallback then answers "allow", which must not count.
+    const { reviewer, calls } = fakeReviewer(
+      () => verdict("allow"),
+      (_tier, n) =>
+        calls[n - 1]?.prompt.includes("TRIPWIRE")
+          ? {
+              kind: "refusal",
+              category: "declined",
+              model: "fallback-model",
+              advisory: {
+                model: "fallback-model",
+                output: {
+                  verdicts: promptEntries(calls[n - 1]?.prompt ?? "").map((e) => ({
+                    entry_id: e.entry_id,
+                    ...verdict("allow", 0.99),
+                  })),
+                },
+              },
+            }
+          : undefined,
+    );
+    const { stub, origin, deps } = await setup(reviewer);
+    // The test Ledger seals at 3 entries: one batch, payload first, so it bisects twice.
+    const receipts = [];
+    for (let i = 0; i < 3; i++) {
+      const text = i === 0 ? "TRIPWIRE payload" : `honest ticket ${i}`;
+      // Separate resources: entries sharing one would (rightly) be tainted by the held one.
+      receipts.push(await stub.append(entry({ request: body(text), resources: [`ticket:${i}`] })));
+    }
+    const ids = receipts.map((r) => r.entryId);
+    const batchId = receipts[0]?.batchId as string;
+    expect(receipts.every((r) => r.batchId === batchId)).toBe(true);
+
+    const result = await runReviewPipeline(new MemoryStepRunner(), deps, batchId);
+    expect(result).toMatchObject({ outcome: "settled", committed: 2 });
+    // [0,1,2] declined → [0,1] declined → [0] declined (held), [1] ok → [2] ok.
+    expect(calls.map((c) => promptEntries(c.prompt).length)).toEqual([3, 2, 1, 1, 1]);
+    const state = await stub.getState();
+    const held = state.entries[ids[0] as string];
+    expect(held?.status).toBe("QUARANTINED");
+    expect(held?.verdict?.rationale).toMatch(/fallback-model \(advisory only\) suggested allow/);
+    expect(state.entries[ids[1] as string]?.status).toBe("COMMITTED");
+    expect(state.entries[ids[2] as string]?.status).toBe("COMMITTED");
+    expect(origin.received.some((r) => r.body.includes("TRIPWIRE"))).toBe(false);
+  });
+
+  it("escalates any first-pass allow at or above review.escalateAtRisk (invariant)", async () => {
+    // 0.75 is sqli.tautology's weight: under the 0.8 seal threshold, so it shares a batch
+    // and isn't a risk spike, but one model alone must still not be the one that allows it.
+    const { reviewer, calls } = fakeReviewer((_e, tier) =>
+      tier === "escalation" ? verdict("drop", 0.95, "sqli") : verdict("allow", 0.8),
+    );
+    const { stub, deps } = await setup(reviewer);
+    const strong = await stub.append(entry({ riskScore: 0.75, request: body("%27 OR 1=1 --") }));
+    const weak = await stub.append(entry({ riskScore: 0.65, request: body("quotes ' here") }));
+    expect(strong.sealed).toBeFalsy();
+    await stub.seal();
+    await runReviewPipeline(new MemoryStepRunner(), deps, strong.batchId);
+
+    const escalated = calls
+      .filter((c) => c.tier === "escalation")
+      .flatMap((c) => promptEntries(c.prompt).map((e) => e.entry_id));
+    expect(escalated).toEqual([strong.entryId]);
+    const state = await stub.getState();
+    expect(state.entries[strong.entryId]?.status).toBe("DROPPED");
+    expect(state.entries[weak.entryId]?.status).toBe("COMMITTED");
+  });
+
+  it("holds an escalated entry whose escalation the configured model declined", async () => {
+    const { reviewer } = fakeReviewer(
+      () => verdict("allow", 0.95),
+      (tier) =>
+        tier === "escalation" ? { kind: "refusal", category: "declined", model: "fb" } : undefined,
+    );
+    const { stub, deps } = await setup(reviewer);
+    const { batchId, entryId } = await stub.append(entry({ riskScore: 0.85, request: body("x") }));
+    await runReviewPipeline(new MemoryStepRunner(), deps, batchId);
+    expect((await stub.getState()).entries[entryId]).toMatchObject({
+      status: "QUARANTINED",
+      verdict: { category: "review_declined" },
+    });
   });
 
   it("quarantines on malformed output instead of giving an attacker another roll", async () => {

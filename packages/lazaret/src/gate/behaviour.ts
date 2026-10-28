@@ -15,6 +15,8 @@ export interface BehaviourSample {
   at: number;
   method: string;
   path: string;
+  /** The matched route pattern (or fallback name), for per-route scoring. */
+  route?: string;
   /** Filled in after origin responds, for routes where the gateway sees the response. */
   status?: number;
 }
@@ -77,6 +79,51 @@ export function scoreBehaviour(samples: BehaviourSample[], now: number): GateSig
   const failures = withStatus.filter((s) => (s.status ?? 0) >= 400).length;
   if (withStatus.length >= 10 && failures / withStatus.length > 0.5) {
     signal("behaviour.failure_flood", 0.5, `${failures}/${withStatus.length} failed`);
+  }
+  return signals;
+}
+
+// Per-route scoring. Rate and failure signals over all paths miss an attack that
+// stays on one route at a modest pace: 15 API keys minted in a minute look benign
+// one at a time (eval cred-04), and 24 failed logins scored only 0.3 per IP. Both
+// are ordinary when rare and only suspicious in volume, so they're counted per route.
+
+/** 401 and 403: the origin refused the credentials, or Lazaret refused the request. */
+const AUTH_FAILURE = new Set([401, 403]);
+
+/**
+ * Signals for one route, from one key's samples.
+ * `perMinute` is the route's declared budget (RouteConfig.perMinute). The tiers top
+ * out at 0.95, the gate's block threshold for reviewed routes, so a gross burst is
+ * refused at the edge without spending a model call.
+ */
+export function scoreRoute(
+  samples: BehaviourSample[],
+  route: string,
+  now: number,
+  perMinute?: number,
+): GateSignal[] {
+  const signals: GateSignal[] = [];
+  const onRoute = samples.filter((s) => s.route === route && s.at > now - 60_000);
+  if (perMinute !== undefined && onRoute.length > perMinute) {
+    const over = onRoute.length / perMinute;
+    signals.push({
+      source: "behaviour",
+      id: "behaviour.route_burst",
+      category: "automation",
+      weight: over > 4 ? 0.95 : over > 2 ? 0.8 : 0.5,
+      evidence: `${onRoute.length} requests/60s on ${route} (expected ≤ ${perMinute})`,
+    });
+  }
+  const failures = onRoute.filter((s) => s.status !== undefined && AUTH_FAILURE.has(s.status));
+  if (failures.length >= 5) {
+    signals.push({
+      source: "behaviour",
+      id: "behaviour.auth_failures",
+      category: "credential_attack",
+      weight: failures.length >= 20 ? 0.95 : failures.length >= 10 ? 0.8 : 0.5,
+      evidence: `${failures.length} refused (401/403) on ${route} in 60s`,
+    });
   }
   return signals;
 }

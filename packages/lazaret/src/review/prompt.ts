@@ -1,4 +1,5 @@
 import { combineRisk } from "../gate/signals";
+import type { Actor } from "../gateway/actor";
 import type { EntryState, VerdictRecord } from "../ledger/types";
 import { MEMORY_SIGNAL_PREFIX } from "../memory/types";
 
@@ -149,8 +150,19 @@ ${encodeUntrusted({
 </batch_data>`;
 }
 
-export function buildInlinePrompt(entry: EntryState): string {
-  return `Review this single write request. The client is waiting for your verdict, so be decisive; use "quarantine" only if intent is genuinely unclear.
+/**
+ * `actor` comes from origin, not the client (gateway/actor.ts), so it sits outside the
+ * untrusted block. It speaks to authorisation only: an agent's credit can still be fraud.
+ */
+export function buildInlinePrompt(entry: EntryState, actor: Actor | null = null): string {
+  const actorBlock = actor
+    ? `
+
+The application itself identified the client making this request. Lazaret looked this up from the application with the client's own session; the client did not supply it, so treat it as fact:
+<actor>${encodeUntrusted(actor)}</actor>
+Use it to judge whether this client would normally be allowed to make this kind of request. It says nothing about whether the request's content is legitimate: judge that from the request itself.`
+    : "";
+  return `Review this single write request. The client is waiting for your verdict, so be decisive; use "quarantine" only if intent is genuinely unclear.${actorBlock}
 
 <batch_data>
 ${encodeUntrusted({ entries: [entryView(entry, new Set())] })}

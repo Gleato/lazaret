@@ -82,6 +82,33 @@ describe("AnthropicReviewer", () => {
     expect(requests[0]?.fallbacks).toBeUndefined();
   });
 
+  it("reports a server-side fallback's answer as a refusal, keeping it only as a note", async () => {
+    // Escalation asked for Opus 5.5; it declined and the fallback answered (eval xss-05).
+    const { reviewer } = stub({
+      model: "claude-opus-4-8",
+      stop_reason: "end_turn",
+      content: [{ type: "text", text: '{"verdicts":[{"entry_id":"e1","verdict":"allow"}]}' }],
+    });
+    expect(await reviewer.review({ tier: "escalation", prompt: "p" })).toMatchObject({
+      kind: "refusal",
+      category: "declined",
+      model: "claude-opus-4-8",
+      advisory: {
+        model: "claude-opus-4-8",
+        output: { verdicts: [{ entry_id: "e1", verdict: "allow" }] },
+      },
+    });
+  });
+
+  it("accepts a dated snapshot of the configured model as that model", async () => {
+    const { reviewer } = stub({
+      model: "claude-sonnet-5-5-20261001",
+      stop_reason: "end_turn",
+      content: [{ type: "text", text: '{"verdicts":[]}' }],
+    });
+    expect((await reviewer.review({ tier: "batch", prompt: "p" })).kind).toBe("output");
+  });
+
   it("treats a non-API failure as fatal", async () => {
     const { reviewer } = stub(new Error("boom"));
     await expect(reviewer.review({ tier: "batch", prompt: "p" })).rejects.toBeInstanceOf(

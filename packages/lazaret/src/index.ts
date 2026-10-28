@@ -21,6 +21,7 @@ export {
   type BehaviourStore,
   MemoryBehaviourStore,
   scoreBehaviour,
+  scoreRoute,
 } from "./gate/behaviour";
 export type { MemoryGateRule } from "./gate/gate";
 export { decide, type GateDecision } from "./gate/gate";

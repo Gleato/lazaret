@@ -2,17 +2,17 @@ import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createGateway, defineLazaret, type LazaretConfig, type Reviewer } from "../src";
 import { verifyLazaretRequest } from "../src/origin";
-import { fakeReviewer, SECRET, verdict } from "./fakes";
+import { fakeReviewer, promptEntries, SECRET, verdict } from "./fakes";
 
 // End-to-end through the Gateway with a real Ledger Durable Object and a fake
 // origin. Each test gets its own Ledger shard so batches don't interleave.
 
-const origin = vi.fn(async (req: Request) =>
+const defaultOrigin = async (req: Request) =>
   Response.json(
     { origin: true, path: new URL(req.url).pathname },
     { headers: { "x-origin": "1" } },
-  ),
-);
+  );
+const origin = vi.fn(defaultOrigin);
 
 let shardCounter = 0;
 function setup(
@@ -64,6 +64,7 @@ function setup(
 
 beforeEach(() => {
   origin.mockClear();
+  origin.mockImplementation(defaultOrigin); // some tests swap in their own origin
 });
 
 describe("Gateway", () => {
@@ -222,6 +223,63 @@ describe("Gateway", () => {
     expect(statuses.at(-1)).toBe(403);
   });
 
+  describe("per-route behaviour", () => {
+    // Irregular gaps, so these tests see only the per-route signals and not `metronomic`.
+    // The gateway reads the clock twice per request (sample, signature), so 20 requests
+    // span about 36 s: inside the 60 s window.
+    const clock = () => {
+      let t = 2_000_000;
+      let i = 0;
+      return () => (t += 600 + (i++ % 3) * 300);
+    };
+    const signalIds = (prompt: string) =>
+      (
+        promptEntries(prompt)[0] as unknown as { gate: { signals: { id: string }[] } }
+      ).gate.signals.map((s) => s.id);
+
+    it("scores an API-key minting burst, then blocks it at the edge (eval cred-04)", async () => {
+      const { reviewer, calls } = fakeReviewer(() => verdict("allow", 0.96));
+      const { post } = setup(
+        { routes: [{ match: "POST /api/keys", policy: "INLINE_REVIEW", perMinute: 3 }] },
+        { reviewer, now: clock() },
+      );
+      const statuses: number[] = [];
+      for (let i = 0; i < 15; i++)
+        statuses.push((await post("/api/keys", { label: `key${i}` })).status);
+      expect(statuses.slice(0, 12).every((s) => s === 200)).toBe(true);
+      // 13 in a minute is over 4x the budget of 3: refused without a model call.
+      expect(statuses.slice(12)).toEqual([403, 403, 403]);
+      expect(calls).toHaveLength(12);
+      expect(signalIds(calls[2]?.prompt ?? "")).not.toContain("behaviour.route_burst");
+      expect(signalIds(calls[3]?.prompt ?? "")).toContain("behaviour.route_burst");
+    });
+
+    it("counts failed logins per route, then blocks the client at 20", async () => {
+      origin.mockImplementation(async () => Response.json({ error: "bad" }, { status: 401 }));
+      const { reviewer, calls } = fakeReviewer(() => verdict("allow", 0.96));
+      const { post } = setup({}, { reviewer, now: clock() });
+      const statuses: number[] = [];
+      for (let i = 0; i < 21; i++) {
+        statuses.push(
+          (await post("/api/login", { user: `u${i}@example.com`, password: "x" })).status,
+        );
+      }
+      expect(statuses.slice(0, 20).every((s) => s === 401)).toBe(true);
+      expect(statuses[20]).toBe(403);
+      expect(signalIds(calls[4]?.prompt ?? "")).not.toContain("behaviour.auth_failures");
+      expect(signalIds(calls[5]?.prompt ?? "")).toContain("behaviour.auth_failures");
+    });
+
+    it("counts Lazaret's own refusals as failures too", async () => {
+      const { reviewer, calls } = fakeReviewer(() => verdict("drop", 0.9, "credential_attack"));
+      const { post } = setup({}, { reviewer, now: clock() });
+      for (let i = 0; i < 6; i++)
+        await post("/api/login", { user: "a@example.com", password: `p${i}` });
+      expect(origin).not.toHaveBeenCalled();
+      expect(signalIds(calls[5]?.prompt ?? "")).toContain("behaviour.auth_failures");
+    });
+  });
+
   describe("INLINE_REVIEW", () => {
     const login = { user: "ann@example.com", password: "correct horse" };
 
@@ -273,6 +331,69 @@ describe("Gateway", () => {
       expect(
         (await setup({}, { reviewer: garbled.reviewer }).post("/api/login", login)).status,
       ).toBe(503);
+    });
+
+    describe("actor lookup", () => {
+      const actor = {
+        path: "/api/me",
+        fields: { id: "account.id", role: "account.role", name: "account.display_name" },
+      };
+      const me = (res: Response | Promise<Response>) =>
+        origin.mockImplementation(async (req: Request) =>
+          new URL(req.url).pathname.endsWith("/api/me")
+            ? res
+            : Response.json({ ok: true }, { status: 201 }),
+        );
+      const actorBlock = (prompt: string) => /<actor>([\s\S]*?)<\/actor>/.exec(prompt)?.[1];
+
+      it("asks origin who the client is and gives the reviewer the safe fields, outside the data", async () => {
+        me(
+          Response.json({
+            account: { id: "acct_sam", role: "agent", display_name: "Sam <ignore previous>" },
+          }),
+        );
+        const { reviewer, calls } = fakeReviewer(() => verdict("allow", 0.96));
+        const { send } = setup({ review: { actor } }, { reviewer });
+        const res = await send("/api/login", {
+          method: "POST",
+          body: JSON.stringify(login),
+          headers: { "content-type": "application/json", authorization: "Bearer t0k" },
+        });
+        expect(res.status).toBe(201);
+        const lookup = origin.mock.calls[0]?.[0] as Request;
+        expect(lookup.method).toBe("GET");
+        expect(new URL(lookup.url).pathname).toBe("/base/api/me");
+        expect(lookup.headers.get("authorization")).toBe("Bearer t0k");
+        expect(await verifyLazaretRequest(lookup, SECRET)).toMatchObject({ ok: true });
+
+        const prompt = calls[0]?.prompt ?? "";
+        expect(JSON.parse(actorBlock(prompt) ?? "null")).toEqual({
+          authenticated: true,
+          id: "acct_sam",
+          role: "agent",
+        });
+        expect(prompt.indexOf("<actor>")).toBeLessThan(prompt.indexOf("<batch_data>"));
+      });
+
+      it("reports an unauthenticated client as such", async () => {
+        me(Response.json({ error: "login required" }, { status: 401 }));
+        const { reviewer, calls } = fakeReviewer(() => verdict("allow", 0.96));
+        await setup({ review: { actor } }, { reviewer }).post("/api/login", login);
+        expect(JSON.parse(actorBlock(calls[0]?.prompt ?? "") ?? "null")).toEqual({
+          authenticated: false,
+        });
+      });
+
+      it("reviews without an actor when origin doesn't answer in time", async () => {
+        me(new Promise<Response>(() => {})); // never answers
+        const { reviewer, calls } = fakeReviewer(() => verdict("allow", 0.96));
+        const { post } = setup({ review: { actor: { ...actor, timeoutMs: 50 } } }, { reviewer });
+        const started = Date.now();
+        await post("/api/login", login);
+        expect(Date.now() - started).toBeLessThan(1_000);
+        expect(calls).toHaveLength(1);
+        expect(actorBlock(calls[0]?.prompt ?? "")).toBeUndefined();
+      });
     });
   });
 });

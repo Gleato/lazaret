@@ -28,10 +28,13 @@ import { MalformedReviewError, parseVerdicts } from "./schema";
 //   - Transient errors (429, overload, network) throw inside a step, so the step
 //     retries with backoff. If retries run out, the attempt is recorded as failed,
 //     the Workflow sleeps durably, and the next attempt starts.
-//   - Fatal results (refusal, malformed output, bad request) are *returned* from the
-//     step, not thrown, so they survive serialisation across the Workflow boundary.
-//     They quarantine the batch immediately. Retrying a reviewer that produced a
-//     malformed answer just gives an attacker another roll of the dice.
+//   - Fatal results (malformed output, bad request) are *returned* from the step, not
+//     thrown, so they survive serialisation across the Workflow boundary. They
+//     quarantine the batch immediately. Retrying a reviewer that produced a malformed
+//     answer just gives an attacker another roll of the dice.
+//   - A decline (refusal, or a fallback model answering) is bisected down to the
+//     entry that caused it, which alone is quarantined (see reviewChunk). Only the
+//     configured model decides an outcome.
 
 export interface StepOptions {
   retries?: number;
@@ -230,7 +233,7 @@ async function escalate(
   first: Record<string, VerdictRecord>,
   attempt: number,
 ): Promise<StepVerdicts> {
-  const strong = deps.config.cycle.riskSpikeThreshold;
+  const strong = deps.config.review.escalateAtRisk;
   const flagged = new Set(snapshot.flaggedSessions);
   const contested = snapshot.entries.filter(
     (e) => first[e.id]?.verdict === "allow" && (e.riskScore >= strong || flagged.has(e.sessionId)),
@@ -291,37 +294,112 @@ async function reviewInChunks(
   const verdicts: Record<string, VerdictRecord> = {};
   const chunks = chunkEntries(entries);
   for (const [i, chunk] of chunks.entries()) {
-    // One checkpoint per chunk, so a retry never re-pays for chunks that succeeded.
-    const result = await step.do(
-      `${stepPrefix}-chunk-${i}`,
-      async (): Promise<StepVerdicts> => {
-        try {
-          const outcome = await deps.reviewer.review({ tier, prompt: prompt(chunk) });
-          if (outcome.kind === "refusal") {
-            return { ok: false, reason: `reviewer refused (${outcome.category ?? "unspecified"})` };
-          }
-          if (outcome.kind === "incomplete")
-            return { ok: false, reason: `review incomplete: ${outcome.reason}` };
-          return {
-            ok: true,
-            verdicts: parseVerdicts(
-              outcome.output,
-              chunk.map((e) => e.id),
-            ),
-          };
-        } catch (err) {
-          if (err instanceof FatalReviewError || err instanceof MalformedReviewError) {
-            return { ok: false, reason: err.message };
-          }
-          throw err;
-        }
-      },
-      { retries: 2, retryDelayMs: 5_000 },
-    );
+    const result = await reviewChunk(step, deps, tier, chunk, prompt, `${stepPrefix}-chunk-${i}`);
     if (!result.ok) return result;
     Object.assign(verdicts, result.verdicts);
   }
   return { ok: true, verdicts };
+}
+
+type ChunkResult =
+  | StepVerdicts
+  | { declined: string; advisory?: { model: string; output: unknown } };
+
+/**
+ * Review one chunk on the configured model. If that model declines (a refusal, or a
+ * server-side fallback answering in its place), bisect: one entry usually trips the
+ * classifier, so halves are re-reviewed until it is isolated. That entry is held for a
+ * human and the rest still get real verdicts, instead of one payload quarantining a
+ * whole batch of honest writes. Each half is its own checkpoint, named by its path
+ * (`-a`/`-b`), so a replay resumes where it stopped. Cost: about 2·log2(n) extra calls
+ * per declined entry, and only when a decline happens.
+ */
+async function reviewChunk(
+  step: StepRunner,
+  deps: PipelineDeps,
+  tier: ReviewTier,
+  chunk: EntryState[],
+  prompt: (chunk: EntryState[]) => string,
+  name: string,
+): Promise<StepVerdicts> {
+  // One checkpoint per chunk, so a retry never re-pays for chunks that succeeded.
+  const result = await step.do(
+    name,
+    async (): Promise<ChunkResult> => {
+      try {
+        const outcome = await deps.reviewer.review({ tier, prompt: prompt(chunk) });
+        if (outcome.kind === "refusal") {
+          return {
+            declined: `reviewer refused (${outcome.category ?? "unspecified"})`,
+            ...(outcome.advisory ? { advisory: outcome.advisory } : {}),
+          };
+        }
+        if (outcome.kind === "incomplete")
+          return { ok: false, reason: `review incomplete: ${outcome.reason}` };
+        return {
+          ok: true,
+          verdicts: parseVerdicts(
+            outcome.output,
+            chunk.map((e) => e.id),
+          ),
+        };
+      } catch (err) {
+        if (err instanceof FatalReviewError || err instanceof MalformedReviewError) {
+          return { ok: false, reason: err.message };
+        }
+        throw err;
+      }
+    },
+    { retries: 2, retryDelayMs: 5_000 },
+  );
+  if (!("declined" in result)) return result;
+
+  const [only] = chunk;
+  if (chunk.length === 1 && only) {
+    return { ok: true, verdicts: { [only.id]: declinedVerdict(only.id, result) } };
+  }
+  const mid = Math.ceil(chunk.length / 2);
+  const verdicts: Record<string, VerdictRecord> = {};
+  for (const [half, part] of [
+    ["a", chunk.slice(0, mid)],
+    ["b", chunk.slice(mid)],
+  ] as const) {
+    const r = await reviewChunk(step, deps, tier, part, prompt, `${name}-${half}`);
+    if (!r.ok) return r;
+    Object.assign(verdicts, r.verdicts);
+  }
+  return { ok: true, verdicts };
+}
+
+/**
+ * The verdict for an entry the configured model would not review: always quarantine.
+ * A fallback model's opinion is quoted for the human, never acted on.
+ */
+export function declinedVerdict(
+  entryId: string,
+  declined: { declined: string; advisory?: { model: string; output: unknown } },
+): VerdictRecord {
+  let note = "";
+  if (declined.advisory) {
+    try {
+      const v = parseVerdicts(declined.advisory.output, [entryId])[entryId];
+      if (v) {
+        note = ` Fallback ${declined.advisory.model} (advisory only) suggested ${v.verdict} at ${v.confidence.toFixed(2)}: ${v.rationale}`;
+      }
+    } catch {
+      note = ` Fallback ${declined.advisory.model} answered, but not in a usable form.`;
+    }
+  }
+  return {
+    verdict: "quarantine",
+    category: "review_declined",
+    confidence: 0,
+    rationale:
+      `The review model declined this entry (${declined.declined}); held for a human.${note}`.slice(
+        0,
+        400,
+      ),
+  };
 }
 
 /** Split entries so each review call stays a sensible size. */

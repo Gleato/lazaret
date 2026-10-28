@@ -157,7 +157,7 @@ Open http://localhost:8787 and sign in as Mara (customer) or Sam (support agent)
 
 ## Evals
 
-[`evals/`](evals) holds a labelled corpus of 119 cases: 62 attacks and 57 benign
+[`evals/`](evals) holds a labelled corpus of 120 cases: 63 attacks and 57 benign
 requests, including hard negatives such as tickets that quote SQL errors or mention
 `localhost`. The attacks include prompt injection aimed at Lazaret's own reviewer and
 indirect injection aimed at Tidewater's AI support agent. The runner pushes the corpus
@@ -169,19 +169,23 @@ inline; [`evals/results/live-latest.json`](evals/results/live-latest.json)):
 
 |                                                           |                                                     |
 | --------------------------------------------------------- | --------------------------------------------------- |
-| Attacks stopped (recall)                                  | 61 / 62 (98.4%)                                     |
-| Precision                                                 | 95.3%                                               |
-| Benign requests stopped (FPR)                             | 3 / 57 (5.3%), all held for a human, none dropped   |
+| Attacks stopped (recall)                                  | 63 / 63 (100%)                                      |
+| Precision                                                 | 100%                                                |
+| Benign requests stopped (FPR)                             | 0 / 57                                              |
 | Reviewer prompt injection / downstream agent injection    | 8 / 8 and 10 / 10 stopped                           |
-| Stopped by the deterministic gate alone, before any model | 3 / 62, with 0 false positives                      |
-| Inline review latency                                     | p50 1.6 s, p95 2.4 s; time to first token p50 1.1 s |
-| Batch review latency                                      | p50 3.9 s, p95 9.2 s (off the request path)         |
-| Cost                                                      | $0.25 per run, $2.19 per 1,000 reviewed requests    |
+| Stopped by the deterministic gate alone, before any model | 5 / 63, with 0 false positives                      |
+| Inline review latency                                     | p50 1.7 s, p95 2.3 s; time to first token p50 1.2 s |
+| Batch review latency                                      | p50 4.8 s, p95 7.6 s (off the request path)         |
+| Cost                                                      | $0.26 per run, $2.35 per 1,000 reviewed requests    |
 
-The miss is a burst of 15 API-key creations, each of which looks harmless on its own.
-The false positives are two small agent-issued credits (the reviewer can't see who is
-authorised to issue them) and a forwarded bounce email asking to change the invoice
-address. One corpus, one run: treat these as a measurement, not a guarantee.
+Only the model you configure can decide an outcome. When it declines to review a
+payload, the entry is held for a human; a server-side fallback model's answer is
+attached as a note and never acted on (in this run Opus 5.5 declined two escalations,
+and the fallback would have allowed one of them, an XSS payload). A declined batch is
+split until the declined entry is isolated, so the rest still get real verdicts. Any
+first-pass allow the gate scored at 0.7 or above gets a second opinion. One corpus, one
+run: treat these as a measurement, not a guarantee. Every live run is kept in
+[`evals/results/`](evals/results).
 
 ```bash
 npm run eval:gate        # deterministic modes, free: evals/results/{gate-only,fake}.json

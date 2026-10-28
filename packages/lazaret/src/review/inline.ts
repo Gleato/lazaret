@@ -1,4 +1,5 @@
 import type { ResolvedConfig } from "../config/define";
+import type { Actor } from "../gateway/actor";
 import type { EntryState, VerdictRecord } from "../ledger/types";
 import type { Reviewer } from "./client";
 import { buildInlinePrompt } from "./prompt";
@@ -18,6 +19,7 @@ export async function inlineReview(
   entry: EntryState,
   reviewer: Reviewer,
   config: ResolvedConfig,
+  actor: Actor | null = null,
 ): Promise<InlineDecision> {
   const timeoutMs = config.review.inlineTimeoutMs;
   const controller = new AbortController();
@@ -34,17 +36,21 @@ export async function inlineReview(
     const outcome = await Promise.race([
       reviewer.review({
         tier: "inline",
-        prompt: buildInlinePrompt(entry),
+        prompt: buildInlinePrompt(entry, actor),
         signal: controller.signal,
       }),
       deadline,
     ]);
     if (outcome.kind === "refusal")
-      return { unavailable: `reviewer refused (${outcome.category ?? "unspecified"})` };
+      return {
+        unavailable: `reviewer refused (${outcome.category ?? "unspecified"})${
+          outcome.advisory ? `; fallback ${outcome.advisory.model} answered, not used` : ""
+        }`,
+      };
     if (outcome.kind === "incomplete") return { unavailable: outcome.reason };
     const verdict = parseVerdicts(outcome.output, [entry.id])[entry.id] as VerdictRecord;
     const bar =
-      entry.riskScore >= config.cycle.riskSpikeThreshold
+      entry.riskScore >= config.review.escalateAtRisk
         ? MIN_ALLOW_CONFIDENCE_HIGH_RISK
         : MIN_ALLOW_CONFIDENCE;
     if (verdict.verdict === "allow" && verdict.confidence < bar) {

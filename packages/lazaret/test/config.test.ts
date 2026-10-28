@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_CYCLE, defineLazaret, LazaretConfigError } from "../src";
+import { DEFAULT_CYCLE, defineLazaret, type LazaretConfig, LazaretConfigError } from "../src";
 
 describe("defineLazaret", () => {
   it("fills in safe defaults", () => {
@@ -55,6 +55,34 @@ describe("defineLazaret", () => {
     expect(text).toMatch(/maxEntries/);
     expect(text).toMatch(/thresholds.review/);
     expect(text).toMatch(/duplicate id/);
+  });
+
+  it("validates route budgets and the actor lookup", () => {
+    const problems = (config: Partial<LazaretConfig>) => {
+      try {
+        defineLazaret({ origin: "https://o.test", routes: [], ...config });
+        return "";
+      } catch (err) {
+        return (err as LazaretConfigError).problems.join("\n");
+      }
+    };
+    expect(
+      problems({ routes: [{ match: "POST /k", policy: "INLINE_REVIEW", perMinute: 0 }] }),
+    ).toMatch(/perMinute must be a positive integer/);
+    expect(problems({ review: { actor: { path: "api/me", fields: {} } } })).toMatch(
+      /actor.path must start with \/[\s\S]*actor.fields must not be empty/,
+    );
+    const ok = defineLazaret({
+      origin: "https://o.test",
+      routes: [],
+      review: { actor: { path: "/api/me", fields: { role: "account.role" } } },
+    });
+    expect(ok.review.actor).toEqual({
+      path: "/api/me",
+      fields: { role: "account.role" },
+      timeoutMs: 500,
+    });
+    expect(defineLazaret({ origin: "https://o.test", routes: [] }).review.actor).toBeNull();
   });
 
   it("accepts {receipt} in resources but reserves :receipt as a route param", () => {

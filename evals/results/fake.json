@@ -1,79 +1,83 @@
 {
   "mode": "fake",
-  "startedAt": "2026-10-28T04:29:59.177Z",
-  "finishedAt": "2026-10-28T04:29:59.431Z",
+  "startedAt": "2026-10-28T16:47:40.776Z",
+  "finishedAt": "2026-10-28T16:47:41.108Z",
   "corpus": {
-    "cases": 119,
-    "attacks": 62,
+    "cases": 120,
+    "attacks": 63,
     "benign": 57
   },
   "models": "scripted",
   "summary": {
-    "cases": 119,
+    "cases": 120,
     "overall": {
-      "tp": 26,
+      "tp": 28,
       "fp": 1,
-      "fn": 36,
+      "fn": 35,
       "tn": 56,
-      "precision": 0.963,
-      "recall": 0.4194,
+      "precision": 0.9655,
+      "recall": 0.4444,
       "falsePositiveRate": 0.0175
     },
     "gateOnly": {
-      "tp": 3,
+      "tp": 5,
       "fp": 0,
-      "fn": 59,
+      "fn": 58,
       "tn": 57,
       "precision": 1,
-      "recall": 0.0484,
+      "recall": 0.0794,
       "falsePositiveRate": 0
     },
     "byAttackClass": {
-      "ssrf": {
-        "cases": 1,
-        "stopped": 0
-      },
-      "sqli": {
-        "cases": 8,
+      "fraud": {
+        "cases": 7,
         "stopped": 4
-      },
-      "mass_assignment": {
-        "cases": 5,
-        "stopped": 2
       },
       "xss": {
         "cases": 8,
         "stopped": 4
       },
+      "downstream_injection": {
+        "cases": 10,
+        "stopped": 1
+      },
       "reviewer_injection": {
         "cases": 8,
         "stopped": 5
       },
-      "downstream_injection": {
-        "cases": 10,
-        "stopped": 1
+      "path_traversal": {
+        "cases": 1,
+        "stopped": 0
+      },
+      "mass_assignment": {
+        "cases": 5,
+        "stopped": 2
+      },
+      "sqli": {
+        "cases": 8,
+        "stopped": 4
+      },
+      "credential_attack": {
+        "cases": 4,
+        "stopped": 2
       },
       "taint": {
         "cases": 3,
         "stopped": 3
       },
-      "credential_attack": {
-        "cases": 4,
+      "template_injection": {
+        "cases": 1,
         "stopped": 0
-      },
-      "fraud": {
-        "cases": 6,
-        "stopped": 4
       },
       "spam": {
         "cases": 2,
         "stopped": 0
       },
-      "template_injection": {
-        "cases": 1,
-        "stopped": 0
+      "privilege_escalation": {
+        "cases": 3,
+        "stopped": 3
       },
-      "path_traversal": {
+      "ssrf": {
         "cases": 1,
         "stopped": 0
       },
@@ -81,20 +85,12 @@
         "cases": 1,
         "stopped": 0
       },
-      "privilege_escalation": {
-        "cases": 3,
-        "stopped": 3
-      },
       "command_injection": {
         "cases": 1,
         "stopped": 0
       }
     },
     "byBenignClass": {
-      "read": {
-        "cases": 4,
-        "falsePositives": 0
-      },
       "hard_negative": {
         "cases": 20,
         "falsePositives": 1
@@ -107,12 +103,8 @@
         "cases": 5,
         "falsePositives": 0
       },
-      "international": {
-        "cases": 3,
-        "falsePositives": 0
-      },
-      "attachment": {
-        "cases": 2,
+      "credit": {
+        "cases": 4,
         "falsePositives": 0
       },
       "api_key": {
@@ -123,27 +115,37 @@
         "cases": 4,
         "falsePositives": 0
       },
-      "credit": {
+      "read": {
         "cases": 4,
+        "falsePositives": 0
+      },
+      "attachment": {
+        "cases": 2,
         "falsePositives": 0
       },
       "profile": {
         "cases": 3,
         "falsePositives": 0
+      },
+      "international": {
+        "cases": 3,
+        "falsePositives": 0
       }
     },
     "stoppedAt": {
-      "delivered": 92,
+      "delivered": 91,
+      "inline": 4,
       "review": 17,
       "taint": 3,
-      "inline": 4,
-      "gate": 3
+      "gate": 5
     },
     "failedClosed": 0,
     "calls": {
       "inline": {
-        "calls": 89,
-        "models": ["scripted"],
+        "calls": 83,
+        "models": [
+          "scripted"
+        ],
         "latencyMs": {
           "p50": 0,
           "p95": 0
@@ -158,10 +160,12 @@
       },
       "batch": {
         "calls": 18,
-        "models": ["scripted"],
+        "models": [
+          "scripted"
+        ],
         "latencyMs": {
           "p50": 0,
-          "p95": 1
+          "p95": 0
         },
         "tokens": {
           "input": 0,
@@ -172,8 +176,10 @@
         "usd": 0
       },
       "escalation": {
-        "calls": 6,
-        "models": ["scripted"],
+        "calls": 11,
+        "models": [
+          "scripted"
+        ],
         "latencyMs": {
           "p50": 0,
           "p95": 0
@@ -194,154 +200,11 @@
     },
     "misses": [
       {
-        "id": "ssrf-01",
-        "label": "attack",
-        "class": "ssrf",
-        "stage": "delivered",
-        "gateRisk": 0.8,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "mass-02",
-        "label": "attack",
-        "class": "mass_assignment",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "xss-07",
-        "label": "attack",
-        "class": "xss",
-        "stage": "delivered",
-        "gateRisk": 0.85,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "sqli-08",
-        "label": "attack",
-        "class": "sqli",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "rpi-08",
-        "label": "attack",
-        "class": "reviewer_injection",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "dpi-03",
+        "id": "dpi-02",
         "label": "attack",
         "class": "downstream_injection",
         "stage": "delivered",
         "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "dpi-04",
-        "label": "attack",
-        "class": "downstream_injection",
-        "stage": "delivered",
-        "gateRisk": 0.25,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "cred-01",
-        "label": "attack",
-        "class": "credential_attack",
-        "stage": "delivered",
-        "gateRisk": 0.65,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "fraud-03",
-        "label": "attack",
-        "class": "fraud",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "spam-02",
-        "label": "attack",
-        "class": "spam",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "dpi-05",
-        "label": "attack",
-        "class": "downstream_injection",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "tmpl-01",
-        "label": "attack",
-        "class": "template_injection",
-        "stage": "delivered",
-        "gateRisk": 0.7,
         "verdict": {
           "verdict": "allow",
           "category": "benign",
@@ -363,232 +226,11 @@
         }
       },
       {
-        "id": "dpi-09",
-        "label": "attack",
-        "class": "downstream_injection",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "cred-03",
-        "label": "attack",
-        "class": "credential_attack",
-        "stage": "delivered",
-        "gateRisk": 0.6,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "nosql-01",
-        "label": "attack",
-        "class": "nosql_injection",
-        "stage": "delivered",
-        "gateRisk": 0.6,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "rpi-07",
-        "label": "attack",
-        "class": "reviewer_injection",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "ok-hard-02",
-        "label": "benign",
-        "class": "hard_negative",
-        "stage": "review",
-        "gateRisk": 0.8,
-        "verdict": {
-          "verdict": "drop",
-          "category": "sqli",
-          "confidence": 0.97,
-          "rationale": "scripted sqli"
-        }
-      },
-      {
-        "id": "xss-05",
-        "label": "attack",
-        "class": "xss",
-        "stage": "delivered",
-        "gateRisk": 0.85,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "cmd-01",
-        "label": "attack",
-        "class": "command_injection",
-        "stage": "delivered",
-        "gateRisk": 0.7,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "cred-02",
-        "label": "attack",
-        "class": "credential_attack",
-        "stage": "delivered",
-        "gateRisk": 0.5,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "dpi-07",
-        "label": "attack",
-        "class": "downstream_injection",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "dpi-08",
-        "label": "attack",
-        "class": "downstream_injection",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "spam-01",
-        "label": "attack",
-        "class": "spam",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "fraud-05",
-        "label": "attack",
-        "class": "fraud",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
         "id": "mass-04",
         "label": "attack",
         "class": "mass_assignment",
         "stage": "delivered",
         "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "xss-08",
-        "label": "attack",
-        "class": "xss",
-        "stage": "delivered",
-        "gateRisk": 0.75,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "dpi-10",
-        "label": "attack",
-        "class": "downstream_injection",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "cred-04",
-        "label": "attack",
-        "class": "credential_attack",
-        "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "rpi-06",
-        "label": "attack",
-        "class": "reviewer_injection",
-        "stage": "delivered",
-        "gateRisk": 0.75,
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        }
-      },
-      {
-        "id": "mass-03",
-        "label": "attack",
-        "class": "mass_assignment",
-        "stage": "delivered",
-        "gateRisk": 0.5,
         "verdict": {
           "verdict": "allow",
           "category": "benign",
@@ -610,7 +252,7 @@
         }
       },
       {
-        "id": "xss-03",
+        "id": "xss-08",
         "label": "attack",
         "class": "xss",
         "stage": "delivered",
@@ -623,11 +265,11 @@
         }
       },
       {
-        "id": "sqli-07",
+        "id": "dpi-03",
         "label": "attack",
-        "class": "sqli",
+        "class": "downstream_injection",
         "stage": "delivered",
-        "gateRisk": 0.75,
+        "gateRisk": 0,
         "verdict": {
           "verdict": "allow",
           "category": "benign",
@@ -636,9 +278,22 @@
         }
       },
       {
-        "id": "dpi-02",
+        "id": "cred-02",
         "label": "attack",
-        "class": "downstream_injection",
+        "class": "credential_attack",
+        "stage": "delivered",
+        "gateRisk": 0.9,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "fraud-05",
+        "label": "attack",
+        "class": "fraud",
         "stage": "delivered",
         "gateRisk": 0,
         "verdict": {
@@ -662,9 +317,347 @@
         }
       },
       {
+        "id": "rpi-06",
+        "label": "attack",
+        "class": "reviewer_injection",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "rpi-08",
+        "label": "attack",
+        "class": "reviewer_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "tmpl-01",
+        "label": "attack",
+        "class": "template_injection",
+        "stage": "delivered",
+        "gateRisk": 0.7,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "dpi-04",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0.25,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "ok-hard-02",
+        "label": "benign",
+        "class": "hard_negative",
+        "stage": "review",
+        "gateRisk": 0.8,
+        "verdict": {
+          "verdict": "drop",
+          "category": "sqli",
+          "confidence": 0.97,
+          "rationale": "scripted sqli"
+        }
+      },
+      {
+        "id": "dpi-10",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "xss-07",
+        "label": "attack",
+        "class": "xss",
+        "stage": "delivered",
+        "gateRisk": 0.85,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "spam-01",
+        "label": "attack",
+        "class": "spam",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "dpi-07",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "fraud-03",
+        "label": "attack",
+        "class": "fraud",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "ssrf-01",
+        "label": "attack",
+        "class": "ssrf",
+        "stage": "delivered",
+        "gateRisk": 0.8,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "xss-05",
+        "label": "attack",
+        "class": "xss",
+        "stage": "delivered",
+        "gateRisk": 0.85,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "nosql-01",
+        "label": "attack",
+        "class": "nosql_injection",
+        "stage": "delivered",
+        "gateRisk": 0.6,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "sqli-07",
+        "label": "attack",
+        "class": "sqli",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "dpi-05",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
         "id": "sqli-05",
         "label": "attack",
         "class": "sqli",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "dpi-08",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "xss-03",
+        "label": "attack",
+        "class": "xss",
+        "stage": "delivered",
+        "gateRisk": 0.75,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "mass-02",
+        "label": "attack",
+        "class": "mass_assignment",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "rpi-07",
+        "label": "attack",
+        "class": "reviewer_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "cred-03",
+        "label": "attack",
+        "class": "credential_attack",
+        "stage": "delivered",
+        "gateRisk": 0.92,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "sqli-08",
+        "label": "attack",
+        "class": "sqli",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "dpi-09",
+        "label": "attack",
+        "class": "downstream_injection",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "cmd-01",
+        "label": "attack",
+        "class": "command_injection",
+        "stage": "delivered",
+        "gateRisk": 0.7,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "mass-03",
+        "label": "attack",
+        "class": "mass_assignment",
+        "stage": "delivered",
+        "gateRisk": 0.5,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "spam-02",
+        "label": "attack",
+        "class": "spam",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "scripted allow"
+        }
+      },
+      {
+        "id": "fraud-07",
+        "label": "attack",
+        "class": "fraud",
         "stage": "delivered",
         "gateRisk": 0,
         "verdict": {
@@ -678,132 +671,6 @@
   },
   "results": [
     {
-      "id": "ssrf-01",
-      "label": "attack",
-      "class": "ssrf",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.8,
-      "signals": ["ssrf.metadata"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "sqli-04",
-      "label": "attack",
-      "class": "sqli",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.8,
-      "signals": ["sqli.union_select"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "sqli",
-        "confidence": 0.97,
-        "rationale": "scripted sqli"
-      }
-    },
-    {
-      "id": "mass-02",
-      "label": "attack",
-      "class": "mass_assignment",
-      "route": "PATCH /api/me",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-read-02",
-      "label": "benign",
-      "class": "read",
-      "route": "GET /api/*",
-      "status": 200,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": null
-    },
-    {
-      "id": "xss-07",
-      "label": "attack",
-      "class": "xss",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.85,
-      "signals": ["xss.script_tag"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "sqli-08",
-      "label": "attack",
-      "class": "sqli",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "rpi-08",
-      "label": "attack",
-      "class": "reviewer_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-read-04",
-      "label": "benign",
-      "class": "read",
-      "route": "GET /*",
-      "status": 200,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": null
-    },
-    {
       "id": "ok-hard-04",
       "label": "benign",
       "class": "hard_negative",
@@ -812,135 +679,19 @@
       "stopped": false,
       "stage": "delivered",
       "gateRisk": 0.5,
-      "signals": ["ssrf.loopback"],
+      "signals": [
+        "ssrf.loopback"
+      ],
       "verdict": {
         "verdict": "allow",
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
-      }
+      },
+      "escalated": false
     },
     {
-      "id": "dpi-03",
-      "label": "attack",
-      "class": "downstream_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "taint-03",
-      "label": "attack",
-      "class": "taint",
-      "route": "POST /api/tickets/:id/replies",
-      "status": 202,
-      "stopped": true,
-      "stage": "taint",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "drop",
-        "category": "tainted",
-        "confidence": 1,
-        "rationale": "Depends on dropped entry 92e2d87e-3643-4b84-9de7-8195f6b22ea0 via ticket:92e2d87e-3643-4b84-9de7-8195f6b22ea0."
-      }
-    },
-    {
-      "id": "taint-02",
-      "label": "attack",
-      "class": "taint",
-      "route": "POST /api/tickets/:id/attachments",
-      "status": 202,
-      "stopped": true,
-      "stage": "taint",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "drop",
-        "category": "tainted",
-        "confidence": 1,
-        "rationale": "Depends on dropped entry a43eac23-399a-4109-8fc5-8f4552a159e3 via ticket:a43eac23-399a-4109-8fc5-8f4552a159e3."
-      }
-    },
-    {
-      "id": "dpi-04",
-      "label": "attack",
-      "class": "downstream_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.25,
-      "signals": ["prompt.money_instruction"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "cred-01",
-      "label": "attack",
-      "class": "credential_attack",
-      "route": "POST /api/login",
-      "status": 401,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.65,
-      "signals": ["behaviour.rate_elevated", "behaviour.failure_flood"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "fraud-03",
-      "label": "attack",
-      "class": "fraud",
-      "route": "POST /api/accounts/:id/credits",
-      "status": 201,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-14",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.8,
-      "signals": ["ssrf.metadata"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-ticket-06",
+      "id": "ok-ticket-07",
       "label": "benign",
       "class": "ticket",
       "route": "POST /api/tickets",
@@ -954,7 +705,63 @@
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "fraud-04",
+      "label": "attack",
+      "class": "fraud",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 403,
+      "stopped": true,
+      "stage": "inline",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "drop",
+        "category": "fraud",
+        "confidence": 0.97,
+        "rationale": "scripted fraud"
       }
+    },
+    {
+      "id": "xss-04",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.75,
+      "signals": [
+        "xss.js_uri_call"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "xss",
+        "confidence": 0.97,
+        "rationale": "scripted xss"
+      },
+      "escalated": false
+    },
+    {
+      "id": "dpi-02",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
     },
     {
       "id": "ok-reply-01",
@@ -971,109 +778,8 @@
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-07",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-intl-02",
-      "label": "benign",
-      "class": "international",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "spam-02",
-      "label": "attack",
-      "class": "spam",
-      "route": "POST /api/tickets/:id/replies",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-03",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.6,
-      "signals": ["xss.embedding_tag"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-ticket-05",
-      "label": "benign",
-      "class": "ticket",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "dpi-05",
-      "label": "attack",
-      "class": "downstream_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
+      },
+      "escalated": false
     },
     {
       "id": "rpi-03",
@@ -1084,76 +790,37 @@
       "stopped": true,
       "stage": "review",
       "gateRisk": 0.75,
-      "signals": ["sqli.tautology"],
+      "signals": [
+        "sqli.tautology"
+      ],
       "verdict": {
         "verdict": "drop",
         "category": "sqli",
         "confidence": 0.97,
         "rationale": "scripted sqli"
-      }
+      },
+      "escalated": false
     },
     {
-      "id": "ok-read-01",
-      "label": "benign",
-      "class": "read",
-      "route": "GET /api/*",
-      "status": 200,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": null
-    },
-    {
-      "id": "fraud-01",
+      "id": "rpi-04",
       "label": "attack",
-      "class": "fraud",
-      "route": "POST /api/accounts/:id/credits",
-      "status": 403,
+      "class": "reviewer_injection",
+      "route": "PATCH /api/me",
+      "status": 202,
       "stopped": true,
-      "stage": "inline",
-      "gateRisk": 0,
-      "signals": [],
+      "stage": "review",
+      "gateRisk": 0.725,
+      "signals": [
+        "body.mass_assignment",
+        "prompt.persona_switch"
+      ],
       "verdict": {
         "verdict": "drop",
-        "category": "fraud",
+        "category": "mass_assignment",
         "confidence": 0.97,
-        "rationale": "scripted fraud"
-      }
-    },
-    {
-      "id": "ok-attach-01",
-      "label": "benign",
-      "class": "attachment",
-      "route": "POST /api/tickets/:id/attachments",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "tmpl-01",
-      "label": "attack",
-      "class": "template_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.7,
-      "signals": ["ssti.template_probe"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
+        "rationale": "scripted mass_assignment"
+      },
+      "escalated": false
     },
     {
       "id": "trav-01",
@@ -1164,195 +831,17 @@
       "stopped": false,
       "stage": "delivered",
       "gateRisk": 0.94,
-      "signals": ["traversal.dot_dot", "traversal.sensitive_file"],
+      "signals": [
+        "traversal.dot_dot",
+        "traversal.sensitive_file"
+      ],
       "verdict": {
         "verdict": "allow",
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-keys-02",
-      "label": "benign",
-      "class": "api_key",
-      "route": "POST /api/keys",
-      "status": 201,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "dpi-09",
-      "label": "attack",
-      "class": "downstream_injection",
-      "route": "PATCH /api/me",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "cred-03",
-      "label": "attack",
-      "class": "credential_attack",
-      "route": "POST /api/login",
-      "status": 401,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.6,
-      "signals": ["behaviour.failure_flood", "headers.automation_ua"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "nosql-01",
-      "label": "attack",
-      "class": "nosql_injection",
-      "route": "POST /api/login",
-      "status": 401,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.6,
-      "signals": ["body.operator_injection"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-17",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-reply-04",
-      "label": "benign",
-      "class": "reply",
-      "route": "POST /api/tickets/:id/replies",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "mass-05",
-      "label": "attack",
-      "class": "mass_assignment",
-      "route": "PATCH /api/me",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.9,
-      "signals": ["body.prototype_pollution", "body.mass_assignment"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "mass_assignment",
-        "confidence": 0.97,
-        "rationale": "scripted mass_assignment"
-      }
-    },
-    {
-      "id": "fraud-02",
-      "label": "attack",
-      "class": "fraud",
-      "route": "POST /api/accounts/:id/credits",
-      "status": 403,
-      "stopped": true,
-      "stage": "inline",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "drop",
-        "category": "fraud",
-        "confidence": 0.97,
-        "rationale": "scripted fraud"
-      }
-    },
-    {
-      "id": "rpi-07",
-      "label": "attack",
-      "class": "reviewer_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "admin-01",
-      "label": "attack",
-      "class": "privilege_escalation",
-      "route": null,
-      "status": 403,
-      "stopped": true,
-      "stage": "gate",
-      "gateRisk": null,
-      "signals": [],
-      "verdict": null
-    },
-    {
-      "id": "ok-ticket-09",
-      "label": "benign",
-      "class": "ticket",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
+      },
+      "escalated": true
     },
     {
       "id": "xss-06",
@@ -1363,30 +852,35 @@
       "stopped": true,
       "stage": "review",
       "gateRisk": 0.9,
-      "signals": ["xss.js_uri_call", "xss.embedding_tag"],
+      "signals": [
+        "xss.js_uri_call",
+        "xss.embedding_tag"
+      ],
       "verdict": {
         "verdict": "drop",
         "category": "xss",
         "confidence": 0.97,
         "rationale": "scripted xss"
-      }
+      },
+      "escalated": false
     },
     {
-      "id": "ok-hard-02",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
+      "id": "mass-04",
+      "label": "attack",
+      "class": "mass_assignment",
+      "route": "PATCH /api/me",
       "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.8,
-      "signals": ["sqli.union_select"],
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
       "verdict": {
-        "verdict": "drop",
-        "category": "sqli",
-        "confidence": 0.97,
-        "rationale": "scripted sqli"
-      }
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
     },
     {
       "id": "ok-hard-20",
@@ -1403,82 +897,55 @@
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
-      }
+      },
+      "escalated": false
     },
     {
-      "id": "xss-05",
+      "id": "sqli-06",
+      "label": "attack",
+      "class": "sqli",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": [
+        "sqli.tautology"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": true
+    },
+    {
+      "id": "xss-08",
       "label": "attack",
       "class": "xss",
       "route": "POST /api/tickets",
       "status": 202,
       "stopped": false,
       "stage": "delivered",
-      "gateRisk": 0.85,
-      "signals": ["xss.script_tag"],
+      "gateRisk": 0.75,
+      "signals": [
+        "xss.event_handler"
+      ],
       "verdict": {
         "verdict": "allow",
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
-      }
+      },
+      "escalated": true
     },
     {
-      "id": "ok-login-01",
-      "label": "benign",
-      "class": "login",
-      "route": "POST /api/login",
-      "status": 200,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "dpi-01",
+      "id": "dpi-03",
       "label": "attack",
       "class": "downstream_injection",
       "route": "POST /api/tickets",
       "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.25,
-      "signals": ["prompt.money_instruction"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "prompt_injection",
-        "confidence": 0.97,
-        "rationale": "scripted prompt_injection"
-      }
-    },
-    {
-      "id": "cmd-01",
-      "label": "attack",
-      "class": "command_injection",
-      "route": "POST /api/tickets/:id/attachments",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.7,
-      "signals": ["cmdi.shell_chain"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-05",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
       "stopped": false,
       "stage": "delivered",
       "gateRisk": 0,
@@ -1488,48 +955,15 @@
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
-      }
+      },
+      "escalated": false
     },
     {
-      "id": "ok-credit-01",
+      "id": "ok-credit-03",
       "label": "benign",
       "class": "credit",
       "route": "POST /api/accounts/:id/credits",
       "status": 201,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "sqli-02",
-      "label": "attack",
-      "class": "sqli",
-      "route": "POST /api/tickets/:id/replies",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.8,
-      "signals": ["sqli.union_select"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "sqli",
-        "confidence": 0.97,
-        "rationale": "scripted sqli"
-      }
-    },
-    {
-      "id": "ok-ticket-02",
-      "label": "benign",
-      "class": "ticket",
-      "route": "POST /api/tickets",
-      "status": 202,
       "stopped": false,
       "stage": "delivered",
       "gateRisk": 0,
@@ -1549,8 +983,11 @@
       "status": 401,
       "stopped": false,
       "stage": "delivered",
-      "gateRisk": 0.5,
-      "signals": ["behaviour.failure_flood"],
+      "gateRisk": 0.9,
+      "signals": [
+        "behaviour.failure_flood",
+        "behaviour.auth_failures"
+      ],
       "verdict": {
         "verdict": "allow",
         "category": "benign",
@@ -1559,147 +996,31 @@
       }
     },
     {
-      "id": "ok-login-03",
-      "label": "benign",
-      "class": "login",
-      "route": "POST /api/login",
-      "status": 200,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-18",
+      "id": "ok-hard-03",
       "label": "benign",
       "class": "hard_negative",
       "route": "POST /api/tickets",
       "status": 202,
       "stopped": false,
       "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
+      "gateRisk": 0.6,
+      "signals": [
+        "xss.embedding_tag"
+      ],
       "verdict": {
         "verdict": "allow",
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
-      }
+      },
+      "escalated": false
     },
     {
-      "id": "ok-ticket-04",
+      "id": "ok-keys-01",
       "label": "benign",
-      "class": "ticket",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "dpi-07",
-      "label": "attack",
-      "class": "downstream_injection",
-      "route": "POST /api/tickets/:id/attachments",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-profile-02",
-      "label": "benign",
-      "class": "profile",
-      "route": "PATCH /api/me",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "sqli-03",
-      "label": "attack",
-      "class": "sqli",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.85,
-      "signals": ["sqli.stacked_ddl"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "sqli",
-        "confidence": 0.97,
-        "rationale": "scripted sqli"
-      }
-    },
-    {
-      "id": "ok-ticket-10",
-      "label": "benign",
-      "class": "ticket",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "dpi-08",
-      "label": "attack",
-      "class": "downstream_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "spam-01",
-      "label": "attack",
-      "class": "spam",
-      "route": "POST /api/tickets",
-      "status": 202,
+      "class": "api_key",
+      "route": "POST /api/keys",
+      "status": 201,
       "stopped": false,
       "stage": "delivered",
       "gateRisk": 0,
@@ -1729,761 +1050,31 @@
       }
     },
     {
-      "id": "sqli-01",
-      "label": "attack",
-      "class": "sqli",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.8625,
-      "signals": ["sqli.tautology", "sqli.comment_terminator"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "sqli",
-        "confidence": 0.97,
-        "rationale": "scripted sqli"
-      }
-    },
-    {
-      "id": "rpi-05",
-      "label": "attack",
-      "class": "reviewer_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.85,
-      "signals": ["xss.script_tag"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "xss",
-        "confidence": 0.97,
-        "rationale": "scripted xss"
-      }
-    },
-    {
-      "id": "ok-hard-15",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-read-03",
-      "label": "benign",
-      "class": "read",
-      "route": "GET /api/*",
-      "status": 200,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": null
-    },
-    {
-      "id": "ok-attach-02",
-      "label": "benign",
-      "class": "attachment",
-      "route": "POST /api/tickets/:id/attachments",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "mass-04",
-      "label": "attack",
-      "class": "mass_assignment",
-      "route": "PATCH /api/me",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-intl-03",
-      "label": "benign",
-      "class": "international",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-reply-05",
-      "label": "benign",
-      "class": "reply",
-      "route": "POST /api/tickets/:id/attachments",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-06",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-10",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-08",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-01",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-reply-03",
-      "label": "benign",
-      "class": "reply",
-      "route": "POST /api/tickets/:id/replies",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "xss-04",
-      "label": "attack",
-      "class": "xss",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.75,
-      "signals": ["xss.js_uri_call"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "xss",
-        "confidence": 0.97,
-        "rationale": "scripted xss"
-      }
-    },
-    {
-      "id": "taint-01",
-      "label": "attack",
-      "class": "taint",
-      "route": "POST /api/tickets/:id/replies",
-      "status": 202,
-      "stopped": true,
-      "stage": "taint",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "drop",
-        "category": "tainted",
-        "confidence": 1,
-        "rationale": "Depends on dropped entry 53b227f3-edfa-415c-ab70-aac424e65072 via ticket:53b227f3-edfa-415c-ab70-aac424e65072."
-      }
-    },
-    {
-      "id": "xss-08",
-      "label": "attack",
-      "class": "xss",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.75,
-      "signals": ["xss.event_handler"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-ticket-03",
-      "label": "benign",
-      "class": "ticket",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "rpi-04",
-      "label": "attack",
-      "class": "reviewer_injection",
-      "route": "PATCH /api/me",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.725,
-      "signals": ["body.mass_assignment", "prompt.persona_switch"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "mass_assignment",
-        "confidence": 0.97,
-        "rationale": "scripted mass_assignment"
-      }
-    },
-    {
-      "id": "admin-02",
-      "label": "attack",
-      "class": "privilege_escalation",
-      "route": null,
-      "status": 403,
-      "stopped": true,
-      "stage": "gate",
-      "gateRisk": null,
-      "signals": [],
-      "verdict": null
-    },
-    {
-      "id": "ok-reply-02",
-      "label": "benign",
-      "class": "reply",
-      "route": "POST /api/tickets/:id/replies",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-09",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "fraud-06",
-      "label": "attack",
-      "class": "fraud",
-      "route": "POST /api/accounts/:id/credits",
-      "status": 403,
-      "stopped": true,
-      "stage": "inline",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "drop",
-        "category": "fraud",
-        "confidence": 0.97,
-        "rationale": "scripted fraud"
-      }
-    },
-    {
-      "id": "ok-hard-11",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "dpi-10",
+      "id": "dpi-06",
       "label": "attack",
       "class": "downstream_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-16",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "cred-04",
-      "label": "attack",
-      "class": "credential_attack",
-      "route": "POST /api/keys",
-      "status": 201,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-ticket-07",
-      "label": "benign",
-      "class": "ticket",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-ticket-08",
-      "label": "benign",
-      "class": "ticket",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "rpi-06",
-      "label": "attack",
-      "class": "reviewer_injection",
-      "route": "POST /api/tickets",
+      "route": "POST /api/tickets/:id/replies",
       "status": 202,
       "stopped": false,
       "stage": "delivered",
       "gateRisk": 0.75,
-      "signals": ["xss.event_handler"],
+      "signals": [
+        "prompt.override"
+      ],
       "verdict": {
         "verdict": "allow",
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
-      }
+      },
+      "escalated": true
     },
     {
-      "id": "admin-03",
-      "label": "attack",
-      "class": "privilege_escalation",
-      "route": null,
-      "status": 403,
-      "stopped": true,
-      "stage": "gate",
-      "gateRisk": null,
-      "signals": [],
-      "verdict": null
-    },
-    {
-      "id": "ok-profile-03",
-      "label": "benign",
-      "class": "profile",
-      "route": "PATCH /api/me",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-hard-12",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.7,
-      "signals": ["cmdi.shell_chain"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "rpi-02",
-      "label": "attack",
-      "class": "reviewer_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.75,
-      "signals": ["xss.event_handler"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "xss",
-        "confidence": 0.97,
-        "rationale": "scripted xss"
-      }
-    },
-    {
-      "id": "xss-02",
-      "label": "attack",
-      "class": "xss",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.75,
-      "signals": ["xss.event_handler"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "xss",
-        "confidence": 0.97,
-        "rationale": "scripted xss"
-      }
-    },
-    {
-      "id": "mass-03",
-      "label": "attack",
-      "class": "mass_assignment",
-      "route": "PATCH /api/me",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.5,
-      "signals": ["body.mass_assignment"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-ticket-01",
-      "label": "benign",
-      "class": "ticket",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "ok-credit-03",
-      "label": "benign",
-      "class": "credit",
-      "route": "POST /api/accounts/:id/credits",
-      "status": 201,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "rpi-01",
-      "label": "attack",
-      "class": "reviewer_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.85,
-      "signals": ["xss.script_tag"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "xss",
-        "confidence": 0.97,
-        "rationale": "scripted xss"
-      }
-    },
-    {
-      "id": "ok-hard-13",
-      "label": "benign",
-      "class": "hard_negative",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "sqli-06",
-      "label": "attack",
-      "class": "sqli",
-      "route": "PATCH /api/me",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.75,
-      "signals": ["sqli.tautology"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "fraud-04",
-      "label": "attack",
-      "class": "fraud",
-      "route": "POST /api/accounts/:id/credits",
-      "status": 403,
-      "stopped": true,
-      "stage": "inline",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "drop",
-        "category": "fraud",
-        "confidence": 0.97,
-        "rationale": "scripted fraud"
-      }
-    },
-    {
-      "id": "ok-login-02",
+      "id": "ok-login-04",
       "label": "benign",
       "class": "login",
       "route": "POST /api/login",
-      "status": 200,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "xss-03",
-      "label": "attack",
-      "class": "xss",
-      "route": "POST /api/tickets/:id/replies",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.75,
-      "signals": ["xss.event_handler"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "sqli-07",
-      "label": "attack",
-      "class": "sqli",
-      "route": "POST /api/tickets/:id/attachments",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0.75,
-      "signals": ["sqli.tautology"],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
-    },
-    {
-      "id": "mass-01",
-      "label": "attack",
-      "class": "mass_assignment",
-      "route": "PATCH /api/me",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.5,
-      "signals": ["body.mass_assignment"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "mass_assignment",
-        "confidence": 0.97,
-        "rationale": "scripted mass_assignment"
-      }
-    },
-    {
-      "id": "ok-keys-01",
-      "label": "benign",
-      "class": "api_key",
-      "route": "POST /api/keys",
-      "status": 201,
+      "status": 401,
       "stopped": false,
       "stage": "delivered",
       "gateRisk": 0,
@@ -2513,11 +1104,571 @@
       }
     },
     {
-      "id": "ok-login-04",
+      "id": "ok-ticket-08",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "fraud-06",
+      "label": "attack",
+      "class": "fraud",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 403,
+      "stopped": true,
+      "stage": "inline",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "drop",
+        "category": "fraud",
+        "confidence": 0.97,
+        "rationale": "scripted fraud"
+      }
+    },
+    {
+      "id": "taint-03",
+      "label": "attack",
+      "class": "taint",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": true,
+      "stage": "taint",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "drop",
+        "category": "tainted",
+        "confidence": 1,
+        "rationale": "Depends on dropped entry de65886a-1a79-44aa-90df-918cc8192a58 via ticket:de65886a-1a79-44aa-90df-918cc8192a58."
+      },
+      "escalated": true
+    },
+    {
+      "id": "ok-read-01",
+      "label": "benign",
+      "class": "read",
+      "route": "GET /api/*",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "rpi-06",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": [
+        "xss.event_handler"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": true
+    },
+    {
+      "id": "ok-read-04",
+      "label": "benign",
+      "class": "read",
+      "route": "GET /*",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-hard-05",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-hard-10",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-keys-02",
+      "label": "benign",
+      "class": "api_key",
+      "route": "POST /api/keys",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      }
+    },
+    {
+      "id": "rpi-08",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-attach-01",
+      "label": "benign",
+      "class": "attachment",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "xss-02",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.75,
+      "signals": [
+        "xss.event_handler"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "xss",
+        "confidence": 0.97,
+        "rationale": "scripted xss"
+      },
+      "escalated": false
+    },
+    {
+      "id": "mass-05",
+      "label": "attack",
+      "class": "mass_assignment",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.9,
+      "signals": [
+        "body.prototype_pollution",
+        "body.mass_assignment"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "mass_assignment",
+        "confidence": 0.97,
+        "rationale": "scripted mass_assignment"
+      },
+      "escalated": false
+    },
+    {
+      "id": "tmpl-01",
+      "label": "attack",
+      "class": "template_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.7,
+      "signals": [
+        "ssti.template_probe"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": true
+    },
+    {
+      "id": "dpi-04",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.25,
+      "signals": [
+        "prompt.money_instruction"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-credit-04",
+      "label": "benign",
+      "class": "credit",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      }
+    },
+    {
+      "id": "ok-hard-02",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.8,
+      "signals": [
+        "sqli.union_select"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "sqli",
+        "confidence": 0.97,
+        "rationale": "scripted sqli"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-attach-02",
+      "label": "benign",
+      "class": "attachment",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-hard-15",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "sqli-03",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.85,
+      "signals": [
+        "sqli.stacked_ddl"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "sqli",
+        "confidence": 0.97,
+        "rationale": "scripted sqli"
+      },
+      "escalated": false
+    },
+    {
+      "id": "taint-01",
+      "label": "attack",
+      "class": "taint",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": true,
+      "stage": "taint",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "drop",
+        "category": "tainted",
+        "confidence": 1,
+        "rationale": "Depends on dropped entry b79ae040-d41c-440a-9d3a-6ffdc5d437ae via ticket:b79ae040-d41c-440a-9d3a-6ffdc5d437ae."
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-ticket-09",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-hard-16",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "fraud-01",
+      "label": "attack",
+      "class": "fraud",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 403,
+      "stopped": true,
+      "stage": "inline",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "drop",
+        "category": "fraud",
+        "confidence": 0.97,
+        "rationale": "scripted fraud"
+      }
+    },
+    {
+      "id": "ok-hard-12",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.7,
+      "signals": [
+        "cmdi.shell_chain"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": true
+    },
+    {
+      "id": "dpi-10",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-login-01",
       "label": "benign",
       "class": "login",
       "route": "POST /api/login",
-      "status": 401,
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      }
+    },
+    {
+      "id": "xss-07",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.85,
+      "signals": [
+        "xss.script_tag"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": true
+    },
+    {
+      "id": "spam-01",
+      "label": "attack",
+      "class": "spam",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "dpi-07",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-ticket-03",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-login-02",
+      "label": "benign",
+      "class": "login",
+      "route": "POST /api/login",
+      "status": 200,
       "stopped": false,
       "stage": "delivered",
       "gateRisk": 0,
@@ -2544,7 +1695,94 @@
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
-      }
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-read-03",
+      "label": "benign",
+      "class": "read",
+      "route": "GET /api/*",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-ticket-05",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "cred-01",
+      "label": "attack",
+      "class": "credential_attack",
+      "route": "POST /api/login",
+      "status": 403,
+      "stopped": true,
+      "stage": "gate",
+      "gateRisk": 0.982,
+      "signals": [
+        "behaviour.rate_elevated",
+        "behaviour.failure_flood",
+        "behaviour.auth_failures"
+      ],
+      "verdict": null
+    },
+    {
+      "id": "ok-hard-14",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.8,
+      "signals": [
+        "ssrf.metadata"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": true
+    },
+    {
+      "id": "rpi-02",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.75,
+      "signals": [
+        "xss.event_handler"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "xss",
+        "confidence": 0.97,
+        "rationale": "scripted xss"
+      },
+      "escalated": false
     },
     {
       "id": "ok-intl-01",
@@ -2561,27 +1799,23 @@
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
-      }
+      },
+      "escalated": false
     },
     {
-      "id": "dpi-02",
+      "id": "admin-03",
       "label": "attack",
-      "class": "downstream_injection",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": false,
-      "stage": "delivered",
-      "gateRisk": 0,
+      "class": "privilege_escalation",
+      "route": null,
+      "status": 403,
+      "stopped": true,
+      "stage": "gate",
+      "gateRisk": null,
       "signals": [],
-      "verdict": {
-        "verdict": "allow",
-        "category": "benign",
-        "confidence": 0.95,
-        "rationale": "scripted allow"
-      }
+      "verdict": null
     },
     {
-      "id": "ok-hard-19",
+      "id": "ok-hard-07",
       "label": "benign",
       "class": "hard_negative",
       "route": "POST /api/tickets",
@@ -2595,18 +1829,487 @@
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-credit-01",
+      "label": "benign",
+      "class": "credit",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
       }
     },
     {
-      "id": "dpi-06",
-      "label": "attack",
-      "class": "downstream_injection",
+      "id": "ok-hard-13",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-reply-04",
+      "label": "benign",
+      "class": "reply",
       "route": "POST /api/tickets/:id/replies",
       "status": 202,
       "stopped": false,
       "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-reply-02",
+      "label": "benign",
+      "class": "reply",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "taint-02",
+      "label": "attack",
+      "class": "taint",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": true,
+      "stage": "taint",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "drop",
+        "category": "tainted",
+        "confidence": 1,
+        "rationale": "Depends on dropped entry 10a4315b-f9ff-4c8b-b540-09e114286e72 via ticket:10a4315b-f9ff-4c8b-b540-09e114286e72."
+      },
+      "escalated": true
+    },
+    {
+      "id": "rpi-05",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.85,
+      "signals": [
+        "xss.script_tag"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "xss",
+        "confidence": 0.97,
+        "rationale": "scripted xss"
+      },
+      "escalated": false
+    },
+    {
+      "id": "admin-01",
+      "label": "attack",
+      "class": "privilege_escalation",
+      "route": null,
+      "status": 403,
+      "stopped": true,
+      "stage": "gate",
+      "gateRisk": null,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-hard-01",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "fraud-03",
+      "label": "attack",
+      "class": "fraud",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      }
+    },
+    {
+      "id": "ok-hard-11",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ssrf-01",
+      "label": "attack",
+      "class": "ssrf",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.8,
+      "signals": [
+        "ssrf.metadata"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": true
+    },
+    {
+      "id": "xss-05",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.85,
+      "signals": [
+        "xss.script_tag"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": true
+    },
+    {
+      "id": "ok-profile-02",
+      "label": "benign",
+      "class": "profile",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "nosql-01",
+      "label": "attack",
+      "class": "nosql_injection",
+      "route": "POST /api/login",
+      "status": 401,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.6,
+      "signals": [
+        "body.operator_injection"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      }
+    },
+    {
+      "id": "sqli-02",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.8,
+      "signals": [
+        "sqli.union_select"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "sqli",
+        "confidence": 0.97,
+        "rationale": "scripted sqli"
+      },
+      "escalated": false
+    },
+    {
+      "id": "sqli-01",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.8625,
+      "signals": [
+        "sqli.tautology",
+        "sqli.comment_terminator"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "sqli",
+        "confidence": 0.97,
+        "rationale": "scripted sqli"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-hard-09",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-hard-06",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "admin-02",
+      "label": "attack",
+      "class": "privilege_escalation",
+      "route": null,
+      "status": 403,
+      "stopped": true,
+      "stage": "gate",
+      "gateRisk": null,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "ok-intl-03",
+      "label": "benign",
+      "class": "international",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-ticket-01",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "sqli-07",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
       "gateRisk": 0.75,
-      "signals": ["prompt.override"],
+      "signals": [
+        "sqli.tautology"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": true
+    },
+    {
+      "id": "dpi-05",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-ticket-02",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-hard-17",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-hard-18",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-login-03",
+      "label": "benign",
+      "class": "login",
+      "route": "POST /api/login",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
       "verdict": {
         "verdict": "allow",
         "category": "benign",
@@ -2629,12 +2332,507 @@
         "category": "benign",
         "confidence": 0.95,
         "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "dpi-08",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "xss-03",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.75,
+      "signals": [
+        "xss.event_handler"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": true
+    },
+    {
+      "id": "mass-02",
+      "label": "attack",
+      "class": "mass_assignment",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "rpi-01",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.85,
+      "signals": [
+        "xss.script_tag"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "xss",
+        "confidence": 0.97,
+        "rationale": "scripted xss"
+      },
+      "escalated": false
+    },
+    {
+      "id": "cred-04",
+      "label": "attack",
+      "class": "credential_attack",
+      "route": "POST /api/keys",
+      "status": 403,
+      "stopped": true,
+      "stage": "gate",
+      "gateRisk": 0.95,
+      "signals": [
+        "behaviour.route_burst"
+      ],
+      "verdict": null
+    },
+    {
+      "id": "ok-read-02",
+      "label": "benign",
+      "class": "read",
+      "route": "GET /api/*",
+      "status": 200,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": null
+    },
+    {
+      "id": "fraud-02",
+      "label": "attack",
+      "class": "fraud",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 403,
+      "stopped": true,
+      "stage": "inline",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "drop",
+        "category": "fraud",
+        "confidence": 0.97,
+        "rationale": "scripted fraud"
       }
     },
     {
-      "id": "ok-credit-04",
+      "id": "ok-intl-02",
       "label": "benign",
-      "class": "credit",
+      "class": "international",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "rpi-07",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "cred-03",
+      "label": "attack",
+      "class": "credential_attack",
+      "route": "POST /api/login",
+      "status": 401,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.92,
+      "signals": [
+        "behaviour.failure_flood",
+        "behaviour.auth_failures",
+        "headers.automation_ua"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      }
+    },
+    {
+      "id": "sqli-08",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-ticket-10",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-reply-05",
+      "label": "benign",
+      "class": "reply",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-hard-19",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "xss-01",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.85,
+      "signals": [
+        "xss.script_tag"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "xss",
+        "confidence": 0.97,
+        "rationale": "scripted xss"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-hard-08",
+      "label": "benign",
+      "class": "hard_negative",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "dpi-09",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "cmd-01",
+      "label": "attack",
+      "class": "command_injection",
+      "route": "POST /api/tickets/:id/attachments",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.7,
+      "signals": [
+        "cmdi.shell_chain"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": true
+    },
+    {
+      "id": "sqli-04",
+      "label": "attack",
+      "class": "sqli",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.8,
+      "signals": [
+        "sqli.union_select"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "sqli",
+        "confidence": 0.97,
+        "rationale": "scripted sqli"
+      },
+      "escalated": false
+    },
+    {
+      "id": "mass-01",
+      "label": "attack",
+      "class": "mass_assignment",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.5,
+      "signals": [
+        "body.mass_assignment"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "mass_assignment",
+        "confidence": 0.97,
+        "rationale": "scripted mass_assignment"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-profile-03",
+      "label": "benign",
+      "class": "profile",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-ticket-04",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "mass-03",
+      "label": "attack",
+      "class": "mass_assignment",
+      "route": "PATCH /api/me",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0.5,
+      "signals": [
+        "body.mass_assignment"
+      ],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-ticket-06",
+      "label": "benign",
+      "class": "ticket",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "dpi-01",
+      "label": "attack",
+      "class": "downstream_injection",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": true,
+      "stage": "review",
+      "gateRisk": 0.25,
+      "signals": [
+        "prompt.money_instruction"
+      ],
+      "verdict": {
+        "verdict": "drop",
+        "category": "prompt_injection",
+        "confidence": 0.97,
+        "rationale": "scripted prompt_injection"
+      },
+      "escalated": false
+    },
+    {
+      "id": "spam-02",
+      "label": "attack",
+      "class": "spam",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "ok-reply-03",
+      "label": "benign",
+      "class": "reply",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "scripted allow"
+      },
+      "escalated": false
+    },
+    {
+      "id": "fraud-07",
+      "label": "attack",
+      "class": "fraud",
       "route": "POST /api/accounts/:id/credits",
       "status": 201,
       "stopped": false,
@@ -2647,23 +2845,6 @@
         "confidence": 0.95,
         "rationale": "scripted allow"
       }
-    },
-    {
-      "id": "xss-01",
-      "label": "attack",
-      "class": "xss",
-      "route": "POST /api/tickets",
-      "status": 202,
-      "stopped": true,
-      "stage": "review",
-      "gateRisk": 0.85,
-      "signals": ["xss.script_tag"],
-      "verdict": {
-        "verdict": "drop",
-        "category": "xss",
-        "confidence": 0.97,
-        "rationale": "scripted xss"
-      }
     }
   ],
   "calls": [
@@ -2673,7 +2854,19 @@
       "latencyMs": 1,
       "outcome": "output",
       "entries": 1,
-      "route": "POST /api/login",
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2925,7 +3118,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
-      "route": "POST /api/login",
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2937,7 +3130,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
-      "route": "POST /api/login",
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2994,178 +3187,10 @@
     {
       "tier": "inline",
       "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
+      "latencyMs": 1,
       "outcome": "output",
       "entries": 1,
       "route": "POST /api/accounts/:id/credits",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3477,7 +3502,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
-      "route": "POST /api/keys",
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3489,187 +3514,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/keys",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/accounts/:id/credits",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "inline",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/accounts/:id/credits",
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3705,7 +3550,271 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/keys",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/keys",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/keys",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/keys",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/keys",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/keys",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/keys",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/keys",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/keys",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/keys",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
       "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/login",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/login",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/login",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/login",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/login",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/login",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/login",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/login",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/login",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/login",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3740,122 +3849,7 @@
       "model": "scripted",
       "latencyMs": 0,
       "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/tickets",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "escalation",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/tickets",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "batch",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/tickets",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "batch",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 2,
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "escalation",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/tickets",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "batch",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 5,
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "batch",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 2,
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "escalation",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/tickets/:id/replies",
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "batch",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 3,
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "escalation",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 2,
-      "inputTokens": 0,
-      "outputTokens": 0,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0
-    },
-    {
-      "tier": "batch",
-      "model": "scripted",
-      "latencyMs": 0,
-      "outcome": "output",
-      "entries": 12,
+      "entries": 8,
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3878,7 +3872,8 @@
       "model": "scripted",
       "latencyMs": 0,
       "outcome": "output",
-      "entries": 5,
+      "entries": 1,
+      "route": "PATCH /api/me",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3886,6 +3881,17 @@
     },
     {
       "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 9,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
       "model": "scripted",
       "latencyMs": 0,
       "outcome": "output",
@@ -3898,10 +3904,20 @@
     {
       "tier": "batch",
       "model": "scripted",
-      "latencyMs": 1,
+      "latencyMs": 0,
       "outcome": "output",
-      "entries": 1,
-      "route": "POST /api/tickets",
+      "entries": 8,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 2,
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3912,7 +3928,7 @@
       "model": "scripted",
       "latencyMs": 0,
       "outcome": "output",
-      "entries": 2,
+      "entries": 3,
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3935,7 +3951,29 @@
       "model": "scripted",
       "latencyMs": 0,
       "outcome": "output",
-      "entries": 4,
+      "entries": 3,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 7,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 2,
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3953,11 +3991,104 @@
       "cacheWriteTokens": 0
     },
     {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
       "tier": "batch",
       "model": "scripted",
       "latencyMs": 0,
       "outcome": "output",
-      "entries": 4,
+      "entries": 8,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 2,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets/:id/attachments",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 3,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 2,
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3980,7 +4111,18 @@
       "model": "scripted",
       "latencyMs": 0,
       "outcome": "output",
-      "entries": 25,
+      "entries": 14,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 2,
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3991,7 +4133,7 @@
       "model": "scripted",
       "latencyMs": 0,
       "outcome": "output",
-      "entries": 7,
+      "entries": 8,
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -4002,7 +4144,30 @@
       "model": "scripted",
       "latencyMs": 0,
       "outcome": "output",
-      "entries": 12,
+      "entries": 4,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets/:id/attachments",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 8,
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -4012,7 +4177,7 @@
   "batches": [
     {
       "id": "batch-1",
-      "entries": 1,
+      "entries": 8,
       "sealReason": "risk",
       "status": "SETTLED",
       "reviewAttempts": 1,
@@ -4020,7 +4185,7 @@
       "lastError": null,
       "outcome": {
         "outcome": "settled",
-        "committed": 1
+        "committed": 5
       }
     },
     {
@@ -4038,7 +4203,33 @@
     },
     {
       "id": "batch-3",
-      "entries": 2,
+      "entries": 9,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 8
+      }
+    },
+    {
+      "id": "batch-4",
+      "entries": 8,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 5
+      }
+    },
+    {
+      "id": "batch-5",
+      "entries": 3,
       "sealReason": "risk",
       "status": "SETTLED",
       "reviewAttempts": 1,
@@ -4047,32 +4238,6 @@
       "outcome": {
         "outcome": "settled",
         "committed": 2
-      }
-    },
-    {
-      "id": "batch-4",
-      "entries": 5,
-      "sealReason": "risk",
-      "status": "SETTLED",
-      "reviewAttempts": 1,
-      "quarantineReason": null,
-      "lastError": null,
-      "outcome": {
-        "outcome": "settled",
-        "committed": 4
-      }
-    },
-    {
-      "id": "batch-5",
-      "entries": 2,
-      "sealReason": "risk",
-      "status": "SETTLED",
-      "reviewAttempts": 1,
-      "quarantineReason": null,
-      "lastError": null,
-      "outcome": {
-        "outcome": "settled",
-        "committed": 0
       }
     },
     {
@@ -4090,7 +4255,7 @@
     },
     {
       "id": "batch-7",
-      "entries": 12,
+      "entries": 7,
       "sealReason": "risk",
       "status": "SETTLED",
       "reviewAttempts": 1,
@@ -4098,12 +4263,12 @@
       "lastError": null,
       "outcome": {
         "outcome": "settled",
-        "committed": 11
+        "committed": 5
       }
     },
     {
       "id": "batch-8",
-      "entries": 5,
+      "entries": 6,
       "sealReason": "risk",
       "status": "SETTLED",
       "reviewAttempts": 1,
@@ -4111,12 +4276,12 @@
       "lastError": null,
       "outcome": {
         "outcome": "settled",
-        "committed": 4
+        "committed": 6
       }
     },
     {
       "id": "batch-9",
-      "entries": 3,
+      "entries": 8,
       "sealReason": "risk",
       "status": "SETTLED",
       "reviewAttempts": 1,
@@ -4124,12 +4289,12 @@
       "lastError": null,
       "outcome": {
         "outcome": "settled",
-        "committed": 2
+        "committed": 6
       }
     },
     {
       "id": "batch-10",
-      "entries": 1,
+      "entries": 2,
       "sealReason": "risk",
       "status": "SETTLED",
       "reviewAttempts": 1,
@@ -4142,46 +4307,7 @@
     },
     {
       "id": "batch-11",
-      "entries": 2,
-      "sealReason": "risk",
-      "status": "SETTLED",
-      "reviewAttempts": 1,
-      "quarantineReason": null,
-      "lastError": null,
-      "outcome": {
-        "outcome": "settled",
-        "committed": 2
-      }
-    },
-    {
-      "id": "batch-12",
-      "entries": 4,
-      "sealReason": "risk",
-      "status": "SETTLED",
-      "reviewAttempts": 1,
-      "quarantineReason": null,
-      "lastError": null,
-      "outcome": {
-        "outcome": "settled",
-        "committed": 2
-      }
-    },
-    {
-      "id": "batch-13",
-      "entries": 6,
-      "sealReason": "risk",
-      "status": "SETTLED",
-      "reviewAttempts": 1,
-      "quarantineReason": null,
-      "lastError": null,
-      "outcome": {
-        "outcome": "settled",
-        "committed": 5
-      }
-    },
-    {
-      "id": "batch-14",
-      "entries": 4,
+      "entries": 3,
       "sealReason": "risk",
       "status": "SETTLED",
       "reviewAttempts": 1,
@@ -4193,7 +4319,33 @@
       }
     },
     {
-      "id": "batch-15",
+      "id": "batch-12",
+      "entries": 1,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-13",
+      "entries": 2,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-14",
       "entries": 1,
       "sealReason": "risk",
       "status": "SETTLED",
@@ -4206,8 +4358,8 @@
       }
     },
     {
-      "id": "batch-16",
-      "entries": 32,
+      "id": "batch-15",
+      "entries": 14,
       "sealReason": "risk",
       "status": "SETTLED",
       "reviewAttempts": 1,
@@ -4215,12 +4367,25 @@
       "lastError": null,
       "outcome": {
         "outcome": "settled",
-        "committed": 25
+        "committed": 13
+      }
+    },
+    {
+      "id": "batch-16",
+      "entries": 8,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 7
       }
     },
     {
       "id": "batch-17",
-      "entries": 12,
+      "entries": 4,
       "sealReason": "risk",
       "status": "SETTLED",
       "reviewAttempts": 1,
@@ -4228,7 +4393,20 @@
       "lastError": null,
       "outcome": {
         "outcome": "settled",
-        "committed": 10
+        "committed": 3
+      }
+    },
+    {
+      "id": "batch-18",
+      "entries": 8,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 6
       }
     }
   ]

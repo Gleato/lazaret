@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M6 done (2026-10-28); M7 next** (live eval done; post-eval fixes not committed yet)
+Status: **M0–M6.6 done (2026-10-28); M7 next**
 
 ---
 
@@ -366,6 +366,40 @@ Steps:
 - [x] **H. Verify + review:** `npm test`, `npm run typecheck`, `npx biome check .` clean; local
   stack smoke test in the browser pane; M6 review section below.
 
+### M6.5 — Pre-M7 fixes from the live eval (2026-10-28, approved)
+- [x] **Route bursts and auth failures in behaviour scoring.** Samples carry their route.
+  A route can declare `perMinute` (expected max per session/IP); going over it adds
+  `behaviour.route_burst` (0.5 / 0.8 / 0.95 at >1× / >2× / >4×). 401/403s on a route add
+  `behaviour.auth_failures` (0.5 / 0.8 / 0.95 at 5 / 10 / 20). Lazaret's own inline and gate
+  denials count as 403s, so a burst the reviewer keeps refusing still adds up. Fixes cred-04 (key
+  minting) and the weak per-IP stuffing score.
+  - Not doing: per-target-account failure counting (distributed spraying). Blocking an
+    account on failures lets an attacker lock out its owner. Left as a follow-up.
+- [x] **Verified actor for inline review.** `review.actor: { path, fields }`: before
+  inline review the gateway makes a signed GET to origin (e.g. `/api/me`) with the
+  client's own headers and picks a few fields (id, role). They go in the prompt *outside*
+  the untrusted block, as facts from the application. 401/403 → `authenticated: false`;
+  any other failure → no actor (unknown). Free-text values are dropped. Fixes the
+  ok-credit-02/04 false positives without telling the reviewer to skip authorisation.
+- [x] Eval corpus: cases can set `actor`; credit cases (benign and fraud) run as an agent,
+  plus a new fraud case of a customer crediting themself. One live run, then update the review.
+
+### M6.6 — Only the configured model decides (2026-10-28, approved)
+Rule: **a verdict counts only if the model we configured produced it; anything else quarantines.**
+- [x] `review.escalateAtRisk` (default 0.7), separate from `cycle.riskSpikeThreshold` (which
+  seals batches). sqli-06 scored 0.75 and was allowed by Sonnet alone because escalation reused
+  the 0.8 seal threshold.
+- [x] Model mismatch = declined. If the server-side fallback answered (response.model is not the
+  configured model), `AnthropicReviewer` reports a refusal and keeps the fallback's answer as a
+  note for the human. It never decides.
+- [x] Declined batch/escalation chunks are bisected on the configured model until the declined
+  entry is isolated. That entry is quarantined (`review_declined`, note attached), and the
+  rest get real verdicts. Replaces "one refusal quarantines the whole batch".
+- [x] Invariant tests: pipeline (an allow at or above escalateAtRisk is always escalated; a
+  declined entry never commits) and fake eval (no first-pass allow at or above
+  escalateAtRisk skips escalation).
+- [x] One live run, README + review.
+
 ### M7 — Site
 - [ ] Astro site via `/frontend-design`, live visualizer over WebSocket, attack console, evals + memory panels
 - [ ] Turnstile, rate limits, spend cap, hourly reset
@@ -654,4 +688,82 @@ Steps:
     The UI shows it from the list overlay instead.
   - Taint across batches still misses one ordering: the child's batch is reviewed while the
     parent is still pending. Origin's 404 is the backstop under the receipt-id convention.
+
+### M6.5 (2026-10-28)
+- **Per-route behaviour** (`gate/behaviour.ts` `scoreRoute`): samples carry their route.
+  Signals are `behaviour.route_burst` (needs `perMinute` on the route) and
+  `behaviour.auth_failures` (401/403, on every route). Both top out at 0.95, the gate's
+  block threshold for reviewed routes. The gateway sets `sample.status = 403` when it refuses
+  a request itself (gate block or inline deny), so a burst the reviewer keeps refusing still
+  adds up. Tidewater: keys `perMinute: 3`, credits `perMinute: 10`.
+- **Actor lookup** (`gateway/actor.ts`, `review.actor`): a signed GET to origin with the
+  client's headers (500 ms budget, never throws), own-property dotted picks, and only
+  identifier-like strings kept (a display name can't ride into the trusted block). The inline
+  prompt puts `<actor>` before `<batch_data>` and says it covers authorisation only. The system
+  prompt is unchanged, so the batch prompt cache is untouched. Batch review gets no actor.
+  It would cost an origin call per escrowed write, and no false positive needed it.
+- **Offline results (regenerated):** gate-only now stops 5/63, up from 3/62, with 0 false
+  positives. cred-01 (stuffing) and cred-04 (key minting) are refused at the edge.
+  cred-02/03 reach 0.9 and go to the reviewer with that evidence. Fake mode: 28/63, 1 FP (unchanged).
+- **Corpus:** credit cases run as `actor: "agent"`, fraud included (the hard version: the
+  role can't explain fraud away). New fraud-07: a customer credits their own account with a
+  plausible reason. Its only tell is the actor. 120 cases (63 attacks, 57 benign).
+- **Verified:** 296 tests pass (238 library, 41 origin, 9 stack, 8 evals); typecheck and biome clean.
+- **Live run 5 (2026-10-28, $0.25), published in the README:** recall 62/63, precision 1.0,
+  FPR 0/57 (run 4: 61/62, 0.953, 3/57). Every expected outcome held: ok-credit-02/04 allowed
+  (the rationales cite the agent role), cred-04 refused at the gate (risk 0.99), cred-01 at
+  the gate, cred-02/03 dropped inline on the auth-failure evidence, fraud-07 quarantined
+  (a customer crediting another account). ok-hard-19, run 4's third FP, passed this time.
+  Inline p50 1.7 s / p95 2.4 s, TTFT p50 1.2 s, batch p50 4.5 s. Run 4's file was
+  overwritten (same date); it is still in git at `875d7b8`.
+  - Miss: sqli-06 (URL-encoded tautology in `display_name`), allowed as "inert stored
+    text". Run 4 stopped it, so this looks like reviewer variance. Worth watching over more runs.
+  - One setup login hit the 3 s inline deadline (not a target, so not scored). The cost
+    summary says `allModelsPriced: false` because that call has no model.
+  - One escalation came back from `claude-opus-4-8`: the server-side fallback rerunning a
+    declined request, as designed.
+- **Key handling:** `evals/vitest.config.ts` also reads `ANTHROPIC_API_KEY` from
+  `evals/.dev.vars` (gitignored), since the key had been in a closed terminal's environment.
+- **Follow-ups:** distributed password spraying (failures counted per target account) is
+  still open. It needs a lockout story first, because blocking on an account's failures lets an
+  attacker lock out its owner. Behaviour state is still per isolate (`MemoryBehaviourStore`).
+
+### M6.6 (2026-10-28)
+- **Rule: only the configured model decides.** `AnthropicReviewer` compares `response.model`
+  with the model it asked for (dated snapshot ids count as a match). On a mismatch it reports a
+  refusal with the fallback's output as `advisory`. The server-side fallback stays on, so the
+  human gets a second opinion as a note, but it can't allow or drop anything. Inline review
+  had no fallback and still fails closed.
+- **Decline handling** (`reviewChunk` in `review/pipeline.ts`): a declined chunk is bisected
+  on the configured model (checkpoints `-a`/`-b`, replay-safe) until one entry is left, which
+  gets `quarantine` / `review_declined` with the note. This replaces "one refusal quarantines
+  the whole batch" (the run-3 problem: seven honest tickets held). It applies to batch and
+  escalation alike. Malformed output still quarantines the batch, since retrying gives an
+  attacker another roll.
+- **`review.escalateAtRisk` = 0.7**, used by the escalation guard and inline review's higher
+  confidence bar. `cycle.riskSpikeThreshold` (0.8) now only seals batches.
+- **Invariant tests:** pipeline (an allow at 0.75 is escalated, one at 0.65 isn't; declined
+  entries never commit; bisection isolates the payload in a 3-entry batch: calls [3,2,1,1,1])
+  and fake eval (no escrowed write at or above escalateAtRisk is delivered unescalated;
+  sqli-06 is escalated). Client: fallback mismatch is reported as a refusal; snapshot ids count as a match.
+- **Results files** are named by start time (`live-<ISO>Z.json`). Date-only names let run 5's
+  file be overwritten. Run 5's numbers survive only in this review.
+- **Live run 6 (16:34Z, $0.25), not published:** from inline call 23 on, every Haiku call hit
+  the 3 s deadline (66 calls; 9 benign logins, keys and credits failed closed; FPR 16%). The
+  first 22 were normal (1.3–3.0 s), batch latency was up too, and the TTFT probe right after
+  was normal (p50 1.2 s). No change in this milestone touches inline latency. Read as an API
+  slowdown, which run 7 bears out. Kept as `live-2026-10-28T16-34-57Z.json`.
+- **Live run 7 (16:47Z, $0.26), published:** recall 63/63, precision 1.0, FPR 0/57,
+  0 failed closed. Inline p50 1.7 s / p95 2.3 s, TTFT p50 1.2 s, batch p50 4.8 s.
+  - sqli-06: Sonnet allowed it, it was escalated at 0.75 (new threshold), Opus 5.5 declined,
+    and the fallback suggested drop. Held.
+  - xss-05: Opus 5.5 declined, and the fallback suggested **allow at 0.80** (it did in run 6
+    too). Held. This is the case the rule exists for.
+  - ok-hard-12 (0.7) was escalated and allowed by Opus 5.5 at 0.93: no new false positive.
+- **Watch:** Opus 5.5 declined 2 of 7 escalations. If declines grow, the human queue grows.
+  Track the decline rate on the M7 evals panel. Mitigation (e.g. trimming payloads in the
+  escalation prompt) would be a separate change with its own eval.
+- **Inline deadline vs API latency:** run 6 shows a 3 s deadline fails closed for every
+  inline client during a slowdown. That's safe, but it's an outage for logins. Worth a decision
+  before launch (e.g. alerting on the inline failure rate, or a status banner on the demo).
 

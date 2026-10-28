@@ -7,6 +7,7 @@ import {
   headerSignals,
   MemoryBehaviourStore,
   scoreBehaviour,
+  scoreRoute,
 } from "../gate/behaviour";
 import { decide, type MemoryGateRule } from "../gate/gate";
 import { inspect } from "../gate/inspect";
@@ -21,6 +22,7 @@ import { AnthropicReviewer, type Reviewer } from "../review/client";
 import { inlineReview } from "../review/inline";
 import { fillTemplate, matchPattern } from "../routing/matcher";
 import { encodePath, normalizePath, type PathAnomaly } from "../routing/normalize";
+import { lookupActor } from "./actor";
 import {
   BodyTooLarge,
   forwardableHeaders,
@@ -175,10 +177,17 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
 
       // The same sample object goes under both keys, so setting `status` after the
       // origin responds updates both views.
-      const sample: BehaviourSample = { at: now(), method, path: norm.path };
+      const sample: BehaviourSample = { at: now(), method, path: norm.path, route: routeName };
+      const perMinute = matched?.compiled.route.perMinute;
+      const views = [
+        behaviour.record(`s:${sessionId}`, sample),
+        behaviour.record(`ip:${ip}`, sample),
+      ];
       const behaviourSignals = strongest([
-        ...scoreBehaviour(behaviour.record(`s:${sessionId}`, sample), sample.at),
-        ...scoreBehaviour(behaviour.record(`ip:${ip}`, sample), sample.at),
+        ...views.flatMap((v) => [
+          ...scoreBehaviour(v, sample.at),
+          ...scoreRoute(v, routeName, sample.at, perMinute),
+        ]),
         ...headerSignals(headers),
       ]);
 
@@ -224,16 +233,27 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
           signals: decision.signals.map((s) => s.id),
         }),
       );
-      if (decision.block) return reject(403, "forbidden");
+      if (decision.block) {
+        // Lazaret's own refusals count as auth failures for per-route scoring (as
+        // origin's 401s do), so a client that keeps getting refused keeps adding up.
+        sample.status = 403;
+        return reject(403, "forbidden");
+      }
 
-      const forward = async (): Promise<Response> => {
+      // Every request Lazaret sends origin is signed with the client's own headers, so
+      // origin authenticates the client as usual and knows the request came through here.
+      const toOrigin = async (
+        id: string,
+        method: string,
+        target: URL,
+        body: Uint8Array | null,
+        signal?: AbortSignal,
+      ): Promise<Response> => {
         const secret = binding<string>(env, config.signing.secretBinding);
         if (!secret) throw new Error(`Lazaret: missing secret ${config.signing.secretBinding}`);
-        const target = originUrl(config.origin, encodePath(norm.segments), url.search);
-        const body = bytes && method !== "GET" && method !== "HEAD" ? bytes : null;
         const signature = await signRequest(
           {
-            id: requestId,
+            id,
             method,
             target: target.pathname + target.search,
             body,
@@ -241,7 +261,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
           },
           secret,
         );
-        const res = await fetchOrigin(
+        return fetchOrigin(
           new Request(target, {
             method,
             headers: {
@@ -252,8 +272,15 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
             },
             body,
             redirect: "manual",
+            ...(signal ? { signal } : {}),
           }),
         );
+      };
+
+      const forward = async (): Promise<Response> => {
+        const target = originUrl(config.origin, encodePath(norm.segments), url.search);
+        const body = bytes && method !== "GET" && method !== "HEAD" ? bytes : null;
+        const res = await toOrigin(requestId, method, target, body);
         sample.status = res.status;
         return tag(res);
       };
@@ -303,6 +330,19 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
           const reviewer =
             deps.reviewer ?? (apiKey ? new AnthropicReviewer(apiKey, config.review) : null);
           if (!reviewer) return reject(503, "review_unavailable");
+          // A few ms over a service binding, against the ~1.1 s the model takes to start.
+          const actorConfig = config.review.actor;
+          const actor = actorConfig
+            ? await lookupActor(actorConfig, (signal) =>
+                toOrigin(
+                  crypto.randomUUID(),
+                  "GET",
+                  originUrl(config.origin, actorConfig.path, ""),
+                  null,
+                  signal,
+                ),
+              )
+            : null;
           const result = await inlineReview(
             {
               ...entry,
@@ -313,6 +353,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
             },
             reviewer,
             config,
+            actor,
           );
           // Inline verdicts feed the Memory like batch verdicts do (off the critical path).
           const memory = memoryFor(env);
@@ -342,6 +383,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
               lazaret: "inline_review",
               requestId,
               route: routeName,
+              ...(actor ? { actor } : {}),
               ...("verdict" in result
                 ? { verdict: result.verdict.verdict, category: result.verdict.category }
                 : { unavailable: result.unavailable }),
@@ -349,7 +391,10 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
           );
           // Fail closed: no verdict means no write.
           if (!("verdict" in result)) return reject(503, "review_unavailable");
-          if (result.verdict.verdict !== "allow") return reject(403, "forbidden");
+          if (result.verdict.verdict !== "allow") {
+            sample.status = 403;
+            return reject(403, "forbidden");
+          }
           return forward();
         }
 

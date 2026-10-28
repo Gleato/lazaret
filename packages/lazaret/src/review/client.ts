@@ -31,7 +31,18 @@ export interface ReviewUsage {
 
 export type ReviewOutcome =
   | { kind: "output"; output: unknown; model: string; usage?: ReviewUsage }
-  | { kind: "refusal"; category: string | null; model: string; usage?: ReviewUsage }
+  | {
+      kind: "refusal";
+      category: string | null;
+      model: string;
+      usage?: ReviewUsage;
+      /**
+       * Set when the configured model declined and a server-side fallback answered in
+       * its place. The fallback's output is kept as a note for a human. It never decides
+       * an outcome (see AnthropicReviewer.review).
+       */
+      advisory?: { model: string; output: unknown };
+    }
   | { kind: "incomplete"; reason: string; usage?: ReviewUsage };
 
 export interface Reviewer {
@@ -163,14 +174,14 @@ export class AnthropicReviewer implements Reviewer {
     this.#config = config;
   }
 
-  review(call: ReviewCall): Promise<ReviewOutcome> {
+  async review(call: ReviewCall): Promise<ReviewOutcome> {
     const model = {
       batch: this.#config.batchModel,
       escalation: this.#config.escalationModel,
       inline: this.#config.inlineModel,
     }[call.tier];
     const tier = TIERS[call.tier];
-    return structuredCall(this.#client, {
+    const outcome = await structuredCall(this.#client, {
       model,
       system: SYSTEM_PROMPT,
       prompt: call.prompt,
@@ -183,5 +194,28 @@ export class AnthropicReviewer implements Reviewer {
       maxRetries: call.tier === "inline" ? 0 : 2,
       timeoutMs: call.tier === "inline" ? this.#config.inlineTimeoutMs : 120_000,
     });
+    // Only the model the operator configured may decide an outcome. If the server-side
+    // fallback answered because that model declined, the answer is reported as a
+    // refusal (which fails closed downstream), and the fallback's verdicts ride along
+    // as a note for whoever reviews the quarantine. (M6.6: a model nobody chose must not
+    // be the one that allows, or permanently drops, a write.)
+    if ("model" in outcome && !isModel(outcome.model, model)) {
+      return {
+        kind: "refusal",
+        category: "declined",
+        model: outcome.model,
+        ...(outcome.usage ? { usage: outcome.usage } : {}),
+        advisory: {
+          model: outcome.model,
+          output: outcome.kind === "output" ? outcome.output : null,
+        },
+      };
+    }
+    return outcome;
   }
+}
+
+/** The API may answer an alias with a dated snapshot id (`claude-x-5-5-20261001`). */
+function isModel(actual: string, configured: string): boolean {
+  return actual === configured || actual.startsWith(`${configured}-`);
 }
