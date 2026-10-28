@@ -46,7 +46,25 @@ export interface LazaretConfig {
     sensitiveFields?: string[];
     rules?: Rule[];
   };
-  review?: { batchModel?: string; inlineModel?: string; dailyBudgetUsd?: number };
+  review?: {
+    /** Reviews sealed batches. */
+    batchModel?: string;
+    /** Second opinion when the batch reviewer allows something the gate scored as high risk. */
+    escalationModel?: string;
+    /** Synchronous review for INLINE_REVIEW routes (login, payments). */
+    inlineModel?: string;
+    /** Hard deadline for inline review; on timeout the request fails closed. */
+    inlineTimeoutMs?: number;
+    /** Review attempts per batch before it is quarantined. */
+    maxAttempts?: number;
+    /** Env binding holding the Anthropic API key. */
+    apiKeyBinding?: string;
+    dailyBudgetUsd?: number;
+  };
+  signing?: {
+    /** Env binding holding the HMAC secret shared with origin. */
+    secretBinding?: string;
+  };
 }
 
 export interface CompiledRoute {
@@ -67,7 +85,16 @@ export interface ResolvedConfig {
     sensitiveFields: string[];
     rules: CompiledRule[];
   };
-  review: { batchModel: string; inlineModel: string; dailyBudgetUsd: number };
+  review: {
+    batchModel: string;
+    escalationModel: string;
+    inlineModel: string;
+    inlineTimeoutMs: number;
+    maxAttempts: number;
+    apiKeyBinding: string;
+    dailyBudgetUsd: number;
+  };
+  signing: { secretBinding: string };
 }
 
 export const DEFAULT_SENSITIVE_FIELDS = [
@@ -151,6 +178,15 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
     problems.push("gate.maxBodyBytes must be a positive integer");
   }
 
+  const inlineTimeoutMs = config.review?.inlineTimeoutMs ?? 1500;
+  if (!(inlineTimeoutMs >= 100 && inlineTimeoutMs <= 30_000)) {
+    problems.push("review.inlineTimeoutMs must be between 100 and 30000");
+  }
+  const maxAttempts = config.review?.maxAttempts ?? 3;
+  if (!(Number.isInteger(maxAttempts) && maxAttempts >= 1 && maxAttempts <= 10)) {
+    problems.push("review.maxAttempts must be an integer from 1 to 10");
+  }
+
   const rules: CompiledRule[] = [];
   const ruleIds = new Set<string>();
   for (const rule of config.gate?.rules ?? []) {
@@ -182,8 +218,13 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
     },
     review: {
       batchModel: config.review?.batchModel ?? "claude-sonnet-5-5",
+      escalationModel: config.review?.escalationModel ?? "claude-opus-5-5",
       inlineModel: config.review?.inlineModel ?? "claude-haiku-5-5",
+      inlineTimeoutMs,
+      maxAttempts,
+      apiKeyBinding: config.review?.apiKeyBinding ?? "ANTHROPIC_API_KEY",
       dailyBudgetUsd: config.review?.dailyBudgetUsd ?? 5,
     },
+    signing: { secretBinding: config.signing?.secretBinding ?? "LAZARET_SIGNING_SECRET" },
   };
 }

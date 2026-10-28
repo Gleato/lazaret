@@ -20,7 +20,14 @@ export class IllegalTransition extends Error {
 }
 
 export function initialState(): LedgerState {
-  return { seq: 0, openBatchId: null, nextBatchNumber: 1, batches: {}, entries: {} };
+  return {
+    seq: 0,
+    openBatchId: null,
+    nextBatchNumber: 1,
+    batches: {},
+    entries: {},
+    flaggedSessions: {},
+  };
 }
 
 /** Batch ids are sequential so they're readable in logs and stable under replay. */
@@ -144,6 +151,7 @@ export function applyEvent(state: LedgerState, event: LedgerEvent): void {
       // Durable Object turns this into an idempotent no-op before it gets here.
       if (entry.status !== "APPROVED") fail(`entry ${entry.id} is ${entry.status}`);
       entry.status = "COMMITTED";
+      if (event.originStatus !== undefined) entry.originStatus = event.originStatus;
       break;
     }
 
@@ -163,6 +171,12 @@ export function applyEvent(state: LedgerState, event: LedgerEvent): void {
       for (const entry of entriesOf(batch)) {
         if (entry.status === "PENDING" || entry.status === "APPROVED") entry.status = "QUARANTINED";
       }
+      break;
+    }
+
+    case "SESSION_FLAGGED": {
+      if (!event.sessionId) fail("sessionId is required");
+      state.flaggedSessions[event.sessionId] = { at: event.at, reason: event.reason };
       break;
     }
 

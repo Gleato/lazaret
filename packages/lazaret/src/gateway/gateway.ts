@@ -1,3 +1,5 @@
+import { originUrl } from "../commit/committer";
+import { signRequest } from "../commit/sign";
 import type { CompiledRoute, Policy, ResolvedConfig } from "../config/define";
 import {
   type BehaviourSample,
@@ -10,6 +12,9 @@ import { decide } from "../gate/gate";
 import { inspect } from "../gate/inspect";
 import type { GateSignal } from "../gate/signals";
 import type { LazaretLedger } from "../ledger/durable-object";
+import type { EntryInput } from "../ledger/types";
+import { AnthropicReviewer, type Reviewer } from "../review/client";
+import { inlineReview } from "../review/inline";
 import { fillTemplate, matchPattern } from "../routing/matcher";
 import { encodePath, normalizePath, type PathAnomaly } from "../routing/normalize";
 import {
@@ -27,15 +32,22 @@ import { deriveSessionId } from "./session";
 //   2. short-circuits BLOCK routes before reading the body
 //   3. inspects the request and scores behaviour → a GateDecision
 //   4. applies the policy: PASS forwards to origin, ESCROW appends to the Ledger
-//      and answers 202 with a receipt, INLINE_REVIEW waits for the reviewer (M3)
+//      and answers 202 with a receipt, INLINE_REVIEW asks the fast reviewer and
+//      forwards only on a confident allow
 //
 // It forwards the *normalised* path, never the raw one, so origin acts on exactly
-// what the route rules saw (see routing/normalize.ts).
+// what the route rules saw (see routing/normalize.ts). Every forwarded request is
+// HMAC-signed, so origin can refuse anything that bypassed Lazaret.
+//
+// `scheduled` is the cron entrypoint: it sweeps the Ledger for sealed batches
+// whose review never started (see LazaretLedger.sweep).
 
 export interface GatewayDeps {
   behaviour?: BehaviourStore;
   /** How to reach origin. Defaults to global fetch; pass a service binding's fetch for Worker origins. */
   fetchOrigin?: (request: Request) => Promise<Response>;
+  /** Reviewer for INLINE_REVIEW routes. Defaults to Claude via the configured API key. */
+  reviewer?: Reviewer;
   now?: () => number;
 }
 
@@ -54,8 +66,20 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
   const behaviour = deps.behaviour ?? new MemoryBehaviourStore();
   const fetchOrigin = deps.fetchOrigin ?? ((r: Request) => fetch(r));
   const now = deps.now ?? Date.now;
+  const binding = <T>(env: object, name: string) =>
+    (env as Record<string, unknown>)[name] as T | undefined;
+  const ledgerFor = (env: object) => {
+    const ns = binding<DurableObjectNamespace<LazaretLedger>>(env, config.ledger.binding);
+    if (!ns) throw new Error(`Lazaret: missing Durable Object binding ${config.ledger.binding}`);
+    return ns.get(ns.idFromName(config.ledger.shard));
+  };
 
   return {
+    async scheduled(_controller: ScheduledController, env: object): Promise<void> {
+      const { redispatched } = await ledgerFor(env).sweep();
+      if (redispatched) console.log(JSON.stringify({ lazaret: "sweep", redispatched }));
+    },
+
     async fetch(request: Request, env: object): Promise<Response> {
       const requestId = crypto.randomUUID();
       const tag = (res: Response): Response => {
@@ -143,52 +167,61 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
       );
       if (decision.block) return reject(403, "forbidden");
 
+      const forward = async (): Promise<Response> => {
+        const secret = binding<string>(env, config.signing.secretBinding);
+        if (!secret) throw new Error(`Lazaret: missing secret ${config.signing.secretBinding}`);
+        const target = originUrl(config.origin, encodePath(norm.segments), url.search);
+        const body = bytes && method !== "GET" && method !== "HEAD" ? bytes : null;
+        const signature = await signRequest(
+          {
+            id: requestId,
+            method,
+            target: target.pathname + target.search,
+            body,
+            timestamp: Math.floor(now() / 1000),
+          },
+          secret,
+        );
+        const res = await fetchOrigin(
+          new Request(target, {
+            method,
+            headers: {
+              ...headers,
+              ...signature,
+              "x-forwarded-for": ip,
+              "x-forwarded-proto": url.protocol.slice(0, -1),
+            },
+            body,
+            redirect: "manual",
+          }),
+        );
+        sample.status = res.status;
+        return tag(res);
+      };
+
+      const params = matched?.params ?? {};
+      const entry: EntryInput = {
+        sessionId,
+        route: routeName,
+        riskScore: decision.risk,
+        signals: decision.signals,
+        resources: (matched?.compiled.route.resources ?? []).map((t) => fillTemplate(t, params)),
+        request: {
+          method,
+          path: norm.path,
+          query,
+          headers,
+          body: bytes ? (textual ? (bodyText ?? "") : toBase64(bytes)) : null,
+          bodyEncoding: textual ? "utf8" : "base64",
+        },
+      };
+
       switch (policy) {
-        case "PASS": {
-          const target = new URL(config.origin);
-          target.pathname = target.pathname.replace(/\/$/, "") + encodePath(norm.segments);
-          target.search = url.search;
-          const res = await fetchOrigin(
-            new Request(target, {
-              method,
-              headers: {
-                ...headers,
-                "x-forwarded-for": ip,
-                "x-forwarded-proto": url.protocol.slice(0, -1),
-              },
-              body: bytes && method !== "GET" && method !== "HEAD" ? bytes : null,
-              redirect: "manual",
-            }),
-          );
-          sample.status = res.status;
-          return tag(res);
-        }
+        case "PASS":
+          return forward();
 
         case "ESCROW": {
-          const ns = (env as Record<string, unknown>)[config.ledger.binding] as
-            | DurableObjectNamespace<LazaretLedger>
-            | undefined;
-          if (!ns)
-            throw new Error(`Lazaret: missing Durable Object binding ${config.ledger.binding}`);
-          const ledger = ns.get(ns.idFromName(config.ledger.shard));
-          const params = matched?.params ?? {};
-          const receipt = await ledger.append({
-            sessionId,
-            route: routeName,
-            riskScore: decision.risk,
-            signals: decision.signals,
-            resources: (matched?.compiled.route.resources ?? []).map((t) =>
-              fillTemplate(t, params),
-            ),
-            request: {
-              method,
-              path: norm.path,
-              query,
-              headers,
-              body: bytes ? (textual ? (bodyText ?? "") : toBase64(bytes)) : null,
-              bodyEncoding: textual ? "utf8" : "base64",
-            },
-          });
+          const receipt = await ledgerFor(env).append(entry);
           return tag(
             json(
               202,
@@ -200,10 +233,38 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
           );
         }
 
-        case "INLINE_REVIEW":
-          // TODO(M3): synchronous review with the fast model and a hard timeout.
-          // Until the reviewer exists, fail closed rather than wave writes through.
-          return reject(503, "review_unavailable");
+        case "INLINE_REVIEW": {
+          const apiKey = binding<string>(env, config.review.apiKeyBinding);
+          const reviewer =
+            deps.reviewer ?? (apiKey ? new AnthropicReviewer(apiKey, config.review) : null);
+          if (!reviewer) return reject(503, "review_unavailable");
+          const result = await inlineReview(
+            {
+              ...entry,
+              id: requestId,
+              batchId: "inline",
+              status: "PENDING",
+              receivedAt: sample.at,
+            },
+            reviewer,
+            config,
+          );
+          // TODO(M5): record inline verdicts in the Ledger so they feed memory distillation.
+          console.log(
+            JSON.stringify({
+              lazaret: "inline_review",
+              requestId,
+              route: routeName,
+              ...("verdict" in result
+                ? { verdict: result.verdict.verdict, category: result.verdict.category }
+                : { unavailable: result.unavailable }),
+            }),
+          );
+          // Fail closed: no verdict means no write.
+          if (!("verdict" in result)) return reject(503, "review_unavailable");
+          if (result.verdict.verdict !== "allow") return reject(403, "forbidden");
+          return forward();
+        }
 
         default:
           return reject(403, "forbidden");

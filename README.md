@@ -11,9 +11,9 @@ Workers that holds every write bound for your origin in a stateful ledger. An
 independent Claude reviewer vets each batch, and only writes that pass reach your
 server. Writes that fail are dropped, along with anything that depends on them.
 
-> **Status: early development.** The Ledger (M1) and the gateway with its deterministic
-> gate (M2) are built and tested. The Claude reviewer and the committer come next. A
-> live demo will run at
+> **Status: early development.** The Ledger (M1), the gateway and deterministic gate
+> (M2), and the Claude reviewer, review workflow and signed committer (M3) are built and
+> tested. The read overlay and memory come next. A live demo will run at
 > [gleator.com](https://gleator.com).
 
 ## How it works
@@ -83,7 +83,7 @@ identical and that no write is committed twice.
 
 - [x] M1: Ledger core (event log, state machine, seal triggers, crash recovery)
 - [x] M2: Gate and route policies
-- [ ] M3: Claude reviewer, review workflow, committer, taint propagation
+- [x] M3: Claude reviewer, review workflow, committer, taint propagation
 - [ ] M4: Author-only read overlay
 - [ ] M5: Memory distillation and rule promotion
 - [ ] M6: Demo origin (Tidewater Support helpdesk) and evals

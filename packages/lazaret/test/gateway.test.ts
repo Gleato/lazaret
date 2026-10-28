@@ -1,6 +1,8 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createGateway, defineLazaret, type LazaretConfig } from "../src";
+import { createGateway, defineLazaret, type LazaretConfig, type Reviewer } from "../src";
+import { verifyLazaretRequest } from "../src/origin";
+import { fakeReviewer, SECRET, verdict } from "./fakes";
 
 // End-to-end through the Gateway with a real Ledger Durable Object and a fake
 // origin. Each test gets its own Ledger shard so batches don't interleave.
@@ -13,7 +15,10 @@ const origin = vi.fn(async (req: Request) =>
 );
 
 let shardCounter = 0;
-function setup(overrides: Partial<LazaretConfig> = {}, now?: () => number) {
+function setup(
+  overrides: Partial<LazaretConfig> = {},
+  { now, reviewer }: { now?: () => number; reviewer?: Reviewer } = {},
+) {
   const shard = `gateway-${++shardCounter}`;
   const config = defineLazaret({
     origin: "https://origin.test/base",
@@ -30,7 +35,11 @@ function setup(overrides: Partial<LazaretConfig> = {}, now?: () => number) {
     gate: { maxBodyBytes: 4096 },
     ...overrides,
   });
-  const gateway = createGateway(config, { fetchOrigin: origin, ...(now ? { now } : {}) });
+  const gateway = createGateway(config, {
+    fetchOrigin: origin,
+    ...(now ? { now } : {}),
+    ...(reviewer ? { reviewer } : {}),
+  });
   const ledger = env.LEDGER.get(env.LEDGER.idFromName(shard));
   const send = (path: string, init: RequestInit = {}) =>
     gateway.fetch(
@@ -58,7 +67,7 @@ beforeEach(() => {
 });
 
 describe("Gateway", () => {
-  it("forwards reads to origin on the normalised path, minus spoofed internal headers", async () => {
+  it("forwards reads to origin on the normalised path, signed, with spoofed signatures replaced", async () => {
     const { send } = setup();
     const res = await send("/api/tickets/../tickets?page=2", {
       headers: { "x-lazaret-signature": "forged" },
@@ -67,7 +76,8 @@ describe("Gateway", () => {
     expect(res.headers.get("x-lazaret-request-id")).toBeTruthy();
     const forwarded = origin.mock.calls[0]?.[0] as Request;
     expect(forwarded.url).toBe("https://origin.test/base/api/tickets?page=2");
-    expect(forwarded.headers.get("x-lazaret-signature")).toBeNull();
+    expect(forwarded.headers.get("x-lazaret-signature")).not.toBe("forged");
+    expect(await verifyLazaretRequest(forwarded, SECRET)).toMatchObject({ ok: true });
     expect(forwarded.headers.get("x-forwarded-for")).toBe("203.0.113.9");
   });
 
@@ -166,7 +176,7 @@ describe("Gateway", () => {
     expect(request).toMatchObject({ bodyEncoding: "base64", body: "AP8B/g==" });
   });
 
-  it("fails closed on INLINE_REVIEW until the reviewer exists", async () => {
+  it("fails closed on INLINE_REVIEW when no reviewer is configured", async () => {
     const { post } = setup();
     expect((await post("/api/login", { user: "a", pass: "b" })).status).toBe(503);
     expect(origin).not.toHaveBeenCalled();
@@ -205,10 +215,64 @@ describe("Gateway", () => {
 
   it("starts blocking a scraping agent once its behaviour gives it away", async () => {
     let t = 1_000_000;
-    const { send } = setup({}, () => (t += 100)); // exactly 10 req/s, forever
+    const { send } = setup({}, { now: () => (t += 100) }); // exactly 10 req/s, forever
     const statuses: number[] = [];
     for (let i = 0; i < 60; i++) statuses.push((await send(`/api/tickets/${i}`)).status);
     expect(statuses.slice(0, 10).every((s) => s === 200)).toBe(true);
     expect(statuses.at(-1)).toBe(403);
+  });
+
+  describe("INLINE_REVIEW", () => {
+    const login = { user: "ann@example.com", password: "correct horse" };
+
+    it("forwards a confidently allowed write to origin, signed", async () => {
+      const { reviewer, calls } = fakeReviewer(() => verdict("allow", 0.96));
+      const { post } = setup({}, { reviewer });
+      const res = await post("/api/login", login);
+      expect(res.status).toBe(200);
+      expect(calls[0]?.tier).toBe("inline");
+      const forwarded = origin.mock.calls[0]?.[0] as Request;
+      expect(await verifyLazaretRequest(forwarded, SECRET)).toMatchObject({ ok: true });
+    });
+
+    it("rejects a dropped write without touching origin", async () => {
+      const { reviewer } = fakeReviewer(() => verdict("drop", 0.9, "credential_attack"));
+      const { post } = setup({}, { reviewer });
+      expect((await post("/api/login", login)).status).toBe(403);
+      expect(origin).not.toHaveBeenCalled();
+    });
+
+    it("treats a low-confidence allow as a rejection", async () => {
+      const { reviewer } = fakeReviewer(() => verdict("allow", 0.6));
+      const { post } = setup({}, { reviewer });
+      expect((await post("/api/login", login)).status).toBe(403);
+    });
+
+    it("fails closed when the reviewer misses its deadline", async () => {
+      const slow: Reviewer = { review: () => new Promise(() => {}) }; // never answers
+      const { post } = setup({ review: { inlineTimeoutMs: 150 } }, { reviewer: slow });
+      const started = Date.now();
+      const res = await post("/api/login", login);
+      expect(res.status).toBe(503);
+      expect(Date.now() - started).toBeLessThan(1_000);
+      expect(origin).not.toHaveBeenCalled();
+    });
+
+    it("fails closed on a reviewer refusal or malformed answer", async () => {
+      const refusing = fakeReviewer(
+        () => verdict("allow"),
+        () => ({ kind: "refusal", category: "cyber", model: "x" }),
+      );
+      expect(
+        (await setup({}, { reviewer: refusing.reviewer }).post("/api/login", login)).status,
+      ).toBe(503);
+      const garbled = fakeReviewer(
+        () => verdict("allow"),
+        () => ({ kind: "output", model: "x", output: { verdicts: [] } }),
+      );
+      expect(
+        (await setup({}, { reviewer: garbled.reviewer }).post("/api/login", login)).status,
+      ).toBe(503);
+    });
   });
 });

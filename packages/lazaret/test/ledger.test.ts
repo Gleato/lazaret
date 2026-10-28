@@ -210,4 +210,67 @@ describe("Ledger Durable Object", () => {
     expect(page).toHaveLength(1);
     expect(page[0]).toMatchObject({ seq: 2, event: { type: "ENTRY_APPENDED" } });
   });
+
+  describe("M3 protocol", () => {
+    it("boosts the risk of a flagged session's next write and tags it", async () => {
+      const stub = ledger();
+      const a = await stub.append(entry({ sessionId: "mallory" }));
+      const batchId = (await stub.seal()) ?? "";
+      await stub.startReview(batchId);
+      await stub.recordVerdicts(batchId, { [a.entryId]: drop });
+
+      const next = await stub.append(entry({ sessionId: "mallory", riskScore: 0.3 }));
+      const stored = (await stub.getState()).entries[next.entryId];
+      expect(stored?.riskScore).toBeCloseTo(1 - 0.7 * 0.4); // noisy-OR of 0.3 and 0.6
+      expect(stored?.signals.map((s) => s.id)).toContain("session.flagged");
+      // An unrelated session is unaffected.
+      const other = await stub.append(entry({ sessionId: "ann", riskScore: 0.3 }));
+      expect((await stub.getState()).entries[other.entryId]?.riskScore).toBe(0.3);
+    });
+
+    it("makes every Workflow-facing call idempotent", async () => {
+      const stub = ledger();
+      const a = await stub.append(entry());
+      const batchId = (await stub.seal()) ?? "";
+      expect(await stub.beginReview(batchId)).toBe(1);
+      expect(await stub.beginReview(batchId)).toBe(1);
+      expect(await stub.recordVerdicts(batchId, { [a.entryId]: allow })).toMatchObject({
+        applied: true,
+      });
+      expect(await stub.recordVerdicts(batchId, { [a.entryId]: allow })).toMatchObject({
+        applied: false,
+      });
+      await stub.beginCommit(batchId);
+      await stub.beginCommit(batchId);
+      expect((await stub.getCommitPlan(batchId)).map((e) => e.id)).toEqual([a.entryId]);
+      await stub.markCommitted(a.entryId, 201);
+      await stub.settle(batchId);
+      await stub.settle(batchId);
+      const types = (await stub.getEvents()).map((e) => e.event.type);
+      expect(types.filter((t) => t === "REVIEW_STARTED")).toHaveLength(1);
+      expect(types.filter((t) => t === "COMMIT_STARTED")).toHaveLength(1);
+      expect(types.filter((t) => t === "BATCH_SETTLED")).toHaveLength(1);
+    });
+
+    it("gives the reviewer only pending entries, with flagged sessions marked", async () => {
+      const stub = ledger();
+      await stub.append(entry({ sessionId: "ann" }));
+      const batchId = (await stub.seal()) ?? "";
+      const snapshot = await stub.getReviewSnapshot(batchId);
+      expect(snapshot).toMatchObject({
+        batchId,
+        status: "SEALED",
+        attempt: 0,
+        flaggedSessions: [],
+      });
+      expect(snapshot.entries).toHaveLength(1);
+    });
+
+    it("sweeps nothing when dispatch is disabled", async () => {
+      const stub = ledger();
+      await stub.append(entry());
+      await stub.seal();
+      expect(await stub.sweep()).toEqual({ redispatched: 0 });
+    });
+  });
 });

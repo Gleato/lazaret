@@ -1,8 +1,22 @@
-// Test-only Worker that hosts a Ledger with a short, deterministic cycle config.
+// Test-only Worker. `Ledger` has automatic review dispatch off, so tests can drive
+// the review protocol by hand. `AutoLedger` + `ReviewWorkflow` exercise the real
+// seal → Workflow → commit path with a fake reviewer and a fake origin.
 {
   "name": "lazaret-test",
   "main": "worker.ts",
   "compatibility_date": "2026-10-01",
-  "durable_objects": { "bindings": [{ "name": "LEDGER", "class_name": "Ledger" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Ledger"] }]
+  "vars": { "LAZARET_SIGNING_SECRET": "test-signing-secret-0123456789" },
+  "durable_objects": {
+    "bindings": [
+      { "name": "LEDGER", "class_name": "Ledger" },
+      { "name": "AUTO_LEDGER", "class_name": "AutoLedger" }
+    ]
+  },
+  "workflows": [
+    { "binding": "LAZARET_REVIEW", "name": "lazaret-review", "class_name": "ReviewWorkflow" }
+  ],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Ledger"] },
+    { "tag": "v2", "new_sqlite_classes": ["AutoLedger"] }
+  ]
 }

@@ -1,6 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
+import { combineRisk } from "../gate/signals";
 import type { LedgerEvent, StoredEvent } from "./events";
 import { applyEvent, initialState, nextBatchId } from "./machine";
+import { applyTaint } from "./taint";
 import {
   type CycleConfig,
   DEFAULT_CYCLE,
@@ -8,11 +10,19 @@ import {
   sealReasonAfterAppend,
   validateCycleConfig,
 } from "./triggers";
-import type { EntryInput, LedgerState, SealReason, VerdictRecord } from "./types";
+import type {
+  BatchStatus,
+  EntryInput,
+  EntryState,
+  LedgerState,
+  SealReason,
+  VerdictRecord,
+} from "./types";
 
 // The Ledger is the harness (principle 1): it owns the escrow loop and the state
-// machine, and is the only thing allowed to change batch/entry state. Reviewers and
-// committers (M3) drive it through these RPC methods; they never touch storage.
+// machine, and is the only thing allowed to change batch/entry state. The Review
+// Workflow (brain) and Committer (hands) drive it through these RPC methods; they
+// never touch storage.
 //
 // Durability model (principle 3):
 //   - Every change is an event appended to `ledger_events` in this object's SQLite.
@@ -20,14 +30,37 @@ import type { EntryInput, LedgerState, SealReason, VerdictRecord } from "./types
 //     eviction or crash loses nothing that was acknowledged.
 //   - Multi-event operations run in one transaction: all events land or none do.
 //
+// Retry model (principle 4): every method the Review Workflow calls is idempotent
+// (begin*/record*/mark*/settle), because a Workflow step can re-run after a crash
+// without knowing whether its last call landed.
+//
 // Alarm invariant: an alarm is scheduled iff a batch is OPEN, at that batch's timer
-// deadline. Sealing deletes it; opening sets it; startup repairs it if missing. So
-// when `alarm()` fires, the open batch (if any) is due.
+// deadline. Sealing deletes it; opening sets it; startup repairs it if missing.
 //
 // Subclass to configure, e.g.
 //   export class Ledger extends LazaretLedger {
 //     protected override cycleConfig() { return { ...DEFAULT_CYCLE, intervalSec: 30 }; }
 //   }
+
+/** How long a flagged session's writes carry a risk boost. */
+const SESSION_FLAG_TTL_MS = 60 * 60 * 1000;
+const SESSION_FLAG_WEIGHT = 0.6;
+
+export interface ReviewSnapshot {
+  batchId: string;
+  status: BatchStatus;
+  attempt: number;
+  /** Entries still awaiting a verdict, in append order. */
+  entries: EntryState[];
+  /** Which of those entries' sessions are currently flagged. */
+  flaggedSessions: string[];
+}
+
+export interface ReviewDispatch {
+  /** Durable Object id of the Ledger, so the Workflow can find its way back. */
+  ledgerId: string;
+  batchId: string;
+}
 
 export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
   #state: LedgerState = initialState();
@@ -48,6 +81,14 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
     return DEFAULT_CYCLE;
   }
 
+  /**
+   * Workflow binding that reviews sealed batches. Return null to disable automatic
+   * dispatch (e.g. when a test drives the review protocol by hand).
+   */
+  protected reviewWorkflowBinding(): string | null {
+    return "LAZARET_REVIEW";
+  }
+
   /** Overridable clock so tests can control event timestamps. */
   protected now(): number {
     return Date.now();
@@ -61,6 +102,7 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
   ): Promise<{ entryId: string; batchId: string; sealed: SealReason | null }> {
     validateEntryInput(input);
     const at = this.now();
+    const entry = this.#boostFlaggedSession(input, at);
     const events: LedgerEvent[] = [];
 
     const opening = this.#state.openBatchId === null;
@@ -68,16 +110,16 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
     if (opening) events.push({ type: "BATCH_OPENED", batchId, at });
 
     const entryId = crypto.randomUUID();
-    events.push({ type: "ENTRY_APPENDED", entryId, batchId, entry: input, at });
+    events.push({ type: "ENTRY_APPENDED", entryId, batchId, entry, at });
 
     // Seal in the same transaction as the append, so a crash can never leave a
     // risk-spike entry sitting in an open batch waiting for the timer.
     const entryCount = (this.#state.batches[batchId]?.entryIds.length ?? 0) + 1;
-    const sealed = sealReasonAfterAppend(entryCount, input.riskScore, this.#cycle);
+    const sealed = sealReasonAfterAppend(entryCount, entry.riskScore, this.#cycle);
     if (sealed) events.push({ type: "BATCH_SEALED", batchId, reason: sealed, at });
     this.#commit(events);
 
-    if (sealed) await this.#afterSeal();
+    if (sealed) await this.#afterSeal(batchId);
     else if (opening) await this.ctx.storage.setAlarm(sealDeadline(at, this.#cycle));
 
     return { entryId, batchId, sealed };
@@ -99,7 +141,40 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
     if (this.#state.batches[batchId]?.entryIds.length) await this.#seal(batchId, "timer");
   }
 
-  // ── Review / commit protocol (driven by the Review Workflow in M3) ───────────
+  /**
+   * Recovery sweep, called from the Gateway's cron trigger. Re-dispatches any
+   * sealed batch whose Workflow never started (dispatch failed, or the object was
+   * evicted in between). Workflow ids are deterministic, so this is idempotent.
+   */
+  async sweep(): Promise<{ redispatched: number }> {
+    let redispatched = 0;
+    for (const batch of Object.values(this.#state.batches)) {
+      if (batch.status === "SEALED" && (await this.#dispatch(batch.id))) redispatched += 1;
+    }
+    return { redispatched };
+  }
+
+  // ── Review protocol (driven by the Review Workflow) ─────────────────────────
+
+  /** What the reviewer needs: the pending entries and which sessions are flagged. */
+  getReviewSnapshot(batchId: string): ReviewSnapshot {
+    const batch = this.#state.batches[batchId];
+    if (!batch) throw new Error(`unknown batch ${batchId}`);
+    const entries = batch.entryIds
+      .map((id) => this.#state.entries[id])
+      .filter((e): e is EntryState => e?.status === "PENDING");
+    const now = this.now();
+    const flaggedSessions = [...new Set(entries.map((e) => e.sessionId))].filter((s) =>
+      this.#isFlagged(s, now),
+    );
+    return {
+      batchId,
+      status: batch.status,
+      attempt: batch.reviewAttempts,
+      entries: structuredClone(entries),
+      flaggedSessions,
+    };
+  }
 
   /** Begin (or retry) review of a sealed batch. Returns the attempt number. */
   startReview(batchId: string): number {
@@ -108,59 +183,114 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
     return attempt;
   }
 
+  /** Idempotent `startReview`: if the batch is already REVIEWING, return its attempt. */
+  beginReview(batchId: string): number {
+    const batch = this.#state.batches[batchId];
+    if (batch?.status === "REVIEWING") return batch.reviewAttempts;
+    return this.startReview(batchId);
+  }
+
+  /** Idempotent: a repeat for an attempt that already failed is a no-op. */
   failReview(batchId: string, attempt: number, error: string): void {
+    const batch = this.#state.batches[batchId];
+    if (batch?.status === "REVIEW_FAILED" && batch.reviewAttempts === attempt) return;
     this.#commit([{ type: "REVIEW_FAILED", batchId, attempt, error, at: this.now() }]);
   }
 
   /**
-   * Record verdicts for a whole batch in one transaction. Requiring exactly one
-   * verdict per pending entry means a review is never half-applied: a crash leaves
-   * either no verdicts or all of them, so retries start from a clean checkpoint.
+   * Record verdicts for a whole batch in one transaction, after taint propagation.
+   * Requiring exactly one verdict per pending entry means a review is never
+   * half-applied. A repeat after the verdicts landed is a no-op.
    */
-  recordVerdicts(batchId: string, verdicts: Record<string, VerdictRecord>): void {
+  recordVerdicts(
+    batchId: string,
+    verdicts: Record<string, VerdictRecord>,
+  ): { applied: boolean; tainted: number; flaggedSessions: number } {
     const batch = this.#state.batches[batchId];
     if (!batch) throw new Error(`unknown batch ${batchId}`);
-    const pending = batch.entryIds.filter((id) => this.#state.entries[id]?.status === "PENDING");
+    const entries = batch.entryIds
+      .map((id) => this.#state.entries[id])
+      .filter((e): e is EntryState => e !== undefined);
+    const pending = entries.filter((e) => e.status === "PENDING");
+    if (pending.length === 0 && batch.status !== "SEALED") {
+      return { applied: false, tainted: 0, flaggedSessions: 0 };
+    }
+
     const given = Object.keys(verdicts);
-    const missing = pending.filter((id) => !(id in verdicts));
-    const extra = given.filter((id) => !pending.includes(id));
+    const missing = pending.filter((e) => !(e.id in verdicts));
+    const extra = given.filter((id) => !pending.some((e) => e.id === id));
     if (missing.length || extra.length) {
       throw new Error(
         `verdicts must cover exactly the pending entries of ${batchId} ` +
           `(missing: ${missing.length}, unexpected: ${extra.length})`,
       );
     }
+    for (const id of given) validateVerdict(verdicts[id]);
+
+    const taint = applyTaint(pending, verdicts);
     const at = this.now();
-    this.#commit(
-      pending.map((entryId) => ({
-        type: "ENTRY_VERDICT",
-        entryId,
-        verdict: validateVerdict(verdicts[entryId]),
-        at,
-      })),
-    );
+    this.#commit([
+      ...pending.map(
+        (e): LedgerEvent => ({
+          type: "ENTRY_VERDICT",
+          entryId: e.id,
+          verdict: taint.verdicts[e.id] as VerdictRecord,
+          at,
+        }),
+      ),
+      ...taint.flaggedSessions.map((f): LedgerEvent => ({ type: "SESSION_FLAGGED", ...f, at })),
+    ]);
+    return { applied: true, tainted: taint.tainted, flaggedSessions: taint.flaggedSessions.length };
   }
 
   startCommit(batchId: string): void {
     this.#commit([{ type: "COMMIT_STARTED", batchId, at: this.now() }]);
   }
 
+  /** Idempotent `startCommit`. */
+  beginCommit(batchId: string): void {
+    const status = this.#state.batches[batchId]?.status;
+    if (status === "COMMITTING" || status === "SETTLED") return;
+    this.startCommit(batchId);
+  }
+
+  /** Approved entries still to be replayed to origin, in append order (dependencies first). */
+  getCommitPlan(batchId: string): EntryState[] {
+    const batch = this.#state.batches[batchId];
+    if (!batch) throw new Error(`unknown batch ${batchId}`);
+    return structuredClone(
+      batch.entryIds
+        .map((id) => this.#state.entries[id])
+        .filter((e): e is EntryState => e?.status === "APPROVED"),
+    );
+  }
+
   /**
    * Mark one entry as written to origin. Idempotent: the Committer may replay after a
    * crash without knowing which writes landed (principle 4), so a repeat is a no-op.
    */
-  markCommitted(entryId: string): { duplicate: boolean } {
+  markCommitted(entryId: string, originStatus?: number): { duplicate: boolean } {
     if (this.#state.entries[entryId]?.status === "COMMITTED") return { duplicate: true };
-    this.#commit([{ type: "ENTRY_COMMITTED", entryId, at: this.now() }]);
+    this.#commit([
+      {
+        type: "ENTRY_COMMITTED",
+        entryId,
+        ...(originStatus === undefined ? {} : { originStatus }),
+        at: this.now(),
+      },
+    ]);
     return { duplicate: false };
   }
 
+  /** Idempotent: settling a settled batch is a no-op. */
   settle(batchId: string): void {
+    if (this.#state.batches[batchId]?.status === "SETTLED") return;
     this.#commit([{ type: "BATCH_SETTLED", batchId, at: this.now() }]);
   }
 
-  /** Fail closed: hold the whole batch for second review instead of committing. */
+  /** Fail closed: hold the whole batch for second review instead of committing. Idempotent. */
   quarantine(batchId: string, reason: string): void {
+    if (this.#state.batches[batchId]?.status === "QUARANTINED") return;
     this.#commit([{ type: "BATCH_QUARANTINED", batchId, reason, at: this.now() }]);
   }
 
@@ -184,14 +314,71 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
 
   // ── Internals ────────────────────────────────────────────────────────────────
 
-  async #seal(batchId: string, reason: SealReason): Promise<void> {
-    this.#commit([{ type: "BATCH_SEALED", batchId, reason, at: this.now() }]);
-    await this.#afterSeal();
+  #isFlagged(sessionId: string, now: number): boolean {
+    const flag = this.#state.flaggedSessions[sessionId];
+    return flag !== undefined && now - flag.at < SESSION_FLAG_TTL_MS;
   }
 
-  async #afterSeal(): Promise<void> {
+  /**
+   * A session caught attacking gets a cooling-off period. Its writes carry a risk
+   * boost, so they tend to trip the risk-spike seal and reach review quickly with
+   * the evidence attached.
+   */
+  #boostFlaggedSession(input: EntryInput, at: number): EntryInput {
+    if (!this.#isFlagged(input.sessionId, at)) return input;
+    const flag = this.#state.flaggedSessions[input.sessionId];
+    return {
+      ...input,
+      riskScore: combineRisk([input.riskScore, SESSION_FLAG_WEIGHT]),
+      signals: [
+        ...input.signals,
+        {
+          source: "behaviour",
+          id: "session.flagged",
+          category: "repeat_offender",
+          weight: SESSION_FLAG_WEIGHT,
+          evidence: flag?.reason.slice(0, 80),
+        },
+      ],
+    };
+  }
+
+  async #seal(batchId: string, reason: SealReason): Promise<void> {
+    this.#commit([{ type: "BATCH_SEALED", batchId, reason, at: this.now() }]);
+    await this.#afterSeal(batchId);
+  }
+
+  async #afterSeal(batchId: string): Promise<void> {
     await this.ctx.storage.deleteAlarm();
-    // M3: hand the sealed batch to the Review Workflow here.
+    await this.#dispatch(batchId);
+  }
+
+  /**
+   * Start the Review Workflow for a batch. Never throws: a failed dispatch leaves the
+   * batch SEALED, and `sweep()` picks it up later. The write itself is already safe
+   * in escrow, so a dispatch failure must not fail the client's request.
+   */
+  async #dispatch(batchId: string): Promise<boolean> {
+    const binding = this.reviewWorkflowBinding();
+    if (!binding) return false;
+    const workflow = (this.env as Record<string, unknown>)[binding] as
+      | Workflow<ReviewDispatch>
+      | undefined;
+    if (!workflow) return false;
+    const id = `${this.ctx.id.toString()}-${batchId}`;
+    try {
+      await workflow.create({ id, params: { ledgerId: this.ctx.id.toString(), batchId } });
+      return true;
+    } catch (err) {
+      // Deterministic ids make a duplicate create harmless: the review is already running.
+      try {
+        await workflow.get(id);
+        return false;
+      } catch {
+        console.error(JSON.stringify({ lazaret: "dispatch_failed", batchId, error: String(err) }));
+        return false;
+      }
+    }
   }
 
   /**

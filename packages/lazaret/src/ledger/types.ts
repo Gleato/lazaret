@@ -65,6 +65,8 @@ export interface EntryState extends EntryInput {
   status: EntryStatus;
   receivedAt: number;
   verdict?: VerdictRecord;
+  /** HTTP status origin returned when the Committer replayed this entry. */
+  originStatus?: number;
 }
 
 export interface BatchState {
@@ -88,4 +90,6 @@ export interface LedgerState {
   nextBatchNumber: number;
   batches: Record<string, BatchState>;
   entries: Record<string, EntryState>;
+  /** Sessions caught submitting a malicious write, and when (taint propagation, §2.3). */
+  flaggedSessions: Record<string, { at: number; reason: string }>;
 }

@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M2 done (2026-10-27); M3 next**
+Status: **M0–M3 done (2026-10-27); M4 next**
 
 ---
 
@@ -72,7 +72,7 @@ plus `REVIEW_FAILED` (retry from checkpoint) and `QUARANTINED` (held for manual/
 - Payloads passed as escaped, delimited **data**; system prompt is static + cached.
 - Structured output (strict JSON schema) — per entry: `verdict: allow|drop|quarantine`, `category`, `confidence`, `rationale`, `evidence_spans`.
 - Malformed output / timeout / refusal → fail closed (quarantine).
-- Disagreement guard: Gate high-risk + LLM "allow" → second review by stronger model; still disagree → quarantine.
+- Disagreement guard: Gate high-risk (or flagged session) + LLM "allow" → second review by a stronger model; its allow stands only at ≥ 0.9 confidence, otherwise quarantine. (Changed from "still disagree → quarantine" so the guard can clear gate false positives such as a ticket mentioning `localhost`.)
 - Adversarial fixture corpus includes prompt-injection payloads aimed at the reviewer.
 
 ### 2.6 Origin trust boundary
@@ -187,6 +187,7 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
 - [x] `git init`, npm workspaces, TypeScript 7, Vitest 5 + `@cloudflare/vitest-plugin`, Biome
 - [ ] **You:** run `npx wrangler login`; add gleator.com zone to the account (already there)
 - [ ] **You:** `wrangler secret put ANTHROPIC_API_KEY` (I won't handle the key)
+- [ ] **You:** `wrangler secret put LAZARET_SIGNING_SECRET` (random, ≥ 16 chars; shared with origin)
 - [ ] Confirm Cloudflare plan limits (Workflows/DO on Workers Paid $5/mo is likely needed for headroom)
 
 ### M1 — Ledger core
@@ -199,11 +200,11 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
 - [x] Deterministic gate: feature extraction, signatures, rate/agent scoring, rule DSL evaluator
 
 ### M3 — Review & commit
-- [ ] Reviewer prompt + JSON schema, injection-hardened payload encoding, prompt caching
-- [ ] Review Workflow with checkpointed steps, retries, fail-closed handling, disagreement guard
-- [ ] Committer with HMAC signing + idempotency; origin verify middleware
-- [ ] Taint propagation
-- [ ] Inline review path with timeout
+- [x] Reviewer prompt + JSON schema, injection-hardened payload encoding, prompt caching
+- [x] Review Workflow with checkpointed steps, retries, fail-closed handling, disagreement guard
+- [x] Committer with HMAC signing + idempotency; origin verify middleware
+- [x] Taint propagation
+- [x] Inline review path with timeout
 
 ### M4 — Read overlay
 - [ ] Author-only overlay, built-in mergers + custom merge hook
@@ -286,4 +287,52 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
   - `ssrf.loopback` (0.5) will fire on support tickets that mention localhost URLs; this
     is left for the reviewer to judge.
   - Ledger sharding is still a single named shard.
+
+### M3 (2026-10-27)
+- **Layout:**
+  - `src/review/`: schema, prompt, client, pipeline, workflow, inline.
+  - `src/commit/`: sign, committer.
+  - `src/origin/`: the `@gleator/lazaret/origin` export.
+  - `src/ledger/taint.ts`.
+- **Models:**
+  - Batch review uses `claude-sonnet-5-5` at high effort; escalation uses `claude-opus-5-5`.
+  - Both use the server-side `fallbacks: "default"` option, because reviewing attack
+    payloads can trip safety classifiers.
+  - Inline review uses `claude-haiku-5-5` at low effort, with no SDK retries, under a 1.5 s
+    deadline.
+  - Structured outputs via `output_config.format`. The system prompt is static and cached.
+- **Design choices:**
+  - The pipeline is written against a minimal `StepRunner`. Cloudflare Workflows provides it
+    in production; an in-memory runner in tests can crash between any two steps.
+  - Fatal outcomes (refusal, malformed output, 4xx) are *returned* from steps, so they
+    survive serialisation, and they quarantine at once. Transient errors throw, so the step
+    retries, then the attempt fails, the Workflow sleeps durably, and the next attempt starts.
+  - Every Workflow-facing Ledger method is idempotent (`begin*`, `record*`, `mark*`,
+    `settle`, `quarantine`).
+  - Taint links only entries from the same session that share a resource key; `:new`
+    keys never link. A reviewer drop flags the session, which adds a 0.6 risk boost for one
+    hour.
+  - Prompt injection defence: `<`, `>` and `&` are escaped as `\u003c` and friends inside
+    the JSON data block, so no payload can close `</batch_data>`. Credentials never enter
+    the prompt, and the reviewer has no tools.
+  - All traffic to origin is HMAC-signed (v1 canonical string; the entry id is the
+    idempotency key). Client-sent `x-lazaret-*` headers are replaced.
+  - If dispatch fails, the batch stays SEALED. `sweep()` (gateway cron) re-dispatches it
+    under a deterministic Workflow id.
+- **Verified:** 181 tests pass (48 new). Highlights:
+  - A real Workflow runs end to end in workerd.
+  - Crash-resume between origin accepting a write and the step checkpointing: one Ledger
+    commit, a re-send carrying the same idempotency key, and no second review.
+  - Backoff and recovery after 429s, and quarantine after the last attempt.
+  - Refusal and malformed output quarantine without a retry.
+  - A payload cannot break out of the data block.
+  - Tampered body, path, query or method fails signature verification.
+  - The inline deadline holds.
+  - `tsc` and Biome are clean.
+- **Not verified:** no call to the real Claude API has been made yet; it needs your
+  `ANTHROPIC_API_KEY`. The SDK request shape typechecks against `@anthropic-ai/sdk` 1.3.0.
+- **Deferred:**
+  - `dailyBudgetUsd` enforcement (M7).
+  - Recording inline verdicts in the Ledger for memory (M5).
+  - Mapping receipt ids to origin ids for writes that reference not-yet-committed resources (M6).
 

@@ -12,9 +12,10 @@ export type LedgerEvent =
   | { type: "REVIEW_FAILED"; batchId: string; attempt: number; error: string; at: number }
   | { type: "ENTRY_VERDICT"; entryId: string; verdict: VerdictRecord; at: number }
   | { type: "COMMIT_STARTED"; batchId: string; at: number }
-  | { type: "ENTRY_COMMITTED"; entryId: string; at: number }
+  | { type: "ENTRY_COMMITTED"; entryId: string; originStatus?: number; at: number }
   | { type: "BATCH_SETTLED"; batchId: string; at: number }
-  | { type: "BATCH_QUARANTINED"; batchId: string; reason: string; at: number };
+  | { type: "BATCH_QUARANTINED"; batchId: string; reason: string; at: number }
+  | { type: "SESSION_FLAGGED"; sessionId: string; reason: string; at: number };
 
 export type LedgerEventType = LedgerEvent["type"];
 
