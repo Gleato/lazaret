@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M1 done (2026-10-27); M2 next**
+Status: **M0–M2 done (2026-10-27); M3 next**
 
 ---
 
@@ -195,8 +195,8 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
 - [x] Crash/replay tests
 
 ### M2 — Gate & routing
-- [ ] Config schema (`defineLazaret`), route matcher, policies
-- [ ] Deterministic gate: feature extraction, signatures, rate/agent scoring, rule DSL evaluator
+- [x] Config schema (`defineLazaret`), route matcher, policies
+- [x] Deterministic gate: feature extraction, signatures, rate/agent scoring, rule DSL evaluator
 
 ### M3 — Review & commit
 - [ ] Reviewer prompt + JSON schema, injection-hardened payload encoding, prompt caching
@@ -253,3 +253,37 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
 - **Tooling note:** npm 11.0.0 crashes on workspace installs (`edgesOut`). Use `npx npm@11.6 install`
   until the global npm is upgraded. `@cloudflare/vitest-pool-workers` is deprecated in favour
   of `@cloudflare/vitest-plugin`.
+
+### M2 (2026-10-27)
+- **Layout:** `src/config/define.ts`, `src/routing/` (normalize, matcher), `src/gate/`
+  (signals, signatures, inspect, rules, behaviour, gate), `src/gateway/` (gateway, http, session).
+- **Design choices:**
+  - Path normalisation is treated as a security boundary. Encoded slashes, backslashes,
+    dot segments and percent-encoded letters are all resolved. Literals match
+    case-insensitively, and a trailing `*` also covers the bare prefix. The gateway forwards
+    the normalised path, so origin acts on exactly what the rules saw. Every trick that
+    was undone becomes a scored anomaly.
+  - Unmatched writes fall back to ESCROW, never PASS.
+  - Signals are combined with noisy-OR. Weights encode confidence: a single strong hit
+    (≥ 0.8) trips the Ledger's risk-spike seal and goes to the reviewer, and only stacked
+    evidence crosses the 0.95 hard block. Reads have no reviewer behind them, so they
+    block at 0.7.
+  - Canonicalisation (double URL-decoding, HTML entities, NFKC, SQL comments) runs before
+    signatures. Scanning is capped per string and in total; overflow is flagged, not scanned.
+  - The rule DSL is data-only. Regexes are rejected if they have nested quantifiers,
+    quantified alternations, backreferences or lookarounds. Depth and node counts are capped.
+  - Clients can never pre-set `x-lazaret-*` headers, which the M3 Committer will sign with.
+  - Escrowed entries now carry `route`, `signals` and `bodyEncoding`. Binary bodies are
+    stored as base64.
+  - INLINE_REVIEW fails closed (503) until M3.
+- **Verified:** 133 tests pass (98 new). They include a ReDoS test of every signature
+  against 100 KB hostile inputs, a 13-sentence benign support-ticket corpus with zero
+  false positives, BLOCK bypass attempts (`/ADMIN`, `..%2f`, backslash), and a scraper
+  that gets blocked once its behaviour gives it away. `tsc` and Biome are clean.
+- **Known limits:**
+  - `MemoryBehaviourStore` is per-isolate (best-effort). A cross-isolate swarm view needs
+    a Durable Object-backed store.
+  - `ssrf.loopback` (0.5) will fire on support tickets that mention localhost URLs; this
+    is left for the reviewer to judge.
+  - Ledger sharding is still a single named shard.
+

@@ -9,9 +9,12 @@ export function entry(overrides: Partial<EntryInput> = {}): EntryInput {
       query: "",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ subject: "Printer on fire", body: "Please help" }),
+      bodyEncoding: "utf8",
     },
     riskScore: 0.1,
     resources: ["ticket:new"],
+    route: "POST /api/tickets",
+    signals: [],
     ...overrides,
   };
 }

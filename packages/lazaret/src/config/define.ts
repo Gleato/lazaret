@@ -1,0 +1,189 @@
+import { type CompiledRule, compileRule, type Rule } from "../gate/rules";
+import { type CycleConfig, DEFAULT_CYCLE, validateCycleConfig } from "../ledger/triggers";
+import { type CompiledPattern, compilePattern, templateParams } from "../routing/matcher";
+
+// `defineLazaret` is the single place a deployment is described. It validates
+// everything up front and reports *all* problems at once, so a bad config fails
+// at deploy time with a useful message instead of misrouting traffic in production.
+
+export type Policy = "PASS" | "INLINE_REVIEW" | "ESCROW" | "BLOCK";
+const POLICIES: readonly Policy[] = ["PASS", "INLINE_REVIEW", "ESCROW", "BLOCK"];
+
+export interface RouteConfig {
+  /** "METHOD /path/:param/*", e.g. "PATCH /api/tickets/:id". */
+  match: string;
+  policy: Policy;
+  /** Resource keys this write touches, e.g. ["ticket:{id}"]. Drives taint propagation. */
+  resources?: string[];
+}
+
+export interface LazaretConfig {
+  /** Base URL of the protected origin. */
+  origin: string;
+  routes: RouteConfig[];
+  /**
+   * Policy for requests no route matches. Defaults: reads PASS, writes ESCROW, so a
+   * forgotten route is still quarantined rather than waved through.
+   */
+  fallback?: { read?: Policy; write?: Policy };
+  cycle?: Partial<CycleConfig>;
+  ledger?: {
+    /** Durable Object namespace binding holding the Ledger. Default `LAZARET_LEDGER`. */
+    binding?: string;
+    /** Ledger instance name. One shard for now; per-tenant sharding comes later. */
+    shard?: string;
+  };
+  /** How to identify a session. Checked in order: cookie, header, then IP + user agent. */
+  session?: { cookie?: string; header?: string };
+  gate?: {
+    /**
+     * Risk at or above which the gate blocks outright. Reads have no reviewer behind
+     * them, so their threshold is stricter than the threshold for reviewed writes.
+     */
+    thresholds?: { pass?: number; review?: number };
+    maxBodyBytes?: number;
+    /** JSON keys treated as privilege-bearing (mass assignment). Replaces the default list. */
+    sensitiveFields?: string[];
+    rules?: Rule[];
+  };
+  review?: { batchModel?: string; inlineModel?: string; dailyBudgetUsd?: number };
+}
+
+export interface CompiledRoute {
+  route: RouteConfig;
+  pattern: CompiledPattern;
+}
+
+export interface ResolvedConfig {
+  origin: URL;
+  routes: CompiledRoute[];
+  fallback: { read: Policy; write: Policy };
+  cycle: CycleConfig;
+  ledger: { binding: string; shard: string };
+  session: { cookie?: string; header?: string };
+  gate: {
+    thresholds: { pass: number; review: number };
+    maxBodyBytes: number;
+    sensitiveFields: string[];
+    rules: CompiledRule[];
+  };
+  review: { batchModel: string; inlineModel: string; dailyBudgetUsd: number };
+}
+
+export const DEFAULT_SENSITIVE_FIELDS = [
+  "role",
+  "roles",
+  "admin",
+  "is_admin",
+  "isadmin",
+  "permissions",
+  "scopes",
+  "balance",
+  "credits",
+  "verified",
+  "email_verified",
+  "owner_id",
+  "tenant_id",
+];
+
+export class LazaretConfigError extends Error {
+  constructor(readonly problems: string[]) {
+    super(`Invalid Lazaret config:\n  - ${problems.join("\n  - ")}`);
+    this.name = "LazaretConfigError";
+  }
+}
+
+export function defineLazaret(config: LazaretConfig): ResolvedConfig {
+  const problems: string[] = [];
+  const attempt = <T>(fn: () => T): T | undefined => {
+    try {
+      return fn();
+    } catch (err) {
+      problems.push((err as Error).message);
+      return undefined;
+    }
+  };
+
+  const origin = attempt(() => {
+    const url = new URL(config.origin);
+    if (url.protocol !== "https:" && url.protocol !== "http:")
+      throw new Error("origin must be http(s)");
+    return url;
+  });
+  if (!origin && !problems.length) problems.push("origin is required");
+
+  const routes: CompiledRoute[] = [];
+  for (const route of config.routes ?? []) {
+    if (!POLICIES.includes(route.policy)) {
+      problems.push(`route "${route.match}": unknown policy ${String(route.policy)}`);
+      continue;
+    }
+    const pattern = attempt(() => compilePattern(route.match));
+    if (!pattern) continue;
+    for (const template of route.resources ?? []) {
+      for (const name of templateParams(template)) {
+        if (!pattern.params.includes(name)) {
+          problems.push(
+            `route "${route.match}": resource "${template}" uses unknown param {${name}}`,
+          );
+        }
+      }
+    }
+    routes.push({ route, pattern });
+  }
+
+  const fallback = {
+    read: config.fallback?.read ?? "PASS",
+    write: config.fallback?.write ?? "ESCROW",
+  };
+  for (const p of [fallback.read, fallback.write]) {
+    if (!POLICIES.includes(p)) problems.push(`fallback: unknown policy ${String(p)}`);
+  }
+
+  const cycle = attempt(() => validateCycleConfig({ ...DEFAULT_CYCLE, ...config.cycle }));
+
+  const thresholds = { pass: 0.7, review: 0.95, ...config.gate?.thresholds };
+  for (const [name, t] of Object.entries(thresholds)) {
+    if (!(t > 0 && t <= 1)) problems.push(`gate.thresholds.${name} must be in (0, 1]`);
+  }
+  const maxBodyBytes = config.gate?.maxBodyBytes ?? 1_048_576;
+  if (!(Number.isInteger(maxBodyBytes) && maxBodyBytes > 0)) {
+    problems.push("gate.maxBodyBytes must be a positive integer");
+  }
+
+  const rules: CompiledRule[] = [];
+  const ruleIds = new Set<string>();
+  for (const rule of config.gate?.rules ?? []) {
+    if (ruleIds.has(rule.id)) problems.push(`rule "${rule.id}": duplicate id`);
+    ruleIds.add(rule.id);
+    const compiled = attempt(() => compileRule(rule));
+    if (compiled) rules.push(compiled);
+  }
+
+  if (problems.length || !origin || !cycle) throw new LazaretConfigError(problems);
+
+  return {
+    origin,
+    routes,
+    fallback,
+    cycle,
+    ledger: {
+      binding: config.ledger?.binding ?? "LAZARET_LEDGER",
+      shard: config.ledger?.shard ?? "default",
+    },
+    session: { ...config.session },
+    gate: {
+      thresholds,
+      maxBodyBytes,
+      sensitiveFields: (config.gate?.sensitiveFields ?? DEFAULT_SENSITIVE_FIELDS).map((f) =>
+        f.toLowerCase(),
+      ),
+      rules,
+    },
+    review: {
+      batchModel: config.review?.batchModel ?? "claude-sonnet-5-5",
+      inlineModel: config.review?.inlineModel ?? "claude-haiku-5-5",
+      dailyBudgetUsd: config.review?.dailyBudgetUsd ?? 5,
+    },
+  };
+}

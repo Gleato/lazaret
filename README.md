@@ -2,7 +2,7 @@
 
 **An AI quarantine for your writes.**
 
-In 15th-century Venice, ships arriving at port were held at a *lazaretto*, an island
+In 15th-century Venice, ships arriving at port were held at a _lazaretto_, an island
 quarantine station, until inspectors cleared their cargo. Contaminated goods were
 burned, and clean goods entered the city.
 
@@ -11,8 +11,9 @@ Workers that holds every write bound for your origin in a stateful ledger. An
 independent Claude reviewer vets each batch, and only writes that pass reach your
 server. Writes that fail are dropped, along with anything that depends on them.
 
-> **Status: early development.** The Ledger core (M1) is built and tested. The gate,
-> reviewer and committer come next. A live demo will run at
+> **Status: early development.** The Ledger (M1) and the gateway with its deterministic
+> gate (M2) are built and tested. The Claude reviewer and the committer come next. A
+> live demo will run at
 > [gleator.com](https://gleator.com).
 
 ## How it works
@@ -81,7 +82,7 @@ identical and that no write is committed twice.
 ## Roadmap
 
 - [x] M1: Ledger core (event log, state machine, seal triggers, crash recovery)
-- [ ] M2: Gate and route policies
+- [x] M2: Gate and route policies
 - [ ] M3: Claude reviewer, review workflow, committer, taint propagation
 - [ ] M4: Author-only read overlay
 - [ ] M5: Memory distillation and rule promotion

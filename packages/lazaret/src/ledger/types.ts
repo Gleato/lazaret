@@ -1,3 +1,5 @@
+import type { GateSignal } from "../gate/signals";
+
 // Core vocabulary of the Ledger. Everything here is plain JSON-serialisable data so
 // it can cross Durable Object RPC, live in the SQLite event log, and be streamed to
 // the live visualiser unchanged.
@@ -32,6 +34,8 @@ export interface CapturedRequest {
   query: string;
   headers: Record<string, string>;
   body: string | null;
+  /** Text bodies are stored as-is; anything else is base64 so bytes survive JSON. */
+  bodyEncoding: "utf8" | "base64";
 }
 
 /** What the Gateway hands the Ledger for each escrowed write. */
@@ -40,8 +44,12 @@ export interface EntryInput {
   request: CapturedRequest;
   /** Deterministic gate score in [0, 1]; drives the risk-spike seal trigger. */
   riskScore: number;
-  /** Resource keys (e.g. `post:42`) used for taint propagation in M3. */
+  /** Resource keys (e.g. `ticket:42`) used for taint propagation in M3. */
   resources: string[];
+  /** The route pattern that matched, e.g. `POST /api/tickets`, or `fallback:write`. */
+  route: string;
+  /** Gate evidence, handed to the reviewer as pre-digested context. */
+  signals: GateSignal[];
 }
 
 export interface VerdictRecord {

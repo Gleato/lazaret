@@ -269,6 +269,7 @@ function validateEntryInput(input: EntryInput): void {
     throw new RangeError("entry.riskScore must be in [0, 1]");
   }
   if (!Array.isArray(input.resources)) throw new TypeError("entry.resources must be an array");
+  if (!Array.isArray(input.signals)) throw new TypeError("entry.signals must be an array");
   const { request } = input;
   if (!request || typeof request.method !== "string" || typeof request.path !== "string") {
     throw new TypeError("entry.request must include method and path");
