@@ -1,0 +1,8 @@
+// Test-only Worker that hosts a Ledger with a short, deterministic cycle config.
+{
+  "name": "lazaret-test",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "durable_objects": { "bindings": [{ "name": "LEDGER", "class_name": "Ledger" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Ledger"] }]
+}
