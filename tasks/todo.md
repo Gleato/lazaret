@@ -10,6 +10,83 @@ Status: **M0–M5 done (2026-10-27); M6 next**
 
 ---
 
+## 0. Handoff notes (read first)
+
+Written 2026-10-27 at the end of the session that built M0–M5. Start here, then
+read §6 (demo origin), §7 (site), §9 (build plan) and the Review section at the
+bottom, which has the per-milestone design notes. Also read `tasks/lessons.md`.
+
+**Who / how the user likes to work**
+- Portfolio project for gleator.com (Cloudflare domain, site not live yet). The
+  audience is potential employers, so favour infrastructure-grade quality and clear
+  explanations.
+- Plan first and check in before implementing. Explain changes at a high level, in
+  plain language.
+- **Commit or push only when the user asks.** Their usual flow: a milestone is built
+  and verified → "Commit and push". Commit messages end with
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Leave "cookie crumb" comments explaining *why*. Add tests for everything.
+- Use the `/frontend-design` plugin for all UI work (M6 UI, M7 site).
+- **Ask before spending real Claude API money** (e.g. running evals against live
+  models). Quote the expected cost first.
+
+**Repo facts**
+- npm workspaces: `packages/lazaret` (the library, `@gleator/lazaret`), with `apps/`
+  for the demo origin and site. Public repo: github.com/Gleato/lazaret (branch `main`).
+- The global npm is 11.0.0, and it crashes on workspace installs (`edgesOut`). Install
+  with `npx -y npm@11.6 install`. To add a dependency, edit `package.json` and then run that.
+- Checks, from the repo root: `npm test`, `npm run typecheck`, `npx biome check --write .`.
+  All must be clean before calling a milestone done. Biome rewraps lines, so after
+  scripted edits verify that they applied (see lessons.md).
+- Tests run inside workerd via `@cloudflare/vitest-plugin` (the old
+  `vitest-pool-workers` is deprecated), configured in `packages/lazaret/vitest.config.ts`
+  and `test/wrangler.jsonc`. There is real DO SQLite, alarms, `evictDurableObject`, and
+  `introspectWorkflowInstance`. Workerd logs "uncaught exception" lines for *expected*
+  RPC rejections; those are noise.
+
+**Patterns to reuse**
+- Configure classes by subclassing: `LazaretLedger.cycleConfig()` /
+  `reviewWorkflowBinding()`, `LazaretMemory.thresholds()`,
+  `LazaretReviewWorkflow.lazaretConfig()` / `reviewer()` / `proposer()` / `fetchOrigin()`.
+  See `test/worker.ts`.
+- Config lives in `defineLazaret()` (`src/config/define.ts`), which validates everything
+  up front.
+- Test helpers in `packages/lazaret/test/`:
+  - `fakes.ts`: `fakeReviewer`, `fakeOrigin` (verifies HMAC like a real origin),
+    `verdict`, `promptEntries`, `SECRET`.
+  - `step-runner.ts`: `MemoryStepRunner`, which can crash a step before its checkpoint.
+  - `fixtures.ts` / `helpers.ts`: `entry()`, `rejectionOf()`.
+  - For DO RPC rejections, use `rejectionOf()` instead of `expect().rejects`, which
+    produces spurious unhandled rejections.
+- RPC types: payloads must be serialisable and not `unknown`. Recursive types can blow
+  TS limits on stubs; cast to a narrow interface in tests (see `test/memory.test.ts`).
+- Claude calls go through `structuredCall()` in `src/review/client.ts`. It uses
+  structured outputs, a cached static system prompt, `fallbacks: "default"` for
+  non-Haiku models, and maps errors to transient vs fatal. Model IDs: `claude-sonnet-5-5`
+  (batch, distill), `claude-opus-5-5` (escalation), `claude-haiku-5-5` (inline). Invoke
+  the `claude-api` skill before writing new Claude API code.
+
+**Secrets the user must set** (never handle these yourself): `ANTHROPIC_API_KEY` and
+`LAZARET_SIGNING_SECRET` (≥ 16 chars, shared with origin) via `npx wrangler secret put`,
+after `npx wrangler login`. Not done yet. Nothing has called the real Claude API so far.
+
+**Next: M6** (see §6 and §9)
+1. `apps/demo-origin`: Tidewater Support helpdesk (Worker + D1, about 8 endpoints per the
+   §6 table). It verifies Lazaret's signature with `@gleator/lazaret/origin`
+   (`verifyLazaretRequest`) and dedupes writes by `x-lazaret-id`. Simple customer and
+   agent views.
+2. The Tidewater AI support agent (reads committed tickets, proposes refunds) and a
+   sandboxed, simulated "Lazaret off" replay showing it getting hijacked.
+3. `evals/`: a labelled attack/benign corpus (including reviewer prompt injection and
+   downstream indirect injection). The runner reports precision, recall, false-positive
+   rate, latency and cost as results JSON for the site. Get the user's OK and a cost
+   estimate before any live run.
+4. README guide: "Put Lazaret in front of your own API".
+5. Open item from M3: writes that reference a not-yet-committed resource by its receipt
+   id need receipt→origin-id mapping in the Committer. Decide whether the demo needs it.
+
+---
+
 ## 1. Decisions locked in
 
 | Topic | Decision |
