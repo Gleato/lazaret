@@ -38,6 +38,8 @@ export async function measureTtft(apiKey: string, model: string, samples = 5) {
       max_tokens: 2_000,
       system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: buildBatchPrompt([entry], []) }],
+      // Same shape as the production inline call (src/review/client.ts TIERS.inline).
+      thinking: { type: "disabled" },
       output_config: { effort: "low", format: { type: "json_schema", schema: VERDICT_SCHEMA } },
     });
     for await (const event of stream) {

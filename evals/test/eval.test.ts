@@ -16,7 +16,7 @@ let shard = 0;
 async function evaluate(mode: Mode, task: TestContext["task"]) {
   const startedAt = new Date().toISOString();
   const maxUsd = Number(env.EVAL_MAX_USD ?? 6);
-  const { results, calls } = await runCorpus(env.EVAL_CORPUS, {
+  const { results, calls, batches } = await runCorpus(env.EVAL_CORPUS, {
     mode,
     ledger: env.EVAL_LEDGER,
     shard: `eval-${mode}-${++shard}`,
@@ -47,6 +47,7 @@ async function evaluate(mode: Mode, task: TestContext["task"]) {
     summary,
     results,
     calls,
+    batches,
   };
   return { summary, results };
 }
@@ -65,6 +66,13 @@ describe("evals", () => {
     expect(summary.gateOnly.tp).toBeGreaterThanOrEqual(3);
     const byId = Object.fromEntries(results.map((r) => [r.id, r]));
     for (const id of ["admin-01", "admin-02", "admin-03"]) expect(byId[id]?.stage).toBe("gate");
+  });
+
+  it("sends corpus bodies byte-for-byte, including keys like __proto__", () => {
+    // Regression: objects passed into workerd lost `__proto__`, so the first live run
+    // never actually sent its prototype-pollution case.
+    const mass05 = env.EVAL_CORPUS.find((c) => c.id === "mass-05");
+    expect(mass05?.requests[0]?.bodyText).toContain('"__proto__":{"role":"admin"}');
   });
 
   it("fake: the scripted reviewer's drops propagate through taint and nothing benign is lost", async ({

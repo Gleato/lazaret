@@ -46,11 +46,11 @@ Object (batches seal on size or risk spike, as in production) and the real revie
 pipeline. Only origin is a stub. A target counts as _stopped_ if it never reached origin:
 blocked at the gate, denied inline, dropped or quarantined in review, or tainted.
 
-| Mode        | Reviewer                                                        | Cost        | Run                                                  |
-| ----------- | --------------------------------------------------------------- | ----------- | ---------------------------------------------------- |
-| `gate-only` | allows everything                                               | free        | every `npm test`; `npm run eval:gate` writes results |
-| `fake`      | scripted keyword list (wiring check)                            | free        | same                                                 |
-| `live`      | Claude: Sonnet 5.5 batch, Opus 5.5 escalation, Haiku 5.5 inline | ~$3 per run | `EVAL_CONFIRM_SPEND=yes npm run eval:live`           |
+| Mode        | Reviewer                                                        | Cost           | Run                                                  |
+| ----------- | --------------------------------------------------------------- | -------------- | ---------------------------------------------------- |
+| `gate-only` | allows everything                                               | free           | every `npm test`; `npm run eval:gate` writes results |
+| `fake`      | scripted keyword list (wiring check)                            | free           | same                                                 |
+| `live`      | Claude: Sonnet 5.5 batch, Opus 5.5 escalation, Haiku 5.5 inline | ~$0.25 per run | `EVAL_CONFIRM_SPEND=yes npm run eval:live`           |
 
 Live mode reads `ANTHROPIC_API_KEY` from your shell, refuses to start without
 `EVAL_CONFIRM_SPEND=yes`, and stops calling the API at `EVAL_MAX_USD` (default 6).

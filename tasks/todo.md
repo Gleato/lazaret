@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M6 done (2026-10-27); M7 next** (M6 not committed yet; live eval not run yet)
+Status: **M0–M6 done (2026-10-28); M7 next** (live eval done; post-eval fixes not committed yet)
 
 ---
 
@@ -107,7 +107,7 @@ client ─▶ Gateway Worker
             │   rate + agent-behaviour scoring → risk score
             ├─ Route policy:
             │    PASS           → forward to origin (reads, static)
-            │    INLINE_REVIEW  → fast model, hard 1.5s timeout, fail-closed (login, payments)
+            │    INLINE_REVIEW  → fast model, hard 3s timeout (was 1.5s; see M6 review), fail-closed (login, payments)
             │    ESCROW         → append to Ledger, return 202 + receipt id
             │    BLOCK          → reject
             └─ Reads: origin response + author-only overlay of their pending writes
@@ -293,7 +293,7 @@ support agent gets hijacked; with Lazaret on, it never sees the payload.
 - [x] Tidewater Support helpdesk API + customer/agent UI (Worker + D1), ~8 endpoints per §6
 - [x] Tidewater AI support agent (reads tickets, proposes refunds) + sandboxed "Lazaret off" replay
 - [x] Attack/benign corpus (incl. reviewer prompt-injection + downstream indirect injection), eval runner, results JSON
-- [ ] **You:** approve a live eval run (about $3) so the site has real numbers
+- [x] Live eval run (2026-10-28, four runs, about $1; see M6 review)
 - [x] README guide: "Put Lazaret in front of your own API"
 
 #### M6 plan (approved and done 2026-10-27; E was built before D)
@@ -613,7 +613,37 @@ Steps:
   receipt ids, inline credits, and the /admin block.
 - **Not verified:** no live Claude call yet (the agent, inline review and the evals all need
   your key). No deploy yet.
+- **Live eval (2026-10-28, after you approved it): four runs, about $1 in total.** Each run
+  found something, and the harness or the product was fixed before the next:
+  1. Run 1 ($0.24): the 1.5 s inline deadline was below Haiku's own latency (p50 1.3 s),
+     so 13 inline calls failed closed. The harness also lost `__proto__` in transit
+     (`mass-05` was never really sent) and filed timeouts as gate blocks. Fixes: bodies
+     go to workerd as pre-serialised text; failed calls are recorded; inline default 3 s.
+  2. Run 2: credential stuffing got through, and the eval's stub origin answered 200 to
+     every login, so the gate's `failure_flood` signal never fired. Fix: the stub logs in
+     only the demo accounts (401 otherwise), and "delivered" now means "reached origin"
+     (a 401 from origin counts as delivered).
+  3. Run 3: inline latency was still p50 2.5 s on logins (25 deadline misses), but every
+     inline verdict that arrived was right. Fix: **inline review runs without extended
+     thinking** (`TIERS.inline`); batch and escalation keep high effort. Seven benign
+     tickets were lost to one whole-batch quarantine whose reason wasn't recorded. The
+     harness now records every batch's outcome. Not reproduced in run 4.
+  4. Run 4 (published in the README): recall 61/62, precision 0.953, FPR 3/57 (all
+     quarantines), 0 failed closed. Inline p50 1.6 s / p95 2.4 s, TTFT p50 1.1 s. Batch
+     p50 3.9 s. $0.25 per run, $2.19 per 1k reviewed entries. Reviewer injection 8/8,
+     downstream injection 10/10.
+  - My pre-run estimate of $3 per run was about 12 times too high: prompt caching worked
+    and batches stayed small.
 - **Known gaps / follow-ups:**
+  - Inline review gets no actor context. It quarantined two small agent-issued credits
+    because it "can't tell if the submitter is authorised". Either pass a verified role
+    hint (from origin, via a header Lazaret trusts), or tell the reviewer that origin
+    enforces authorisation. That touches the reviewer prompt, so it needs care and a
+    re-run.
+  - API-key minting bursts (cred-04) look benign one at a time. That's a behaviour-scoring
+    job (per-session creation rate), like failed-login scoring.
+  - Inline latency has a floor of about 1.1 s (TTFT) on Haiku 5.5. Login UX will feel
+    that; worth showing honestly on the site.
   - Credential stuffing isn't stopped without a model: gate behaviour scoring reaches only
     0.3 after 24 logins from one IP, and password spraying against one account scores 0.
     The gateway already records response status per sample, so scoring failed-login rate

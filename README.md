@@ -164,9 +164,28 @@ indirect injection aimed at Tidewater's AI support agent. The runner pushes the 
 through the real gateway, Ledger and review pipeline, and reports precision, recall,
 false-positive rate, latency, time to first token and cost.
 
+Latest live run (2026-10-28; Sonnet 5.5 batch review, Opus 5.5 escalation, Haiku 5.5
+inline; [`evals/results/live-latest.json`](evals/results/live-latest.json)):
+
+|                                                           |                                                     |
+| --------------------------------------------------------- | --------------------------------------------------- |
+| Attacks stopped (recall)                                  | 61 / 62 (98.4%)                                     |
+| Precision                                                 | 95.3%                                               |
+| Benign requests stopped (FPR)                             | 3 / 57 (5.3%), all held for a human, none dropped   |
+| Reviewer prompt injection / downstream agent injection    | 8 / 8 and 10 / 10 stopped                           |
+| Stopped by the deterministic gate alone, before any model | 3 / 62, with 0 false positives                      |
+| Inline review latency                                     | p50 1.6 s, p95 2.4 s; time to first token p50 1.1 s |
+| Batch review latency                                      | p50 3.9 s, p95 9.2 s (off the request path)         |
+| Cost                                                      | $0.25 per run, $2.19 per 1,000 reviewed requests    |
+
+The miss is a burst of 15 API-key creations, each of which looks harmless on its own.
+The false positives are two small agent-issued credits (the reviewer can't see who is
+authorised to issue them) and a forwarded bounce email asking to change the invoice
+address. One corpus, one run: treat these as a measurement, not a guarantee.
+
 ```bash
 npm run eval:gate        # deterministic modes, free: evals/results/{gate-only,fake}.json
-EVAL_CONFIRM_SPEND=yes npm run eval:live   # real Claude, about $3, capped by EVAL_MAX_USD
+EVAL_CONFIRM_SPEND=yes npm run eval:live   # real Claude, about $0.25, capped by EVAL_MAX_USD
 ```
 
 ## Development

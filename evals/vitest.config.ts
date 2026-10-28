@@ -14,7 +14,7 @@ const live = process.env.EVAL_LIVE === "1";
 if (live) {
   if (process.env.EVAL_CONFIRM_SPEND !== "yes")
     throw new Error(
-      `Live eval over ${corpus.length} cases calls the Claude API (about $3 per run, capped at $${process.env.EVAL_MAX_USD ?? 6}). ` +
+      `Live eval over ${corpus.length} cases calls the Claude API (about $0.25 per run, capped at $${process.env.EVAL_MAX_USD ?? 6}). ` +
         "Re-run with EVAL_CONFIRM_SPEND=yes to proceed.",
     );
   if (!process.env.ANTHROPIC_API_KEY)

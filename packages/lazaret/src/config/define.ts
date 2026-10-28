@@ -64,7 +64,7 @@ export interface LazaretConfig {
     escalationModel?: string;
     /** Synchronous review for INLINE_REVIEW routes (login, payments). */
     inlineModel?: string;
-    /** Hard deadline for inline review; on timeout the request fails closed. */
+    /** Hard deadline for inline review (default 3000 ms); on timeout the request fails closed. */
     inlineTimeoutMs?: number;
     /** Review attempts per batch before it is quarantined. */
     maxAttempts?: number;
@@ -250,7 +250,10 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
     problems.push("gate.maxBodyBytes must be a positive integer");
   }
 
-  const inlineTimeoutMs = config.review?.inlineTimeoutMs ?? 1500;
+  // 3 s, not the original 1.5 s: the first live eval measured Haiku 5.5's time to first
+  // token at ~1.2 s and its full inline verdict at ~1.3 s p50 / 1.5 s p95, so a 1.5 s
+  // deadline failed closed on about a third of logins and credits (tasks/todo.md, M6).
+  const inlineTimeoutMs = config.review?.inlineTimeoutMs ?? 3000;
   if (!(inlineTimeoutMs >= 100 && inlineTimeoutMs <= 30_000)) {
     problems.push("review.inlineTimeoutMs must be between 100 and 30000");
   }

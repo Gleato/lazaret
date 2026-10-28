@@ -85,6 +85,11 @@ export function summarize(results: CaseResult[], calls: CallRecord[]) {
       ]),
     ),
     stoppedAt: stages,
+    // A write refused because review failed (timeout, unusable output) is stopped, but
+    // that's fail-closed availability cost, not a judgment. Counted separately.
+    failedClosed: results.filter(
+      (r) => r.stage === "inline_unavailable" || (r.stage === "review" && r.verdict === null),
+    ).length,
     calls: Object.fromEntries(
       Object.entries(groupBy(costs, (x) => x.c.tier)).map(([tier, xs]) => [
         tier,

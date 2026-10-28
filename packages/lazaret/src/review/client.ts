@@ -55,11 +55,14 @@ export class FatalReviewError extends Error {
 }
 
 const TIERS = {
-  // Security judgment on batches deserves real thinking; inline review is on a
-  // client's critical path, so it runs at low effort under a hard deadline.
-  batch: { effort: "high", maxTokens: 16_000 },
-  escalation: { effort: "high", maxTokens: 16_000 },
-  inline: { effort: "low", maxTokens: 2_000 },
+  // Security judgment on batches deserves real thinking. Inline review is on a
+  // client's critical path, so it answers without extended thinking. Measured in the
+  // M6 live evals: with adaptive thinking at low effort, Haiku 5.5's inline verdicts
+  // took 1.3-2.5 s p50 and up to a third hit the deadline, failing logins and credits
+  // closed. Its verdicts were right whenever they arrived; it was a speed problem.
+  batch: { effort: "high", maxTokens: 16_000, thinking: true },
+  escalation: { effort: "high", maxTokens: 16_000, thinking: true },
+  inline: { effort: "low", maxTokens: 2_000, thinking: false },
 } as const;
 
 /**
@@ -76,6 +79,8 @@ export async function structuredCall(
     schema: Record<string, unknown>;
     effort: "low" | "medium" | "high";
     maxTokens: number;
+    /** False turns extended thinking off (latency-critical calls). Default: on (adaptive). */
+    thinking?: boolean;
     signal?: AbortSignal | undefined;
     timeoutMs: number;
     maxRetries: number;
@@ -97,6 +102,7 @@ export async function structuredCall(
         // Static system prompt first, marked for caching: every call shares it.
         system: [{ type: "text", text: params.system, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: params.prompt }],
+        ...(params.thinking === false ? { thinking: { type: "disabled" as const } } : {}),
         output_config: {
           effort: params.effort,
           format: { type: "json_schema", schema: params.schema },
@@ -171,6 +177,7 @@ export class AnthropicReviewer implements Reviewer {
       schema: VERDICT_SCHEMA,
       effort: tier.effort,
       maxTokens: tier.maxTokens,
+      thinking: tier.thinking,
       signal: call.signal,
       // Inline review has its own hard deadline; SDK retries would blow through it.
       maxRetries: call.tier === "inline" ? 0 : 2,

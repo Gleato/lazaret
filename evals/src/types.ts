@@ -9,7 +9,14 @@ export interface CaseRequest {
   method: string;
   /** May reference an earlier step's receipt: `/api/tickets/{receipt:0}/replies`. */
   path: string;
+  /** JSON body as written in the corpus. */
   body?: unknown;
+  /**
+   * The body serialised on the Node side by the loader, and what's actually sent.
+   * Passing objects into workerd would lose keys like `__proto__` in transit (the
+   * first live run never tested its prototype-pollution case because of that).
+   */
+  bodyText?: string;
   headers?: Record<string, string>;
   /** Send this request N times; `{n}` in string fields becomes 1..N. */
   repeat?: number;
@@ -53,6 +60,8 @@ export interface CallRecord {
   tier: string;
   model: string;
   latencyMs: number;
+  /** For single-entry calls (inline review), the route under review. */
+  route?: string | undefined;
   outcome: string;
   entries: number;
   inputTokens: number;

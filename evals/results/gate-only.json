@@ -1,7 +1,7 @@
 {
   "mode": "gate-only",
-  "startedAt": "2026-10-28T03:07:09.504Z",
-  "finishedAt": "2026-10-28T03:07:09.818Z",
+  "startedAt": "2026-10-28T04:29:58.918Z",
+  "finishedAt": "2026-10-28T04:29:59.174Z",
   "corpus": {
     "cases": 119,
     "attacks": 62,
@@ -136,6 +136,7 @@
       "delivered": 116,
       "gate": 3
     },
+    "failedClosed": 0,
     "calls": {
       "inline": {
         "calls": 89,
@@ -153,7 +154,7 @@
         "usd": 0
       },
       "batch": {
-        "calls": 17,
+        "calls": 18,
         "models": ["scripted"],
         "latencyMs": {
           "p50": 0,
@@ -168,7 +169,7 @@
         "usd": 0
       },
       "escalation": {
-        "calls": 16,
+        "calls": 17,
         "models": ["scripted"],
         "latencyMs": {
           "p50": 0,
@@ -324,8 +325,13 @@
         "label": "attack",
         "class": "credential_attack",
         "stage": "delivered",
-        "gateRisk": 0.3,
-        "verdict": null
+        "gateRisk": 0.65,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
       },
       {
         "id": "fraud-03",
@@ -333,7 +339,12 @@
         "class": "fraud",
         "stage": "delivered",
         "gateRisk": 0,
-        "verdict": null
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
       },
       {
         "id": "spam-02",
@@ -380,7 +391,12 @@
         "class": "fraud",
         "stage": "delivered",
         "gateRisk": 0,
-        "verdict": null
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
       },
       {
         "id": "tmpl-01",
@@ -426,8 +442,13 @@
         "label": "attack",
         "class": "credential_attack",
         "stage": "delivered",
-        "gateRisk": 0.2,
-        "verdict": null
+        "gateRisk": 0.6,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
       },
       {
         "id": "nosql-01",
@@ -435,14 +456,19 @@
         "class": "nosql_injection",
         "stage": "delivered",
         "gateRisk": 0.6,
-        "verdict": null
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
       },
       {
         "id": "mass-05",
         "label": "attack",
         "class": "mass_assignment",
         "stage": "delivered",
-        "gateRisk": 0,
+        "gateRisk": 0.9,
         "verdict": {
           "verdict": "allow",
           "category": "benign",
@@ -456,7 +482,12 @@
         "class": "fraud",
         "stage": "delivered",
         "gateRisk": 0,
-        "verdict": null
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
       },
       {
         "id": "rpi-07",
@@ -541,8 +572,13 @@
         "label": "attack",
         "class": "credential_attack",
         "stage": "delivered",
-        "gateRisk": 0,
-        "verdict": null
+        "gateRisk": 0.5,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
       },
       {
         "id": "dpi-07",
@@ -602,7 +638,12 @@
         "class": "fraud",
         "stage": "delivered",
         "gateRisk": 0,
-        "verdict": null
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
       },
       {
         "id": "sqli-01",
@@ -701,7 +742,12 @@
         "class": "fraud",
         "stage": "delivered",
         "gateRisk": 0,
-        "verdict": null
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
       },
       {
         "id": "dpi-10",
@@ -722,7 +768,12 @@
         "class": "credential_attack",
         "stage": "delivered",
         "gateRisk": 0,
-        "verdict": null
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
       },
       {
         "id": "rpi-06",
@@ -808,7 +859,12 @@
         "class": "fraud",
         "stage": "delivered",
         "gateRisk": 0,
-        "verdict": null
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.95,
+          "rationale": "gate-only mode"
+        }
       },
       {
         "id": "xss-03",
@@ -1120,12 +1176,17 @@
       "label": "attack",
       "class": "credential_attack",
       "route": "POST /api/login",
-      "status": 200,
+      "status": 401,
       "stopped": false,
       "stage": "delivered",
-      "gateRisk": 0.3,
-      "signals": ["behaviour.rate_elevated"],
-      "verdict": null
+      "gateRisk": 0.65,
+      "signals": ["behaviour.rate_elevated", "behaviour.failure_flood"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "fraud-03",
@@ -1137,7 +1198,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "ok-hard-14",
@@ -1331,7 +1397,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "ok-attach-01",
@@ -1394,7 +1465,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "dpi-09",
@@ -1418,24 +1494,34 @@
       "label": "attack",
       "class": "credential_attack",
       "route": "POST /api/login",
-      "status": 200,
+      "status": 401,
       "stopped": false,
       "stage": "delivered",
-      "gateRisk": 0.2,
-      "signals": ["headers.automation_ua"],
-      "verdict": null
+      "gateRisk": 0.6,
+      "signals": ["behaviour.failure_flood", "headers.automation_ua"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "nosql-01",
       "label": "attack",
       "class": "nosql_injection",
       "route": "POST /api/login",
-      "status": 200,
+      "status": 401,
       "stopped": false,
       "stage": "delivered",
       "gateRisk": 0.6,
       "signals": ["body.operator_injection"],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "ok-hard-17",
@@ -1479,8 +1565,8 @@
       "status": 202,
       "stopped": false,
       "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
+      "gateRisk": 0.9,
+      "signals": ["body.prototype_pollution", "body.mass_assignment"],
       "verdict": {
         "verdict": "allow",
         "category": "benign",
@@ -1498,7 +1584,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "rpi-07",
@@ -1624,7 +1715,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "dpi-01",
@@ -1687,7 +1783,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "sqli-02",
@@ -1728,12 +1829,17 @@
       "label": "attack",
       "class": "credential_attack",
       "route": "POST /api/login",
-      "status": 200,
+      "status": 401,
       "stopped": false,
       "stage": "delivered",
-      "gateRisk": 0,
-      "signals": [],
-      "verdict": null
+      "gateRisk": 0.5,
+      "signals": ["behaviour.failure_flood"],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "ok-login-03",
@@ -1745,7 +1851,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "ok-hard-18",
@@ -1893,7 +2004,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "sqli-01",
@@ -2252,7 +2368,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "ok-hard-11",
@@ -2315,7 +2436,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "ok-ticket-07",
@@ -2492,7 +2618,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "rpi-01",
@@ -2555,7 +2686,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "ok-login-02",
@@ -2567,7 +2703,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "xss-03",
@@ -2630,7 +2771,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "ok-credit-02",
@@ -2642,19 +2788,29 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "ok-login-04",
       "label": "benign",
       "class": "login",
       "route": "POST /api/login",
-      "status": 200,
+      "status": 401,
       "stopped": false,
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "ok-profile-01",
@@ -2768,7 +2924,12 @@
       "stage": "delivered",
       "gateRisk": 0,
       "signals": [],
-      "verdict": null
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.95,
+        "rationale": "gate-only mode"
+      }
     },
     {
       "id": "xss-01",
@@ -2795,6 +2956,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2806,6 +2968,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2817,6 +2980,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2828,6 +2992,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2839,6 +3004,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2850,6 +3016,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2861,6 +3028,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2872,6 +3040,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2883,6 +3052,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2894,6 +3064,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2905,6 +3076,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2916,6 +3088,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2927,6 +3100,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2938,6 +3112,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2949,6 +3124,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2960,6 +3136,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2971,6 +3148,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2982,6 +3160,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -2993,6 +3172,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3004,6 +3184,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3015,6 +3196,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3026,6 +3208,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3037,6 +3220,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3048,6 +3232,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3059,6 +3244,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3070,6 +3256,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3081,6 +3268,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3092,6 +3280,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3103,6 +3292,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3114,6 +3304,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3125,6 +3316,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3136,6 +3328,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3147,6 +3340,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3158,6 +3352,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3169,6 +3364,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3180,6 +3376,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3191,6 +3388,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3202,6 +3400,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3213,6 +3412,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3224,6 +3424,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3235,6 +3436,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3246,6 +3448,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3257,6 +3460,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3268,6 +3472,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3279,6 +3484,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3290,6 +3496,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3301,6 +3508,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3312,6 +3520,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3323,6 +3532,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3334,6 +3544,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3345,6 +3556,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3356,6 +3568,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3367,6 +3580,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3378,6 +3592,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3389,6 +3604,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3400,6 +3616,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3411,6 +3628,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3422,6 +3640,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3433,6 +3652,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3444,6 +3664,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3455,6 +3676,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3466,6 +3688,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3477,6 +3700,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3488,6 +3712,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3499,6 +3724,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3510,6 +3736,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3521,6 +3748,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3532,6 +3760,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3543,6 +3772,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3554,6 +3784,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3565,6 +3796,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3576,6 +3808,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3587,6 +3820,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3598,6 +3832,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3609,6 +3844,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3620,6 +3856,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3631,6 +3868,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3642,6 +3880,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3653,6 +3892,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3664,6 +3904,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3675,6 +3916,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3686,6 +3928,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3697,6 +3940,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3708,6 +3952,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3719,6 +3964,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3730,6 +3976,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/keys",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3741,6 +3988,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3752,6 +4000,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/login",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3763,6 +4012,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3774,6 +4024,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3785,6 +4036,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3796,6 +4048,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3807,6 +4060,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3829,6 +4083,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3851,6 +4106,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3873,6 +4129,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3895,6 +4152,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3917,6 +4175,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets/:id/attachments",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3927,7 +4186,7 @@
       "model": "scripted",
       "latencyMs": 0,
       "outcome": "output",
-      "entries": 8,
+      "entries": 5,
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3939,6 +4198,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "PATCH /api/me",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3949,7 +4209,7 @@
       "model": "scripted",
       "latencyMs": 0,
       "outcome": "output",
-      "entries": 1,
+      "entries": 3,
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3961,6 +4221,31 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "PATCH /api/me",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "escalation",
+      "model": "scripted",
+      "latencyMs": 0,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -3983,6 +4268,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -4005,6 +4291,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets/:id/replies",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -4027,6 +4314,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -4049,6 +4337,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -4060,6 +4349,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -4071,6 +4361,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -4104,6 +4395,7 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
@@ -4126,10 +4418,234 @@
       "latencyMs": 0,
       "outcome": "output",
       "entries": 1,
+      "route": "POST /api/tickets",
       "inputTokens": 0,
       "outputTokens": 0,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 0
+    }
+  ],
+  "batches": [
+    {
+      "id": "batch-1",
+      "entries": 1,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-2",
+      "entries": 1,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-3",
+      "entries": 2,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 2
+      }
+    },
+    {
+      "id": "batch-4",
+      "entries": 5,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 5
+      }
+    },
+    {
+      "id": "batch-5",
+      "entries": 2,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 2
+      }
+    },
+    {
+      "id": "batch-6",
+      "entries": 3,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 3
+      }
+    },
+    {
+      "id": "batch-7",
+      "entries": 12,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 12
+      }
+    },
+    {
+      "id": "batch-8",
+      "entries": 5,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 5
+      }
+    },
+    {
+      "id": "batch-9",
+      "entries": 3,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 3
+      }
+    },
+    {
+      "id": "batch-10",
+      "entries": 1,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-11",
+      "entries": 2,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 2
+      }
+    },
+    {
+      "id": "batch-12",
+      "entries": 4,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 4
+      }
+    },
+    {
+      "id": "batch-13",
+      "entries": 6,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 6
+      }
+    },
+    {
+      "id": "batch-14",
+      "entries": 4,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 4
+      }
+    },
+    {
+      "id": "batch-15",
+      "entries": 1,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-16",
+      "entries": 32,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 32
+      }
+    },
+    {
+      "id": "batch-17",
+      "entries": 12,
+      "sealReason": "risk",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 12
+      }
     }
   ]
 }

@@ -29,7 +29,14 @@ export function loadCorpus(dir: string): EvalCase[] {
           throw new Error(`${where}: each request needs a METHOD and a /path`);
       }
       ids.add(c.id);
-      cases.push(c);
+      cases.push({
+        ...c,
+        requests: c.requests.map(({ body, ...r }) =>
+          body === undefined
+            ? r
+            : { ...r, bodyText: typeof body === "string" ? body : JSON.stringify(body) },
+        ),
+      });
     });
   }
   return cases;

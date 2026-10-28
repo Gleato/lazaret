@@ -47,6 +47,7 @@ describe("AnthropicReviewer", () => {
       output_config: { effort: "high", format: { type: "json_schema" } },
       fallbacks: "default",
     });
+    expect(requests[0]?.thinking).toBeUndefined(); // batch review keeps adaptive thinking
   });
 
   it("maps refusals and truncation to explicit outcomes (both fail closed downstream)", async () => {
@@ -76,6 +77,7 @@ describe("AnthropicReviewer", () => {
     expect(requests[0]).toMatchObject({
       model: "claude-haiku-5-5",
       output_config: { effort: "low" },
+      thinking: { type: "disabled" },
     });
     expect(requests[0]?.fallbacks).toBeUndefined();
   });

@@ -7,7 +7,7 @@ import { defineLazaret, type LazaretConfig } from "@gleator/lazaret";
 
 export const TIDEWATER_ROUTES: LazaretConfig["routes"] = [
   // Credentials and money get a synchronous verdict: the client needs an answer now,
-  // and a held login is useless. The fast reviewer fails closed under a 1.5 s deadline.
+  // and a held login is useless. The fast reviewer fails closed under a 3 s deadline.
   { match: "POST /api/login", policy: "INLINE_REVIEW" },
   { match: "POST /api/keys", policy: "INLINE_REVIEW" },
   { match: "POST /api/accounts/:id/credits", policy: "INLINE_REVIEW", resources: ["account:{id}"] },

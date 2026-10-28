@@ -43,13 +43,15 @@ const allowAll: Reviewer = {
   },
 };
 
-function promptEntryIds(prompt: string): string[] {
+function promptEntries(prompt: string): { entry_id: string; route: string }[] {
   const start = prompt.indexOf("<batch_data>\n") + "<batch_data>\n".length;
   const data = JSON.parse(prompt.slice(start, prompt.lastIndexOf("\n</batch_data>"))) as {
-    entries: { entry_id: string }[];
+    entries: { entry_id: string; route: string }[];
   };
-  return data.entries.map((e) => e.entry_id);
+  return data.entries;
 }
+
+const promptEntryIds = (prompt: string) => promptEntries(prompt).map((e) => e.entry_id);
 
 export class BudgetExceeded extends Error {}
 
@@ -57,20 +59,49 @@ export class BudgetExceeded extends Error {}
 function instrument(inner: Reviewer, maxUsd: number, costOf: (c: CallRecord) => number) {
   const calls: CallRecord[] = [];
   const escalated = new Set<string>();
+  // Counted when a call *starts*: an inline call that hits its deadline never resolves
+  // in time to be recorded before the gateway answers 503.
+  const started: Record<string, number> = {};
+  // The model's own inline verdict per entry (before the gateway's confidence bar), so
+  // the report can say *why* an inline write was refused. Keyed by entry id, which for
+  // inline review is the gateway's request id.
+  const inlineVerdicts = new Map<string, VerdictRecord>();
   let spent = 0;
   const reviewer: Reviewer = {
     async review(call) {
       if (spent >= maxUsd) throw new BudgetExceeded(`eval budget of $${maxUsd} reached`);
-      const ids = promptEntryIds(call.prompt);
+      const promptData = promptEntries(call.prompt);
+      const ids = promptData.map((e) => e.entry_id);
+      const route = promptData.length === 1 ? promptData[0]?.route : undefined;
       if (call.tier === "escalation") for (const id of ids) escalated.add(id);
-      const started = Date.now();
-      const outcome = await inner.review(call);
+      started[call.tier] = (started[call.tier] ?? 0) + 1;
+      const at = Date.now();
+      let outcome: Awaited<ReturnType<Reviewer["review"]>>;
+      try {
+        outcome = await inner.review(call);
+      } catch (err) {
+        // Timeouts (aborted by the inline deadline) and API errors are calls too.
+        calls.push({
+          tier: call.tier,
+          model: "unknown",
+          latencyMs: Date.now() - at,
+          outcome: `error: ${(err as Error).name}`,
+          entries: ids.length,
+          route,
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+        });
+        throw err;
+      }
       const record: CallRecord = {
         tier: call.tier,
         model: "model" in outcome ? outcome.model : "unknown",
-        latencyMs: Date.now() - started,
+        latencyMs: Date.now() - at,
         outcome: outcome.kind,
         entries: ids.length,
+        route,
         inputTokens: outcome.usage?.inputTokens ?? 0,
         outputTokens: outcome.usage?.outputTokens ?? 0,
         cacheReadTokens: outcome.usage?.cacheReadTokens ?? 0,
@@ -78,10 +109,15 @@ function instrument(inner: Reviewer, maxUsd: number, costOf: (c: CallRecord) => 
       };
       calls.push(record);
       spent += costOf(record);
+      if (call.tier === "inline" && outcome.kind === "output") {
+        const v = (outcome.output as { verdicts?: (VerdictRecord & { entry_id: string })[] })
+          .verdicts?.[0];
+        if (v && ids[0]) inlineVerdicts.set(ids[0], v);
+      }
       return outcome;
     },
   };
-  return { reviewer, calls, escalated };
+  return { reviewer, calls, escalated, started, inlineVerdicts };
 }
 
 /** Workflow-like step runner: runs steps inline, retrying with the requested backoff. */
@@ -121,17 +157,11 @@ function hex(input: string): string {
 
 function expand(req: CaseRequest): CaseRequest[] {
   if (!req.repeat) return [req];
-  const fill = (v: unknown, n: number): unknown =>
-    typeof v === "string"
-      ? v.replaceAll("{n}", String(n))
-      : v && typeof v === "object"
-        ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fill(x, n)]))
-        : v;
   return Array.from({ length: req.repeat }, (_, i) => ({
     ...req,
     repeat: undefined,
     path: req.path.replaceAll("{n}", String(i + 1)),
-    body: fill(req.body, i + 1),
+    bodyText: req.bodyText?.replaceAll("{n}", String(i + 1)),
   }));
 }
 
@@ -154,7 +184,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
         ? scriptedReviewer
         : allowAll;
   if (!inner) throw new Error("live mode needs a reviewer");
-  const { reviewer, calls, escalated } = instrument(
+  const { reviewer, calls, escalated, started, inlineVerdicts } = instrument(
     inner,
     options.maxUsd ?? 6,
     options.costOf ?? (() => 0),
@@ -163,10 +193,26 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
   const config = defineLazaret(
     tidewaterConfig({ ledger: { binding: "EVAL_LEDGER", shard: options.shard } }),
   );
+  // Request ids that reached origin. "Delivered" means exactly this: a 401 from origin
+  // for a wrong password still counts as delivered, a 403 from Lazaret does not.
+  const reached = new Set<string>();
   const origin = async (request: Request) => {
-    await request.body?.cancel();
+    const id = request.headers.get("x-lazaret-id");
+    if (id) reached.add(id);
+    const body = await request.text();
     const path = new URL(request.url).pathname;
-    if (path === "/api/login") return Response.json({ token: `tw_${"0".repeat(48)}` });
+    // Like Tidewater: only the seeded demo accounts can log in. A stuffing burst
+    // therefore produces a run of 401s, which is what the gate's failure scoring sees.
+    if (path === "/api/login") {
+      const creds = JSON.parse(body || "{}") as { email?: unknown; password?: unknown };
+      const ok =
+        typeof creds.email === "string" &&
+        /^(mara|theo|sam)@tidewater\.test$/.test(creds.email) &&
+        creds.password === "tidewater-demo";
+      return ok
+        ? Response.json({ token: `tw_${"0".repeat(48)}` })
+        : Response.json({ error: "invalid email or password" }, { status: 401 });
+    }
     if (request.method === "GET") return Response.json({ tickets: [] });
     return Response.json({ ok: true }, { status: 201 });
   };
@@ -188,6 +234,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
     }
   };
 
+  const outcomes: Record<string, unknown> = {};
   type Target = {
     c: EvalCase;
     status: number;
@@ -201,7 +248,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
       const receipts: (string | null)[] = [];
       const steps = c.requests.flatMap(expand);
       for (const [i, step] of steps.entries()) {
-        const inlineBefore = calls.filter((x) => x.tier === "inline").length;
+        const inlineBefore = started.inline ?? 0;
         const path = step.path.replace(
           /\{receipt:(\d+)\}/g,
           (_, n) => receipts[Number(n)] ?? "missing",
@@ -215,10 +262,10 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
                 c.ip ??
                 `10.${parseInt(hex(c.id).slice(0, 2), 16)}.${parseInt(hex(c.id).slice(2, 4), 16)}.7`,
               "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/605.1.15",
-              ...(step.body === undefined ? {} : { "content-type": "application/json" }),
+              ...(step.bodyText === undefined ? {} : { "content-type": "application/json" }),
               ...step.headers,
             },
-            body: step.body === undefined ? null : JSON.stringify(step.body),
+            body: step.bodyText ?? null,
           }),
           env,
         );
@@ -230,13 +277,14 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
             status: res.status,
             requestId: res.headers.get("x-lazaret-request-id"),
             receipt: res.status === 202 ? (json?.receipt ?? null) : null,
-            inline: calls.filter((x) => x.tier === "inline").length > inlineBefore,
+            inline: (started.inline ?? 0) > inlineBefore,
           });
         }
       }
     }
 
     // Seal whatever is still open, then review every sealed batch in order.
+    // Outcomes are kept so a quarantined batch shows up in the report with its reason.
     await ledger.seal();
     const committer = createCommitter({
       origin: config.origin,
@@ -248,7 +296,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
       (a, b) => Number(a.id.slice(6)) - Number(b.id.slice(6)),
     )) {
       if (batch.status !== "SEALED") continue;
-      await runReviewPipeline(
+      outcomes[batch.id] = await runReviewPipeline(
         stepRunner,
         {
           ledger: ledger as unknown as LedgerPort,
@@ -264,7 +312,18 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
     console.log = originalLog;
   }
 
-  const entries = (await ledger.getState()).entries as Record<string, EntryState>;
+  const finalState = await ledger.getState();
+  const entries = finalState.entries as Record<string, EntryState>;
+  const batches = Object.values(finalState.batches).map((b) => ({
+    id: b.id,
+    entries: b.entryIds.length,
+    sealReason: b.sealReason ?? null,
+    status: b.status,
+    reviewAttempts: b.reviewAttempts,
+    quarantineReason: b.quarantineReason ?? null,
+    lastError: b.lastError ?? null,
+    outcome: outcomes[b.id] ?? null,
+  }));
   const results: CaseResult[] = targets.map(({ c, status, requestId, receipt, inline }) => {
     const entry = receipt ? entries[receipt] : undefined;
     const gate = requestId ? gateLog.get(requestId) : undefined;
@@ -280,9 +339,12 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
           : escalated.has(entry.id)
             ? "escalation"
             : "review";
-    } else if (status < 300) stage = "delivered";
-    else if (inline) stage = status === 503 ? "inline_unavailable" : "inline";
-    else stage = "gate";
+    } else {
+      if (inline && requestId) verdict = inlineVerdicts.get(requestId) ?? null;
+      if (requestId && reached.has(requestId)) stage = "delivered";
+      else if (inline) stage = status === 503 ? "inline_unavailable" : "inline";
+      else stage = "gate";
+    }
     return {
       id: c.id,
       label: c.label,
@@ -301,5 +363,5 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
       },
     };
   });
-  return { results, calls };
+  return { results, calls, batches };
 }
