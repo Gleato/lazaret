@@ -1,8 +1,8 @@
 {
   "kind": "memory",
   "mode": "fake",
-  "startedAt": "2026-10-28T19:02:10.038Z",
-  "finishedAt": "2026-10-28T19:02:10.767Z",
+  "startedAt": "2026-10-29T01:19:54.223Z",
+  "finishedAt": "2026-10-29T01:19:54.926Z",
   "headline": "Warm Memory stopped 2 more held-out attack(s) at the gate than a cold one (gate recall 0.0435 → 0.1304, gate FPR 0 → 0), from 1 learned block rule(s).",
   "split": {
     "method": "FNV-1a hash of case id, ranked within each label:class stratum",
@@ -390,7 +390,7 @@
       "from": null,
       "to": "shadow",
       "reason": "matched 2 drops and 0 of 17 clean requests",
-      "at": 1793214130146,
+      "at": 1793236794347,
       "round": 1
     },
     {
@@ -399,7 +399,7 @@
       "from": "shadow",
       "to": "flag",
       "reason": "1 confirmed live hits, no false positives",
-      "at": 1793214130367,
+      "at": 1793236794543,
       "round": 3
     },
     {
@@ -408,7 +408,7 @@
       "from": "flag",
       "to": "block",
       "reason": "2 confirmed live hits, no false positives",
-      "at": 1793214130385,
+      "at": 1793236794560,
       "round": 3
     },
     {
@@ -417,7 +417,7 @@
       "from": null,
       "to": "rejected",
       "reason": "matched 1 allowed request(s) in backtest",
-      "at": 1793214130445,
+      "at": 1793236794605,
       "round": 3
     }
   ],
@@ -1282,7 +1282,7 @@
           "verdict": "drop",
           "category": "tainted",
           "confidence": 1,
-          "rationale": "Depends on dropped entry 14559669-b075-4de0-82dd-b03d2c52f255 via ticket:14559669-b075-4de0-82dd-b03d2c52f255."
+          "rationale": "Depends on dropped entry e2abf0b5-e155-45e0-b981-a940737f9367 via ticket:e2abf0b5-e155-45e0-b981-a940737f9367."
         },
         "escalated": false
       },
@@ -2121,7 +2121,7 @@
           "verdict": "drop",
           "category": "tainted",
           "confidence": 1,
-          "rationale": "Depends on dropped entry e28b971c-9986-4dad-ae60-9964060e12c5 via ticket:e28b971c-9986-4dad-ae60-9964060e12c5."
+          "rationale": "Depends on dropped entry 92756973-7ab1-4514-809b-23c024781e2b via ticket:92756973-7ab1-4514-809b-23c024781e2b."
         },
         "escalated": false
       },

@@ -26,13 +26,13 @@ import { memoryEval } from "../data/memory";
               <table class="lining">
                 <thead>
                   <tr>
-                    <th scope="col">Held-out cases, gate only</th>
+                    <th scope="col">Held-out cases</th>
                     <th scope="col">Cold memory</th>
                     <th scope="col">After training</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {memoryEval.rows.map((r) => (
+                  {[...memoryEval.rows, ...memoryEval.rows2].map((r) => (
                     <tr>
                       <th scope="row">{r.label}</th>
                       <td>{r.cold}</td>
@@ -41,11 +41,25 @@ import { memoryEval } from "../data/memory";
                   ))}
                 </tbody>
               </table>
+              {memoryEval.learned.length > 0 && (
+                <>
+                  <p class="sans hint">Rules that passed their backtest:</p>
+                  <ul class="catches sans">
+                    {memoryEval.learned.map((l) => (
+                      <li>
+                        {l.rule} <span class="st">({l.status === "shadow" ? "watching, no effect yet" : l.status === "flag" ? "adds risk" : "blocks"})</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
               {memoryEval.catches.length > 0 && (
                 <ul class="catches sans">
                   {memoryEval.catches.map((c) => (
                     <li>
-                      <code>{c.caseId}</code> was caught by a learned rule: {c.rule}
+                      <code>{c.caseId}</code>{" "}
+                      {c.acted ? "was caught by a learned rule:" : "was matched by a rule still in shadow mode, which would stop it once promoted:"}{" "}
+                      {c.rule}
                     </li>
                   ))}
                 </ul>

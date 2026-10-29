@@ -74,7 +74,7 @@ after `npx wrangler login`. Not done yet. Nothing has called the real Claude API
 Local stack: `npm run dev -w @gleator/tidewater-lazaret` (8787) plus `npm run dev -w
 @gleator/site` (4321); both are in `.claude/launch.json`. Open items for M8: Turnstile keys,
 `PUBLIC_DEMO_ORIGIN`, and `DEMO_SITE_ORIGINS`; re-record `apps/site/public/recording.json`
-against live models; the live memory eval (~$0.45, needs the user's OK).
+against live models.
 
 **Added in M6 (for the next session)**
 - Workspaces: `apps/demo-origin` (Tidewater), `apps/demo-lazaret` (its Lazaret deployment),
@@ -1154,6 +1154,23 @@ attacks, per-target-account spraying (decision #5).
     as such; re-record against live in M8.
   - The console only calls the simulation endpoint, not the real `POST /api/agent/run`,
     to keep each click cheap. The real agent's cost cap is in place for the Tidewater UI.
-  - The live memory eval (~$0.45) needs your OK.
+- **Live memory eval (2026-10-29 01:19Z, $0.46, run with your OK), published as
+  `evals/results/memory-latest.json`:**
+  - Claude proposed 9 rules. 3 passed their backtest and went to shadow mode: on-event
+    XSS handlers, logins from a session already flagged for a failed-login flood, and text
+    that addresses an AI assistant or reviewer. The other 6 were rejected for matching only
+    one past drop (the corpus has about one example per specific trick).
+  - No rule earned the live hits needed to flag or block within three training rounds, so
+    held-out gate recall was the same cold and warm (1/23, 0 FP). The full pipeline stopped
+    23/23 held-out attacks either way.
+  - The shadow rules did match 3 held-out attacks (cred-02, cred-03, rpi-02), so they
+    would have stopped them once promoted. The panel says exactly that rather than
+    claiming catches.
+  - Takeaway: on a 120-case corpus, learning is limited by the evidence it needs, not by
+    rule quality (the proposed rules read well). Lowering the eval's promotion thresholds
+    further would show a gain, but it would be a tuned number, so I didn't. A larger corpus,
+    or a longer replay of training traffic, is the honest way to show a gain. The two
+    library follow-ups from step E (rejected rules can't come back; backtests use reviewer
+    labels) also limit it.
   - Footer name to confirm.
 
