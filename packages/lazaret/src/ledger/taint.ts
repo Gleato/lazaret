@@ -1,4 +1,4 @@
-import type { EntryState, VerdictRecord } from "./types";
+import type { EntryState, VerdictRecord } from "./types.ts";
 
 // Taint propagation (tasks/todo.md §2.3). Dropping a write is not enough if later
 // writes build on it. Example: a session's PATCH to ticket:42 is dropped as

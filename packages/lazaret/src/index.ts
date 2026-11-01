@@ -3,9 +3,9 @@ export {
   type CommitterOptions,
   createCommitter,
   TransientCommitError,
-} from "./commit/committer";
-export { signRequest, type VerifyResult, verifyLazaretRequest } from "./commit/sign";
-export type { CompiledOverlay } from "./config/define";
+} from "./commit/committer.ts";
+export { signRequest, type VerifyResult, verifyLazaretRequest } from "./commit/sign.ts";
+export type { CompiledOverlay } from "./config/define.ts";
 export {
   type CompiledRoute,
   DEFAULT_SENSITIVE_FIELDS,
@@ -15,17 +15,22 @@ export {
   type Policy,
   type ResolvedConfig,
   type RouteConfig,
-} from "./config/define";
+} from "./config/define.ts";
 export {
   type BehaviourSample,
   type BehaviourStore,
   MemoryBehaviourStore,
   scoreBehaviour,
   scoreRoute,
-} from "./gate/behaviour";
-export type { MemoryGateRule } from "./gate/gate";
-export { decide, type GateDecision } from "./gate/gate";
-export { canonicalize, inspect } from "./gate/inspect";
+} from "./gate/behaviour.ts";
+export {
+  type DurableBehaviourOptions,
+  DurableBehaviourStore,
+  LazaretBehaviour,
+} from "./gate/behaviour-durable.ts";
+export type { MemoryGateRule } from "./gate/gate.ts";
+export { decide, type GateDecision } from "./gate/gate.ts";
+export { canonicalize, inspect } from "./gate/inspect.ts";
 export {
   type Condition,
   compileRule,
@@ -34,14 +39,20 @@ export {
   type Rule,
   type RuleContext,
   RuleError,
-} from "./gate/rules";
-export { combineRisk, type GateSignal, type SignalSource } from "./gate/signals";
-export { SIGNATURES, type Signature } from "./gate/signatures";
-export { createGateway, type GatewayDeps } from "./gateway/gateway";
-export type { ReviewDispatch, ReviewSnapshot } from "./ledger/durable-object";
-export { LazaretLedger } from "./ledger/durable-object";
-export type { LedgerEvent, LedgerEventType, StoredEvent } from "./ledger/events";
-export { applyEvent, IllegalTransition, initialState, replay } from "./ledger/machine";
+} from "./gate/rules.ts";
+export { combineRisk, type GateSignal, type SignalSource } from "./gate/signals.ts";
+export { SIGNATURES, type Signature } from "./gate/signatures.ts";
+export { createGateway, type GatewayDeps } from "./gateway/gateway.ts";
+export {
+  type CompactionConfig,
+  DEFAULT_COMPACTION,
+  prunableBatches,
+  pruneState,
+} from "./ledger/compaction.ts";
+export type { ReviewDispatch, ReviewSnapshot } from "./ledger/durable-object.ts";
+export { LazaretLedger } from "./ledger/durable-object.ts";
+export type { LedgerEvent, LedgerEventType, StoredEvent } from "./ledger/events.ts";
+export { applyEvent, IllegalTransition, initialState, replay } from "./ledger/machine.ts";
 export {
   type LiveFrame,
   type ObservedInput,
@@ -53,10 +64,10 @@ export {
   publicEvent,
   publicObservation,
   shortSession,
-} from "./ledger/public";
-export { applyTaint, type TaintResult } from "./ledger/taint";
-export { type CycleConfig, DEFAULT_CYCLE } from "./ledger/triggers";
-export type * from "./ledger/types";
+} from "./ledger/public.ts";
+export { applyTaint, type TaintResult } from "./ledger/taint.ts";
+export { type CycleConfig, DEFAULT_CYCLE } from "./ledger/triggers.ts";
+export type * from "./ledger/types.ts";
 export {
   AnthropicRuleProposer,
   buildDistillPrompt,
@@ -66,21 +77,21 @@ export {
   parseProposals,
   type RuleProposer,
   runDistillation,
-} from "./memory/distill";
+} from "./memory/distill.ts";
 export {
   backtest,
   pendingExpired,
   statusAfterBacktest,
   statusAfterLiveEvidence,
-} from "./memory/lifecycle";
-export { archiveRecord, sampleFromEntry } from "./memory/sample";
+} from "./memory/lifecycle.ts";
+export { archiveRecord, sampleFromEntry } from "./memory/sample.ts";
 export {
   type ArchiveInput,
   type DisputedWrite,
   type DistillInput,
   LazaretMemory,
   type RuleEvent,
-} from "./memory/store";
+} from "./memory/store.ts";
 export {
   type ActiveRuleSpec,
   type ArchivedVerdict,
@@ -91,8 +102,8 @@ export {
   type RuleProposal,
   type RuleSample,
   type RuleStatus,
-} from "./memory/types";
-export { overlayResponse } from "./overlay/apply";
+} from "./memory/types.ts";
+export { overlayResponse } from "./overlay/apply.ts";
 export {
   type BuiltinMerge,
   builtinMerge,
@@ -101,7 +112,7 @@ export {
   type OverlayConfig,
   PENDING_MARKER,
   type PendingWrite,
-} from "./overlay/merge";
+} from "./overlay/merge.ts";
 export {
   type BudgetPort,
   type BudgetStatus,
@@ -112,7 +123,7 @@ export {
   SpendTable,
   tierModel,
   utcDay,
-} from "./review/budget";
+} from "./review/budget.ts";
 export {
   AnthropicReviewer,
   FatalReviewError,
@@ -122,9 +133,9 @@ export {
   type ReviewTier,
   type ReviewUsage,
   TransientReviewError,
-} from "./review/client";
-export { type InlineDecision, inlineReview, type UnavailableCause } from "./review/inline";
-export type { MemoryPort } from "./review/pipeline";
+} from "./review/client.ts";
+export { type InlineDecision, inlineReview, type UnavailableCause } from "./review/inline.ts";
+export type { MemoryPort } from "./review/pipeline.ts";
 export {
   type BudgetCheck,
   chunkEntries,
@@ -135,22 +146,22 @@ export {
   runReviewPipeline,
   type StepOptions,
   type StepRunner,
-} from "./review/pipeline";
-export { costUsd, PRICES } from "./review/pricing";
-export type { MemoryHint } from "./review/prompt";
+} from "./review/pipeline.ts";
+export { costUsd, PRICES } from "./review/pricing.ts";
+export type { MemoryHint } from "./review/prompt.ts";
 export {
   buildBatchPrompt,
   buildEscalationPrompt,
   decodedView,
   encodeUntrusted,
   SYSTEM_PROMPT,
-} from "./review/prompt";
+} from "./review/prompt.ts";
 export {
   MalformedReviewError,
   parseVerdicts,
   VERDICT_CATEGORIES,
   VERDICT_SCHEMA,
-} from "./review/schema";
-export { LazaretReviewWorkflow } from "./review/workflow";
-export { compilePattern, matchPattern } from "./routing/matcher";
-export { normalizePath } from "./routing/normalize";
+} from "./review/schema.ts";
+export { LazaretReviewWorkflow } from "./review/workflow.ts";
+export { compilePattern, matchPattern } from "./routing/matcher.ts";
+export { normalizePath } from "./routing/normalize.ts";

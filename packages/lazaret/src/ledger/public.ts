@@ -1,5 +1,13 @@
-import type { LedgerEvent, LedgerEventType, StoredEvent } from "./events";
-import type { BatchStatus, EntryState, EntryStatus, SealReason, VerdictRecord } from "./types";
+import type { LedgerEvent, LedgerEventType, StoredEvent } from "./events.ts";
+import type {
+  BatchState,
+  BatchStatus,
+  EntryState,
+  EntryStatus,
+  LedgerState,
+  SealReason,
+  VerdictRecord,
+} from "./types.ts";
 
 export type { BatchStatus, EntryStatus, SealReason, VerdictRecord };
 
@@ -107,7 +115,41 @@ export type LiveFrame =
   | PublicEvent
   | PublicObservation
   /** The demo rolled over to a fresh Ledger: reconnect from seq 0. */
-  | { type: "RESET" };
+  | { type: "RESET" }
+  | PublicSnapshot;
+
+/** A batch as the snapshot shows it (M8). */
+export interface PublicBatch {
+  batchId: string;
+  status: BatchStatus;
+  sealReason: SealReason | null;
+  attempt: number;
+  openedAt: number;
+  updatedAt: number;
+  note: string | null;
+}
+
+/** An entry in a snapshot carries what the events after its append would have said. */
+export interface PublicSnapshotEntry extends PublicEntry {
+  status: EntryStatus;
+  at: number;
+  originStatus: number | null;
+  resolution: "release" | "drop" | "report" | null;
+}
+
+/**
+ * Current state, sent instead of a replay when the events a viewer asked for have
+ * been compacted away (M8, ledger/compaction.ts). Replaces the viewer's batches and
+ * entries; `seq` is the head it is current to, so live events continue from there.
+ * Holds the newest `maxBatches` batches only, as the visualiser shows no more.
+ */
+export interface PublicSnapshot {
+  type: "SNAPSHOT";
+  seq: number;
+  batches: PublicBatch[];
+  entries: PublicSnapshotEntry[];
+  flaggedSessions: string[];
+}
 
 const cap = (s: string, n = TEXT_CAP) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 export const shortSession = (id: string) => id.slice(0, SESSION_CHARS);
@@ -228,6 +270,55 @@ export function publicObservation(o: ObservedInput, at: number): PublicObservati
     category: o.category ? cap(o.category, 64) : null,
     cause: o.cause ? cap(o.cause, 32) : null,
     latencyMs: o.latencyMs ?? null,
+  };
+}
+
+/** Batches a SNAPSHOT frame carries, newest last (the visualiser keeps 24). */
+export const SNAPSHOT_BATCHES = 24;
+
+export function publicSnapshot(
+  state: LedgerState,
+  previewChars: number,
+  maxBatches = SNAPSHOT_BATCHES,
+): PublicSnapshot {
+  const n = (id: string) => Number(id.slice(id.lastIndexOf("-") + 1));
+  const batches = Object.values(state.batches)
+    .sort((a, b) => n(a.id) - n(b.id))
+    .slice(-maxBatches);
+  return {
+    type: "SNAPSHOT",
+    seq: state.seq,
+    batches: batches.map(publicBatch),
+    entries: batches.flatMap((b) =>
+      b.entryIds
+        .map((id) => state.entries[id])
+        .filter((e): e is EntryState => e !== undefined)
+        .map(
+          (e): PublicSnapshotEntry => ({
+            ...publicEntry(e, previewChars),
+            status: e.status,
+            at: e.receivedAt,
+            originStatus: e.originStatus ?? null,
+            resolution: e.resolution?.decision ?? null,
+          }),
+        ),
+    ),
+    flaggedSessions: Object.keys(state.flaggedSessions).map(shortSession),
+  };
+}
+
+function publicBatch(b: BatchState): PublicBatch {
+  const failed =
+    b.lastError !== undefined ? `Attempt ${b.reviewAttempts} failed: ${b.lastError}` : null;
+  const note = b.quarantineReason ?? failed;
+  return {
+    batchId: b.id,
+    status: b.status,
+    sealReason: b.sealReason ?? null,
+    attempt: b.reviewAttempts,
+    openedAt: b.openedAt,
+    updatedAt: b.settledAt ?? b.sealedAt ?? b.openedAt,
+    note: note === null ? null : cap(note, 200),
   };
 }
 

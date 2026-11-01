@@ -1,6 +1,6 @@
-import type { RuleProposer } from "../memory/distill";
-import type { Reviewer, ReviewOutcome, ReviewTier, ReviewUsage } from "./client";
-import { costUsd } from "./pricing";
+import type { RuleProposer } from "../memory/distill.ts";
+import type { Reviewer, ReviewOutcome, ReviewTier, ReviewUsage } from "./client.ts";
+import { costUsd } from "./pricing.ts";
 
 // The daily spend cap (M7; `review.dailyBudgetUsd` existed before but nothing enforced
 // it). Every model call is metered from its real token usage, and every place that

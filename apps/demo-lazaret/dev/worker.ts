@@ -5,7 +5,7 @@ import { config } from "../src/config";
 import { createGuard } from "../src/guard";
 import { scriptedReviewer } from "../src/scripted-reviewer";
 
-export { TidewaterLedger, TidewaterMemory } from "../src";
+export { TidewaterBehaviour, TidewaterLedger, TidewaterMemory } from "../src";
 
 // Offline local development: the real Tidewater deployment with the scripted
 // reviewer in place of Claude, so the whole stack runs with no API key and no

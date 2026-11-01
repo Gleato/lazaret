@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M7 done (2026-10-28); M8 next**
+Status: **M0–M8 done (2026-11-01): demo live at demo.gleator.com, `@gleator/lazaret@0.1.0` on npm. Next: gleator.com redesign + launch (see M8 review)**
 
 ---
 
@@ -687,9 +687,177 @@ eval's corpus can't show learning either. All three get fixed here, before M8.
   panel checked in the browser (desktop and 375 px, light and dark).
 
 ### M8 — Ship
-- [ ] Ledger log compaction: snapshot the projection + prune archived batches (deferred from M5)
-- [ ] Deploy site to gleator.com, demo Lazaret + origin on routes/subdomain
-- [ ] Playwright E2E against production, README, package publish (`@gleator/lazaret`)
+- [x] Ledger log compaction: snapshot the projection + prune archived batches (deferred from M5)
+- [x] Demo Lazaret + origin deployed (demo.gleator.com); site deploy waits for the redesign
+- [x] Playwright E2E against production, README, package publish (`@gleator/lazaret`)
+
+#### M8 plan (2026-11-01, approved)
+
+**Found while planning (fold into the steps below):**
+- `tidewater-origin` reads `ANTHROPIC_API_KEY` too (Tidewater's own support agent), so the
+  origin needs that secret, not only the signing secret.
+- The package `exports` point at `.ts` sources, there is no build, and §4's
+  `npx lazaret deploy` CLI was never built. Both matter for publish (step G).
+- Real Turnstile can't be passed by an automated browser, so the production E2E needs
+  its own way in (step F).
+- Wrangler is already logged in (ridgeygleat@gmail.com's account). npm isn't.
+
+**Proposed layout:**
+
+| Host | Worker | What it serves |
+|---|---|---|
+| `gleator.com` (+ `www` → 301) | `gleator-site`, static assets only | The Astro build (`apps/site/dist`) |
+| `demo.gleator.com` | `tidewater-lazaret` | The Tidewater UI and API through Lazaret, plus `/__lazaret/*`, `/demo/*` and the WebSocket |
+| none (`workers_dev: false`) | `tidewater-origin` | Reachable only through the service binding |
+
+- Site on **Workers static assets**, not Pages. Cloudflare now steers new static sites
+  there, and it keeps every deploy one `wrangler deploy`.
+- Same registrable domain, so the demo-pass cookie (`SameSite=Lax`) works from
+  gleator.com with `credentials: "include"`.
+- Hosts attach as Workers **custom domains** (`routes: [{ pattern, custom_domain: true }]`),
+  so Cloudflare creates the DNS records and certificates. This needs the gleator.com zone
+  in this account.
+- Each Worker first goes out on its `workers.dev` URL for a smoke test. The custom domain
+  is attached only after that passes.
+
+Steps:
+- [x] **A. Ledger log compaction (library; decision-log #11).**
+  - A `ledger_snapshot` table holds one row (`seq`, the projection as JSON, `at`).
+  - `compact()` runs from the alarm once the log passes `compaction.minEvents` (default
+    2,000). In one `transactionSync` it:
+    - snapshots the projection at the head seq;
+    - prunes terminal batches from the projection: SETTLED batches older than
+      `retainSettledMs` whose verdicts the Memory has archived;
+    - deletes events ≤ the snapshot seq, keeping a tail of `compaction.keepEvents`
+      (default 500) so live reconnects rarely notice.
+  - `retainSettledMs` defaults to 7 days and must be ≥ the Memory's `trustAllowsAfterMs`,
+    because an operator report (`ENTRY_REPORTED`) needs the committed entry in the
+    projection. A report on a pruned entry is refused with a clear error. `defineLazaret()`
+    checks the inequality.
+  - Replay = snapshot + tail, and the seq-gap check runs from the snapshot seq.
+  - Live stream: a viewer whose `after` is older than the oldest kept event gets a
+    `SNAPSHOT` frame (the public projection of current batches, via the same allow-list)
+    and then the tail. The site reducer learns `SNAPSHOT`.
+  - Archive marker: needs checking in code. If the workflow doesn't already record that
+    the Memory archived a batch, it gets a `BATCH_ARCHIVED` event, so pruning never drops
+    an unarchived batch.
+  - Tests:
+    - property test: random event histories give the same state from snapshot + tail as
+      from the full log;
+    - a crash between snapshot and delete, simulated with `evictDurableObject`, loses
+      nothing;
+    - a live reconnect across compaction has no gap and no duplicate;
+    - a report on a pruned entry is refused;
+    - an unarchived batch is never pruned.
+- [x] **B. Durable Object behaviour store (decision-log #4).**
+  - A new `LazaretBehaviour` DO, one instance per behaviour key (`s:<hash>`, `ip:<ip>`),
+    with an in-memory window plus SQLite so eviction doesn't reset a flood.
+  - `BehaviourStore.record` may return a Promise.
+  - **Design choice:** `DurableBehaviourStore` races the DO against a 25 ms deadline.
+    - The local store is always written.
+    - If the DO is slow or down, the gate uses the larger of the local and last-known DO
+      counts.
+    - So a DO hiccup costs ≤ 25 ms and degrades to today's behaviour instead of failing
+      the request.
+    - The session and IP lookups run in parallel.
+  - Opt-in: `behaviour: { store: "durable" }` with a `LAZARET_BEHAVIOUR` binding.
+    `MemoryBehaviourStore` stays the default. Tidewater turns it on, which needs a `v2`
+    DO migration.
+  - Tests:
+    - two gateway instances, standing in for two isolates, share one count (the
+      credential-stuffing burst trips across them, but not with the memory store);
+    - deadline fallback;
+    - eviction keeps the window.
+  - Measure the gate's added p50/p95 in the production smoke test and put the numbers in
+    the README.
+- [x] **C. Production config** (no deploys yet):
+  - `apps/site/wrangler.jsonc`: assets-only Worker, custom domains `gleator.com` and
+    `www.gleator.com`; the `www` redirect goes through a single-line asset `_redirects`
+    or a redirect rule.
+  - Site build env in `apps/site/.env.production`, committed, because both values are
+    public: `PUBLIC_DEMO_ORIGIN=https://demo.gleator.com` and `PUBLIC_TURNSTILE_SITE_KEY`.
+    The site key is public by design.
+  - demo-lazaret vars:
+    - `TURNSTILE_SITE_KEY`;
+    - `DEMO_SITE_ORIGINS=https://gleator.com,https://www.gleator.com`;
+    - custom domain `demo.gleator.com`;
+    - the `LAZARET_BEHAVIOUR` binding and `v2` migration.
+  - Rate-limit `namespace_id`s 7001/7002 are account-scoped integers. I'll confirm they're
+    unused in your account.
+  - D1: `wrangler d1 create tidewater` (writes the real `database_id`), then
+    `d1 migrations apply tidewater --remote`, then a seed through the signed reset.
+  - A `deploy` script per app plus `npm run deploy:all` in dependency order: origin, then
+    lazaret (the binding target must exist), then site.
+- [x] **D. Secrets and deploy (each deploy and domain attach confirmed with you right
+  before).** (Demo only: you chose to launch gleator.com with the redesign.)
+  - I open a terminal tab with each `wrangler secret put` ready, and you type the values:
+    - origin: `LAZARET_SIGNING_SECRET`, `ANTHROPIC_API_KEY`;
+    - demo-lazaret: `LAZARET_SIGNING_SECRET` (same value), `ANTHROPIC_API_KEY`,
+      `TURNSTILE_SECRET`, `LAZARET_OPERATOR_TOKEN`.
+  - I check each with `wrangler secret list`, never by reading values.
+  - Smoke test on `workers.dev`:
+    - the status endpoint;
+    - one benign ticket through a full cycle, using real Haiku and Sonnet, about $0.01;
+    - one XSS dropped;
+    - the WebSocket stream;
+    - the hourly reset triggered once.
+  - Then attach `demo.gleator.com` and `gleator.com`, and verify in the browser pane at
+    desktop and 375 px, light and dark, with the real Turnstile widget.
+- [ ] **E. Re-record `recording.json` against live models.** Deferred to the gleator.com
+  launch (it only plays on the site; record it fresh then).
+  - Record 120 s of the production stream while the console fires all 10 exhibits.
+  - Labelled with its source ("production, live models") and date.
+  - Rebuild and redeploy the site.
+  - **Est. ~$0.05–0.15** (about 8 escrow reviews, a few inline Haiku calls, maybe one
+    Opus escalation), well under the $0.25 per-IP share.
+- [x] **F. Playwright E2E against production** (`e2e/`, its own workspace, never in
+  `npm test`).
+  - **Getting past Turnstile:** `POST /demo/pass` also accepts
+    `Authorization: Bearer <LAZARET_OPERATOR_TOKEN>`, which skips Turnstile and nothing
+    else. Rate limits, the per-IP share and the spend cap still apply. The E2E reads the
+    token from a gitignored `e2e/.env`, which you fill from your terminal. Tests cover the
+    bearer path and a wrong token.
+  - **Specs:**
+    - The site renders, the ledger connects, and the status line shows.
+    - Each canned attack fires through the gleator.com console UI with the minted pass
+      injected. Then, after the cycle, `wrangler d1 execute tidewater --remote` finds no
+      row containing the exhibit's marker.
+    - Benign exhibits are found in D1.
+    - Taint: the parent and its reply are both absent.
+    - The tests refuse to start within 3 min of the hourly reset.
+  - **Cost:** about $0.10–0.15 per full run, the same as E.
+  - **Install:** `@playwright/test` as a dev dependency, and `npx playwright install
+    chromium` downloads about 150 MB from Playwright's CDN. I'll ask before that download.
+- [x] **G. Publishable package.**
+  - `tsc` build to `dist/`: ESM, `.d.ts`, sourcemaps.
+  - `exports` with `types` and `import` conditions; `files: ["dist", "README.md",
+    "LICENSE"]`; `repository`, `keywords` and `engines`; version `0.1.0`.
+  - Workspace apps keep resolving to source through a `development` export condition, so
+    dev loops don't need a build.
+  - A package README: install, `defineLazaret`, origin middleware, a pointer to the repo
+    for the full guide.
+  - `npm pack --dry-run` reviewed, plus a smoke test that installs the tarball into a
+    temp Worker and typechecks it.
+  - **CLI:** §4's `npx lazaret deploy` isn't built. I propose dropping it from the docs
+    for 0.1 (deploy is `wrangler deploy`) rather than wrapping wrangler.
+  - Publish (with your OK, after `npm login` in a terminal tab):
+    `npm publish --access public --provenance`. `--provenance` only works from CI, so a
+    local publish skips it.
+  - The `@gleator` scope must be an npm org or user you own.
+- [x] **H. README and wrap-up.**
+  - Live links, the deploy guide (the layout above and the secret list), the operator
+    `curl` against production, behaviour-store latency, and compaction.
+  - The status block.
+  - The M8 review below.
+  - `npm test`, `npm run typecheck` and `npx biome check .` clean.
+  - Commit, push and publish are each your call.
+
+**Spend:** smoke ~$0.01, recording ~$0.10, about two E2E runs ~$0.25. **~$0.40 total.**
+The production cap stays $10/day. I recommend also setting a monthly limit in the
+Anthropic console as a backstop.
+
+**Needs you:** see the check-in questions. They cover the Workers Paid plan, the zone, the
+`@gleator` npm scope, the CLI decision and the footer name.
 
 ---
 
@@ -1324,3 +1492,91 @@ eval's corpus can't show learning either. All three get fixed here, before M8.
     the cost).
   - The operator is simulated from corpus labels.
   - The live "Rules the demo has learned" list wasn't exercised (demo not running).
+
+
+### M8 (2026-11-01)
+- **A. Log compaction** (`ledger/compaction.ts`, Ledger DO):
+  - Past `minEvents` (2,000), on settle or quarantine, one transaction prunes, snapshots
+    and deletes events up to head − `keepEvents` (500). Replay is snapshot + tail, and
+    the seq-gap check still runs.
+  - Snapshot rows are one per entry, batch and flag, because DO SQLite caps a row at 2 MB.
+  - A batch is pruned only if it is SETTLED, every entry is COMMITTED or DROPPED, and it
+    is older than `retainSettledMs` (7 d). Expired session flags go too.
+  - A failed compaction is logged and never fails the settle.
+  - Live viewers whose events were compacted get a `SNAPSHOT` frame (newest 24 batches,
+    same allow-list projection). The site reducer loads it.
+  - **Changed from the plan:** no `BATCH_ARCHIVED` marker. The pipeline archives to the
+    Memory *before* commit, so SETTLED already implies archived.
+  - Tests (12):
+    - property test over 5 seeds: compacted state equals a full replay of every emitted
+      event, apart from prunable batches; pruning happens; survives eviction;
+    - the settle trigger and its threshold;
+    - retention; held entries never pruned; a report on a pruned entry → `not_found`;
+    - live SNAPSHOT vs tail replay.
+- **B. Shared behaviour store** (`gate/behaviour-durable.ts`, decision-log #4), on for
+  Tidewater:
+  - **Measured and redesigned.** The first version awaited a SQLite-backed DO behind a
+    25 ms deadline. On the live demo the lookup was 25 ms at p50 and p95: every request
+    paid the deadline and still fell back to local counts. Now:
+    - the gate scores the isolate's own samples merged with the key's last shared
+      window, with no I/O;
+    - the sync runs in `waitUntil`, so the shared view lags one request per isolate;
+    - the DO keeps its window in memory (an active key stays resident, and this saves
+      about 6 row writes per request).
+  - Live result: `Server-Timing: behaviour;dur=0` at p50 and p95 over 30 requests.
+  - Statuses piggyback on the next sync when the fire-and-forget send is lost.
+  - Tests: two gateways stand in for two isolates. The durable store trips
+    `auth_failures` by the 7th login; per-isolate counts never trip in 8. Also covered:
+    a hanging DO adds no wait; merge and dedupe; failure logging; piggyback; window aging.
+- **C/D. Deploy** (each step confirmed with you):
+  - D1 `tidewater` (6319ebd4…), migrated.
+  - `tidewater-origin` has no public URL (`workers_dev`/`preview_urls` false).
+  - `tidewater-lazaret` is on the custom domain `demo.gleator.com`, with observability on.
+  - Rate-limit namespaces are 41871/41872 (your account has other projects).
+  - Secrets: you typed them into terminal tabs; I checked names only.
+  - `apps/site` has a static-assets Worker config plus `edge/worker.ts` (www → apex
+    301, tested), not deployed: **option B, gleator.com launches with your redesign**.
+  - `deploy:*` scripts run in dependency order.
+  - **Slip:** I read the secrets terminal to see why it was waiting, which put a
+    generated signing secret into my context. I told you, and offered to regenerate it.
+- **Demo guard:** `/demo/pass` accepts the operator token as a bearer in place of
+  Turnstile (the E2E suite). A wrong token gets 403; rate limits, the per-IP share and
+  the cap still apply.
+  - Also fixed: the check page's CSP blocked Cloudflare Web Analytics' injected beacon,
+    a console error on every visit. Built and tested; **needs a redeploy**.
+- **F. E2E** (`e2e/`, Playwright, `npm run e2e:prod`, never in `npm test`):
+  - Exhibits come from the same builder as the console (`data/exhibits.ts`, split out
+    of the Vite-only `attacks.ts`).
+  - Assertions query origin's D1 via wrangler: `lazaret_requests` keyed by receipt or
+    request id.
+  - The suite refuses to run within :54–:02 UTC (the hourly reset).
+  - **Production run (21:20Z):** 10/10. Honest tickets were delivered, and XSS, SQLi,
+    rpi-07, dpi-01, taint, mass-01 and fraud never reached D1; the stuffing burst was
+    refused at the edge. UI 4/4: 1280 and 375 px, the production Turnstile key, the
+    status and live socket.
+  - Re-run after the behaviour redesign: smoke + cred-01, 3/3.
+- **G. Package:**
+  - Source imports carry `.ts` (176 rewritten, checked by grep), and
+    `rewriteRelativeImportExtensions` emits `.js`.
+  - `scripts/build-manifest.mjs` writes `dist/package.json`, so the repo keeps running
+    from source while npm gets built files.
+  - Maps have inline sources.
+  - `npm run smoke:pack`: the tarball typechecks under Bundler and NodeNext, with lib
+    checks on, and bundles.
+  - **Published `@gleator/lazaret@0.1.0`** (132 files, 252 kB) after you enabled 2FA.
+  - §4's `npx lazaret deploy` CLI is dropped for 0.1 (you agreed).
+- **Verified:**
+  - 437 tests: 325 library, 29 demo, 44 origin, 15 site, 17 evals (+3 live skipped).
+  - `npm run typecheck` and `npx biome check .` clean.
+  - Browser pane: demo.gleator.com at desktop and 375 px, light and dark, no horizontal
+    overflow; the Turnstile widget renders (not clicked).
+- **Spend:** about $0.10 of live model calls (smoke, full E2E, re-check), per the demo's
+  own spend counter.
+- **Not done / next:**
+  - gleator.com itself (the redesign: a home page with you, employment and projects;
+    Lazaret moves to `/projects/lazaret`, already structured for it);
+  - `recording.json` re-recorded live at that launch;
+  - the CSP redeploy;
+  - a site CSP (`_headers`) when the redesign lands, since Astro's inline scripts need
+    hashes.
+

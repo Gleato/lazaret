@@ -3,7 +3,7 @@ import origin from "@gleator/tidewater-origin";
 import { TidewaterLedger, TidewaterReviewWorkflow } from "../src";
 import { scriptedReviewer } from "../src/scripted-reviewer";
 
-export { TidewaterMemory } from "../src";
+export { TidewaterBehaviour, TidewaterMemory } from "../src";
 export { calls as reviewCalls, scriptedReviewer } from "../src/scripted-reviewer";
 
 /** The real Tidewater Worker, called in-process the way the ORIGIN service binding would. */

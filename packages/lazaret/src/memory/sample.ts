@@ -1,7 +1,7 @@
-import { canonicalize } from "../gate/inspect";
-import type { EntryState } from "../ledger/types";
-import type { ArchiveInput } from "./store";
-import { type JsonValue, MEMORY_SIGNAL_PREFIX, type RuleSample } from "./types";
+import { canonicalize } from "../gate/inspect.ts";
+import type { EntryState } from "../ledger/types.ts";
+import type { ArchiveInput } from "./store.ts";
+import { type JsonValue, MEMORY_SIGNAL_PREFIX, type RuleSample } from "./types.ts";
 
 // Build the sample a rule would have seen at the gate for this entry, using the
 // same canonicalisation as the live gate, so backtests and production agree.

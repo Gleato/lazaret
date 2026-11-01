@@ -1,7 +1,9 @@
 import {
+  type CompactionConfig,
   type CycleConfig,
   DEFAULT_MEMORY_THRESHOLDS,
   defineLazaret,
+  LazaretBehaviour,
   LazaretLedger,
   LazaretMemory,
   LazaretReviewWorkflow,
@@ -21,6 +23,30 @@ export class Ledger extends LazaretLedger {
     return null;
   }
 }
+
+// Compacts after a few events and prunes batches settled a minute ago (M8), with a
+// clock tests can move, so retention is testable without waiting.
+export const TEST_COMPACTION: CompactionConfig = {
+  minEvents: 20,
+  keepEvents: 5,
+  retainSettledMs: 60_000,
+};
+
+export class CompactLedger extends Ledger {
+  #offset = 0;
+  protected override compactionConfig(): CompactionConfig {
+    return TEST_COMPACTION;
+  }
+  protected override now(): number {
+    return Date.now() + this.#offset;
+  }
+  advanceClock(ms: number): void {
+    this.#offset += ms;
+  }
+}
+
+/** Behaviour samples per key (M8), for the durable behaviour store tests. */
+export class Behaviour extends LazaretBehaviour {}
 
 /** Seals dispatch the real Review Workflow below. */
 export class AutoLedger extends LazaretLedger {

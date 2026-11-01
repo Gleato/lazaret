@@ -1,6 +1,6 @@
-import { createCommitter, originUrl } from "../commit/committer";
-import { signRequest } from "../commit/sign";
-import type { CompiledRoute, Policy, ResolvedConfig } from "../config/define";
+import { createCommitter, originUrl } from "../commit/committer.ts";
+import { signRequest } from "../commit/sign.ts";
+import type { CompiledRoute, Policy, ResolvedConfig } from "../config/define.ts";
 import {
   type BehaviourSample,
   type BehaviourStore,
@@ -8,23 +8,24 @@ import {
   MemoryBehaviourStore,
   scoreBehaviour,
   scoreRoute,
-} from "../gate/behaviour";
-import { decide, type MemoryGateRule } from "../gate/gate";
-import { inspect } from "../gate/inspect";
-import { compileRule } from "../gate/rules";
-import type { GateSignal } from "../gate/signals";
-import type { LazaretLedger } from "../ledger/durable-object";
-import type { ObservedInput } from "../ledger/public";
-import type { EntryInput } from "../ledger/types";
-import { archiveRecord } from "../memory/sample";
-import type { LazaretMemory } from "../memory/store";
-import { overlayResponse } from "../overlay/apply";
-import { meteredReviewer, tierModel } from "../review/budget";
-import { AnthropicReviewer, type Reviewer } from "../review/client";
-import { inlineReview } from "../review/inline";
-import { fillTemplate, matchPattern } from "../routing/matcher";
-import { encodePath, normalizePath, type PathAnomaly } from "../routing/normalize";
-import { lookupActor } from "./actor";
+} from "../gate/behaviour.ts";
+import { DurableBehaviourStore } from "../gate/behaviour-durable.ts";
+import { decide, type MemoryGateRule } from "../gate/gate.ts";
+import { inspect } from "../gate/inspect.ts";
+import { compileRule } from "../gate/rules.ts";
+import type { GateSignal } from "../gate/signals.ts";
+import type { LazaretLedger } from "../ledger/durable-object.ts";
+import type { ObservedInput } from "../ledger/public.ts";
+import type { EntryInput } from "../ledger/types.ts";
+import { archiveRecord } from "../memory/sample.ts";
+import type { LazaretMemory } from "../memory/store.ts";
+import { overlayResponse } from "../overlay/apply.ts";
+import { meteredReviewer, tierModel } from "../review/budget.ts";
+import { AnthropicReviewer, type Reviewer } from "../review/client.ts";
+import { inlineReview } from "../review/inline.ts";
+import { fillTemplate, matchPattern } from "../routing/matcher.ts";
+import { encodePath, normalizePath, type PathAnomaly } from "../routing/normalize.ts";
+import { lookupActor } from "./actor.ts";
 import {
   BodyTooLarge,
   forwardableHeaders,
@@ -32,10 +33,10 @@ import {
   json,
   readBodyCapped,
   toBase64,
-} from "./http";
-import { handleOperator } from "./operator";
-import { handlePublic, PUBLIC_KINDS } from "./public";
-import { deriveSessionId } from "./session";
+} from "./http.ts";
+import { handleOperator } from "./operator.ts";
+import { handlePublic, PUBLIC_KINDS } from "./public.ts";
+import { deriveSessionId } from "./session.ts";
 
 // The Gateway is the Worker entrypoint. For every request it:
 //   1. normalises the path and matches a route (or the read/write fallback)
@@ -83,7 +84,11 @@ const ANOMALY_WEIGHTS: Record<Exclude<PathAnomaly, "null_byte">, number> = {
 };
 
 export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
-  const behaviour = deps.behaviour ?? new MemoryBehaviourStore();
+  const behaviour: BehaviourStore =
+    deps.behaviour ??
+    (config.behaviour.store === "durable"
+      ? new DurableBehaviourStore(config.behaviour)
+      : new MemoryBehaviourStore());
   const fetchOrigin = deps.fetchOrigin ?? ((r: Request) => fetch(r));
   const now = deps.now ?? Date.now;
   const binding = <T>(env: object, name: string) =>
@@ -146,9 +151,15 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
 
     async fetch(request: Request, env: object, ctx?: ExecutionContext): Promise<Response> {
       const requestId = crypto.randomUUID();
+      // How long the behaviour lookups took (M8), as Server-Timing, so the cost of a
+      // durable store is visible from outside (Workers' clock advances on I/O, which
+      // these lookups are).
+      let behaviourMs: number | null = null;
       const tag = (res: Response): Response => {
         const out = new Response(res.body, res);
         out.headers.set("x-lazaret-request-id", requestId);
+        if (behaviourMs !== null)
+          out.headers.append("server-timing", `behaviour;dur=${behaviourMs}`);
         return out;
       };
       const reject = (status: number, error: string) => tag(json(status, { error, requestId }));
@@ -221,13 +232,22 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
       const { sessionId, ip } = await deriveSessionId(request, config);
 
       // The same sample object goes under both keys, so setting `status` after the
-      // origin responds updates both views.
+      // origin responds updates both views in the memory store; a durable store is
+      // told through `settle` (setStatus below).
       const sample: BehaviourSample = { at: now(), method, path: norm.path, route: routeName };
       const perMinute = matched?.compiled.route.perMinute;
-      const views = [
-        behaviour.record(`s:${sessionId}`, sample),
-        behaviour.record(`ip:${ip}`, sample),
-      ];
+      const behaviourKeys = [`s:${sessionId}`, `ip:${ip}`];
+      const lookupStarted = performance.now();
+      const background = ctx ? (work: Promise<unknown>) => ctx.waitUntil(work) : undefined;
+      const views = await Promise.all(
+        behaviourKeys.map((key) => behaviour.record(key, sample, env, background)),
+      );
+      behaviourMs = Math.round(performance.now() - lookupStarted);
+      const setStatus = (status: number) => {
+        sample.status = status;
+        const settling = behaviour.settle?.(behaviourKeys, sample, env);
+        if (settling && ctx) ctx.waitUntil(settling);
+      };
       const behaviourSignals = strongest([
         ...views.flatMap((v) => [
           ...scoreBehaviour(v, sample.at),
@@ -301,7 +321,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
       if (decision.block) {
         // Lazaret's own refusals count as auth failures for per-route scoring (as
         // origin's 401s do), so a client that keeps getting refused keeps adding up.
-        sample.status = 403;
+        setStatus(403);
         observe({ kind: "gate_block", outcome: "deny" });
         return reject(403, "forbidden");
       }
@@ -347,7 +367,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
         const target = originUrl(config.origin, encodePath(norm.segments), url.search);
         const body = bytes && method !== "GET" && method !== "HEAD" ? bytes : null;
         const res = await toOrigin(requestId, method, target, body);
-        sample.status = res.status;
+        setStatus(res.status);
         return tag(res);
       };
 
@@ -507,7 +527,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
             return refused;
           }
           if (result.verdict.verdict !== "allow") {
-            sample.status = 403;
+            setStatus(403);
             observe({
               kind: "inline",
               outcome: "deny",

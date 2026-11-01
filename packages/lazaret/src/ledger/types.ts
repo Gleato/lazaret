@@ -1,4 +1,4 @@
-import type { GateSignal } from "../gate/signals";
+import type { GateSignal } from "../gate/signals.ts";
 
 // Core vocabulary of the Ledger. Everything here is plain JSON-serialisable data so
 // it can cross Durable Object RPC, live in the SQLite event log, and be streamed to

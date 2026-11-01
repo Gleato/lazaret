@@ -1,4 +1,4 @@
-import type { SealReason } from "./types";
+import type { SealReason } from "./types.ts";
 
 // When does the open batch stop accepting writes and go to review? Three triggers
 // (tasks/todo.md §2): a timer, a size cap, and a risk spike. The risk trigger means an

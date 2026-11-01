@@ -7,15 +7,18 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true },
   "assets": { "directory": "./public", "run_worker_first": ["/api/*", "/admin/*"] },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "tidewater",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "6319ebd4-1ffa-47c3-904b-c4017fb3ab46",
       "migrations_dir": "migrations"
     }
   ]
-  // Secret (set by you, never committed): LAZARET_SIGNING_SECRET, shared with demo-lazaret.
-  //   npx wrangler secret put LAZARET_SIGNING_SECRET
+  // Secrets (set by you, never committed; `-c apps/demo-origin/wrangler.jsonc`):
+  //   LAZARET_SIGNING_SECRET   shared with demo-lazaret (≥ 32 chars)
+  //   ANTHROPIC_API_KEY        Tidewater's own support agent (POST /api/agent/run)
 }

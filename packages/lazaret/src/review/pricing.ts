@@ -1,4 +1,4 @@
-import type { ReviewUsage } from "./client";
+import type { ReviewUsage } from "./client.ts";
 
 // List prices in USD per million tokens (claude-api skill, cached 2026-10-06; Opus 4.8
 // cache reads assumed at the usual 0.1x of input). Cache writes are 1.25x input

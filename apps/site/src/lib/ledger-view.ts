@@ -100,6 +100,12 @@ export function applyFrame(state: ViewState, frame: LiveFrame): boolean {
       state.observations.push(frame);
       if (state.observations.length > MAX_OBSERVATIONS) state.observations.shift();
       return true;
+    case "SNAPSHOT":
+      // The events this viewer asked for were compacted away (M8): the snapshot is the
+      // current state, so it replaces batches and entries, and live events continue
+      // after its seq. Observations aren't part of the log, so they stay.
+      loadSnapshot(state, frame);
+      return true;
   }
 
   if (frame.seq <= state.head) return false;
@@ -240,6 +246,51 @@ function taintParent(state: ViewState, child: EntryView): string | null {
     }
   }
   return parent?.id ?? null;
+}
+
+function loadSnapshot(state: ViewState, frame: Extract<LiveFrame, { type: "SNAPSHOT" }>): void {
+  state.head = frame.seq;
+  state.batches = new Map();
+  state.entries = new Map();
+  state.flaggedSessions = new Set(frame.flaggedSessions);
+  for (const b of frame.batches) {
+    state.batches.set(b.batchId, {
+      id: b.batchId,
+      status: b.status,
+      sealReason: b.sealReason,
+      attempt: b.attempt,
+      openedAt: b.openedAt,
+      updatedAt: b.updatedAt,
+      entryIds: [],
+      note: b.note,
+    });
+  }
+  // Entries arrive in append order, so taintParent sees parents before children.
+  for (const e of frame.entries) {
+    const view: EntryView = {
+      id: e.entryId,
+      batchId: e.batchId,
+      route: e.route,
+      method: e.method,
+      path: e.path,
+      session: e.session,
+      risk: e.risk,
+      signals: e.signals.map((s) => s.id),
+      resources: e.resources,
+      body: e.body,
+      bodyTruncated: e.bodyTruncated,
+      status: e.status,
+      verdict: e.verdict ?? null,
+      originStatus: e.originStatus,
+      taintedBy: null,
+      resolution: e.resolution,
+      at: e.at,
+    };
+    state.entries.set(view.id, view);
+    state.batches.get(view.batchId)?.entryIds.push(view.id);
+    if (view.verdict?.category === "tainted") view.taintedBy = taintParent(state, view);
+  }
+  trim(state);
 }
 
 function trim(state: ViewState): void {

@@ -10,6 +10,9 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    // The library's source imports name their .ts files (packages/lazaret builds them
+    // to .js for npm), and every workspace typechecks that source.
+    "allowImportingTsExtensions": true
   }
 }

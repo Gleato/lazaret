@@ -5,7 +5,8 @@
   "workspaces": [
     "packages/*",
     "apps/*",
-    "evals"
+    "evals",
+    "e2e"
   ],
   "scripts": {
     "test": "npm run test --workspaces --if-present",
@@ -15,7 +16,12 @@
     "eval:gate": "npm run eval:gate -w @gleator/lazaret-evals",
     "eval:live": "npm run eval:live -w @gleator/lazaret-evals",
     "eval:campaign": "npm run eval:campaign -w @gleator/lazaret-evals",
-    "eval:campaign:live": "npm run eval:campaign:live -w @gleator/lazaret-evals"
+    "eval:campaign:live": "npm run eval:campaign:live -w @gleator/lazaret-evals",
+    "deploy:origin": "npm run deploy -w @gleator/tidewater-origin",
+    "deploy:demo": "npm run deploy -w @gleator/tidewater-lazaret",
+    "deploy:site": "npm run deploy -w @gleator/site",
+    "deploy:all": "npm run deploy:origin && npm run deploy:demo && npm run deploy:site",
+    "e2e:prod": "npm run test:prod -w @gleator/e2e"
   },
   "engines": {
     "node": ">=22"

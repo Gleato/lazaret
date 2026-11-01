@@ -1,4 +1,4 @@
-import type { VerdictRecord } from "../ledger/types";
+import type { VerdictRecord } from "../ledger/types.ts";
 
 // The reviewer's output contract. The API enforces the JSON shape (structured
 // outputs), and `parseVerdicts` enforces everything the schema can't express:

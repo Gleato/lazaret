@@ -1,9 +1,9 @@
-import type { ResolvedConfig } from "../config/define";
-import type { Actor } from "../gateway/actor";
-import type { EntryState, VerdictRecord } from "../ledger/types";
-import type { Reviewer } from "./client";
-import { buildInlinePrompt } from "./prompt";
-import { parseVerdicts } from "./schema";
+import type { ResolvedConfig } from "../config/define.ts";
+import type { Actor } from "../gateway/actor.ts";
+import type { EntryState, VerdictRecord } from "../ledger/types.ts";
+import type { Reviewer } from "./client.ts";
+import { buildInlinePrompt } from "./prompt.ts";
+import { parseVerdicts } from "./schema.ts";
 
 // Inline review for routes that can't wait for a batch (login, payments). The
 // client is blocked on this call, so it runs the fast model under a hard deadline.

@@ -10,6 +10,7 @@ import {
   type GuardEnv,
   hourlyReset,
   mintPass,
+  VERIFY_CSP,
 } from "../src/guard";
 import { originFetch } from "./worker";
 
@@ -106,6 +107,24 @@ describe("demo pass", () => {
     ).toBe(403);
   });
 
+  it("is minted for the operator token without Turnstile, and refused for a wrong one", async () => {
+    const { send, guardEnv } = setup({ turnstile: false });
+    const token = "operator-token-0123456789";
+    (guardEnv as { LAZARET_OPERATOR_TOKEN?: string }).LAZARET_OPERATOR_TOKEN = token;
+    const mint = (auth: string) =>
+      send("/demo/pass", { method: "POST", headers: { authorization: auth } });
+    const ok = await mint(`Bearer ${token}`);
+    expect(ok.status).toBe(200);
+    expect(await checkPass(SECRET, ((await ok.json()) as { pass: string }).pass, Date.now())).toBe(
+      true,
+    );
+    expect((await mint("Bearer wrong-token-0123456789")).status).toBe(403);
+    expect((await mint(token)).status).toBe(403); // not a bearer
+    // With no operator token configured, no bearer works.
+    delete (guardEnv as { LAZARET_OPERATOR_TOKEN?: string }).LAZARET_OPERATOR_TOKEN;
+    expect((await mint(`Bearer ${token}`)).status).toBe(403);
+  });
+
   it("can't be forged, stretched, or minted with another secret", async () => {
     const at = Date.now();
     const good = await mintPass(SECRET, at + 60_000);
@@ -116,6 +135,18 @@ describe("demo pass", () => {
       await checkPass(SECRET, await mintPass("another-secret-0123456789", at + 60_000), at),
     ).toBe(false);
     expect(await checkPass(SECRET, "garbage", at)).toBe(false);
+  });
+});
+
+describe("Turnstile check page", () => {
+  it("serves the widget under a CSP that admits Turnstile and Web Analytics only", async () => {
+    const { send } = setup();
+    const res = await send("/demo/verify");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-security-policy")).toBe(VERIFY_CSP);
+    expect(VERIFY_CSP).toContain("frame-src https://challenges.cloudflare.com");
+    expect(VERIFY_CSP).toContain("https://static.cloudflareinsights.com");
+    expect(VERIFY_CSP).not.toMatch(/\*/); // no wildcards
   });
 });
 

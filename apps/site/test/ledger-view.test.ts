@@ -130,4 +130,69 @@ describe("ledger view", () => {
     expect(v.batches.size).toBe(0);
     expect(v.head).toBe(0);
   });
+  it("loads a SNAPSHOT in place of compacted events, then continues live after its seq", () => {
+    const verdict = (v: "allow" | "drop", category: string) => ({
+      verdict: v,
+      category,
+      confidence: 0.9,
+      rationale: "r",
+    });
+    const v = play([
+      { type: "HELLO", shard: "s", head: 900, previewChars: 280 },
+      // Stale state from before the reconnect is replaced, not merged.
+      { seq: 1, at: 1, type: "BATCH_OPENED", batchId: "batch-old" },
+      {
+        type: "SNAPSHOT",
+        seq: 900,
+        batches: [
+          {
+            batchId: "batch-7",
+            status: "SETTLED",
+            sealReason: "size",
+            attempt: 1,
+            openedAt: 10,
+            updatedAt: 20,
+            note: null,
+          },
+          {
+            batchId: "batch-8",
+            status: "OPEN",
+            sealReason: null,
+            attempt: 0,
+            openedAt: 30,
+            updatedAt: 30,
+            note: null,
+          },
+        ],
+        entries: [
+          {
+            ...entry("parent", { batchId: "batch-7", resources: ["ticket:9"] }),
+            status: "DROPPED",
+            verdict: verdict("drop", "xss"),
+            at: 11,
+            originStatus: null,
+            resolution: null,
+          },
+          {
+            ...entry("child", { batchId: "batch-7", resources: ["ticket:9"] }),
+            status: "DROPPED",
+            verdict: verdict("drop", "tainted"),
+            at: 12,
+            originStatus: null,
+            resolution: null,
+          },
+        ],
+        flaggedSessions: ["aaaa1111"],
+      },
+      // Already covered by the snapshot: skipped.
+      { seq: 900, at: 31, type: "BATCH_SEALED", batchId: "batch-8", reason: "timer" },
+      { seq: 901, at: 32, type: "ENTRY_APPENDED", entry: entry("live", { batchId: "batch-8" }) },
+    ]);
+    expect([...v.batches.keys()]).toEqual(["batch-7", "batch-8"]);
+    expect(v.batches.get("batch-8")?.status).toBe("OPEN");
+    expect(v.batches.get("batch-8")?.entryIds).toEqual(["live"]);
+    expect(v.entries.get("child")?.taintedBy).toBe("parent");
+    expect(v.flaggedSessions.has("aaaa1111")).toBe(true);
+    expect(v.head).toBe(901);
+  });
 });

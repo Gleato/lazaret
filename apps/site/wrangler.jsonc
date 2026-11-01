@@ -1,0 +1,24 @@
+// gleator.com: the static Astro build (./dist) on Workers static assets, plus a
+// three-line edge worker (edge/worker.ts) that sends www to the apex. Deployed with
+// `npm run deploy -w @gleator/site`, which builds with the production demo origin
+// and Turnstile site key first. Both hosts are Workers custom domains, so Cloudflare
+// manages their DNS records and certificates.
+{
+  "name": "gleator-site",
+  "main": "edge/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    // The worker sees www requests before assets do; everything else is a plain asset.
+    "run_worker_first": true
+  },
+  "routes": [
+    { "pattern": "gleator.com", "custom_domain": true },
+    { "pattern": "www.gleator.com", "custom_domain": true }
+  ],
+  "observability": { "enabled": true }
+}

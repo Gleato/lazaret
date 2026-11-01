@@ -1,7 +1,7 @@
-import type { CompiledOverlay } from "../config/define";
-import type { EntryState } from "../ledger/types";
-import { matchPattern } from "../routing/matcher";
-import type { PendingWrite } from "./merge";
+import type { CompiledOverlay } from "../config/define.ts";
+import type { EntryState } from "../ledger/types.ts";
+import { matchPattern } from "../routing/matcher.ts";
+import type { PendingWrite } from "./merge.ts";
 
 // Applying the overlay to a live response. Safety rules:
 //   - Only 200 JSON responses up to 2 MB are touched; anything else passes through.

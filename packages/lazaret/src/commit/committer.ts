@@ -1,5 +1,5 @@
-import type { EntryState } from "../ledger/types";
-import { signRequest } from "./sign";
+import type { EntryState } from "../ledger/types.ts";
+import { signRequest } from "./sign.ts";
 
 // The Committer is the "hands" (principle 2): it replays approved entries to origin
 // exactly as the client sent them, plus a signature. It makes no decisions; the

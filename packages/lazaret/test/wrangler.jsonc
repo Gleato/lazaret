@@ -10,7 +10,9 @@
     "bindings": [
       { "name": "LEDGER", "class_name": "Ledger" },
       { "name": "AUTO_LEDGER", "class_name": "AutoLedger" },
-      { "name": "MEMORY", "class_name": "Memory" }
+      { "name": "MEMORY", "class_name": "Memory" },
+      { "name": "COMPACT_LEDGER", "class_name": "CompactLedger" },
+      { "name": "LAZARET_BEHAVIOUR", "class_name": "Behaviour" }
     ]
   },
   "workflows": [
@@ -19,6 +21,8 @@
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["Ledger"] },
     { "tag": "v2", "new_sqlite_classes": ["AutoLedger"] },
-    { "tag": "v3", "new_sqlite_classes": ["Memory"] }
+    { "tag": "v3", "new_sqlite_classes": ["Memory"] },
+    { "tag": "v4", "new_sqlite_classes": ["CompactLedger"] },
+    { "tag": "v5", "new_sqlite_classes": ["Behaviour"] }
   ]
 }

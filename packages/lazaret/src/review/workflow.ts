@@ -1,12 +1,17 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
-import { createCommitter } from "../commit/committer";
-import type { ResolvedConfig } from "../config/define";
-import type { LazaretLedger, ReviewDispatch } from "../ledger/durable-object";
-import { AnthropicRuleProposer, type RuleProposer } from "../memory/distill";
-import type { LazaretMemory } from "../memory/store";
-import { meteredProposer, meteredReviewer, tierModel } from "./budget";
-import { AnthropicReviewer, type Reviewer } from "./client";
-import { type LedgerPort, type MemoryPort, runReviewPipeline, type StepRunner } from "./pipeline";
+import { createCommitter } from "../commit/committer.ts";
+import type { ResolvedConfig } from "../config/define.ts";
+import type { LazaretLedger, ReviewDispatch } from "../ledger/durable-object.ts";
+import { AnthropicRuleProposer, type RuleProposer } from "../memory/distill.ts";
+import type { LazaretMemory } from "../memory/store.ts";
+import { meteredProposer, meteredReviewer, tierModel } from "./budget.ts";
+import { AnthropicReviewer, type Reviewer } from "./client.ts";
+import {
+  type LedgerPort,
+  type MemoryPort,
+  runReviewPipeline,
+  type StepRunner,
+} from "./pipeline.ts";
 
 // The Review Workflow runs the pipeline as a Cloudflare Workflow. Workflows give
 // us server-side execution that survives crashes and deploys (principle 3), with

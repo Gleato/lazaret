@@ -10,7 +10,9 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "db:migrate:local": "wrangler d1 migrations apply tidewater --local"
+    "db:migrate:local": "wrangler d1 migrations apply tidewater --local",
+    "db:migrate:remote": "wrangler d1 migrations apply tidewater --remote",
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@gleator/lazaret": "*",

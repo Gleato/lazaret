@@ -1,5 +1,5 @@
-import type { GateSignal } from "./signals";
-import { SIGNATURES } from "./signatures";
+import type { GateSignal } from "./signals.ts";
+import { SIGNATURES } from "./signatures.ts";
 
 // Request inspection: turn untrusted bytes into canonical text + signals.
 //

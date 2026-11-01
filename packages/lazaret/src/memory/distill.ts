@@ -1,10 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Condition } from "../gate/rules";
-import { type ReviewOutcome, structuredCall } from "../review/client";
-import { encodeUntrusted } from "../review/prompt";
-import { VERDICT_CATEGORIES } from "../review/schema";
-import type { DistillInput } from "./store";
-import type { RuleProposal } from "./types";
+import type { Condition } from "../gate/rules.ts";
+import { type ReviewOutcome, structuredCall } from "../review/client.ts";
+import { encodeUntrusted } from "../review/prompt.ts";
+import { VERDICT_CATEGORIES } from "../review/schema.ts";
+import type { DistillInput } from "./store.ts";
+import type { RuleProposal } from "./types.ts";
 
 // The distiller turns the reviewer's past drops into candidate gate rules
 // (principle 5). Patterns the expensive model keeps catching become cheap

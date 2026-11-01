@@ -1,6 +1,6 @@
-import type { Policy, ResolvedConfig } from "../config/define";
-import type { CompiledRule, RuleContext } from "./rules";
-import { combineRisk, type GateSignal } from "./signals";
+import type { Policy, ResolvedConfig } from "../config/define.ts";
+import type { CompiledRule, RuleContext } from "./rules.ts";
+import { combineRisk, type GateSignal } from "./signals.ts";
 
 // The gate's verdict for one request: a risk score with the evidence behind it,
 // and whether that evidence is strong enough to reject at the edge without

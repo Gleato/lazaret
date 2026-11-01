@@ -1,6 +1,6 @@
-import type { Rule } from "../gate/rules";
-import type { GateSignal } from "../gate/signals";
-import type { Verdict } from "../ledger/types";
+import type { Rule } from "../gate/rules.ts";
+import type { GateSignal } from "../gate/signals.ts";
+import type { Verdict } from "../ledger/types.ts";
 
 // Memory vocabulary (principle 5: turn past execution logs into new memories).
 //

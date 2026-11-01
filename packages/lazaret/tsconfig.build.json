@@ -1,0 +1,18 @@
+// The npm build (M8): ESM + declarations + source maps into dist/, from src/ only.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "rewriteRelativeImportExtensions": true,
+    "declaration": true,
+    // Maps carry their sources inline: src/ isn't published, so a map pointing at it
+    // would lead nowhere.
+    "sourceMap": true,
+    "inlineSources": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": ["src"]
+}

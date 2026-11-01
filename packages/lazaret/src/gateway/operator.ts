@@ -1,11 +1,11 @@
-import { type Committer, TransientCommitError } from "../commit/committer";
-import type { ResolvedConfig } from "../config/define";
-import type { LazaretLedger, OperatorResult } from "../ledger/durable-object";
-import type { EntryState } from "../ledger/types";
-import { archiveRecord } from "../memory/sample";
-import type { DisputedWrite, LazaretMemory } from "../memory/store";
-import { json } from "./http";
-import { sha256Hex } from "./session";
+import { type Committer, TransientCommitError } from "../commit/committer.ts";
+import type { ResolvedConfig } from "../config/define.ts";
+import type { LazaretLedger, OperatorResult } from "../ledger/durable-object.ts";
+import type { EntryState } from "../ledger/types.ts";
+import { archiveRecord } from "../memory/sample.ts";
+import type { DisputedWrite, LazaretMemory } from "../memory/store.ts";
+import { json } from "./http.ts";
+import { sha256Hex } from "./session.ts";
 
 // The human review queue (M6.7). Quarantine said "held for a human", but until now
 // nothing let a human act on it, so a held write was a silent drop. Under

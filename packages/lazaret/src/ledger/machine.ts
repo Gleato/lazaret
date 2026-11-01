@@ -1,5 +1,5 @@
-import type { LedgerEvent } from "./events";
-import type { BatchState, BatchStatus, EntryState, EntryStatus, LedgerState } from "./types";
+import type { LedgerEvent } from "./events.ts";
+import type { BatchState, BatchStatus, EntryState, EntryStatus, LedgerState } from "./types.ts";
 
 // Pure state machine for the Ledger. No I/O, no clock, no randomness: given the same
 // events it always produces the same state, which is what makes crash recovery by

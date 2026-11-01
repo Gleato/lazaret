@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import {
   type CycleConfig,
   createGateway,
+  LazaretBehaviour,
   LazaretLedger,
   LazaretMemory,
   LazaretReviewWorkflow,
@@ -18,6 +19,7 @@ export interface Env extends GuardEnv {
   ORIGIN: Fetcher;
   LAZARET_LEDGER: DurableObjectNamespace<TidewaterLedger>;
   LAZARET_MEMORY: DurableObjectNamespace<TidewaterMemory>;
+  LAZARET_BEHAVIOUR: DurableObjectNamespace<TidewaterBehaviour>;
   LAZARET_REVIEW: Workflow<ReviewDispatch>;
   // Secrets, set with `wrangler secret put` (never committed):
   LAZARET_SIGNING_SECRET: string;
@@ -31,6 +33,9 @@ export class TidewaterLedger extends LazaretLedger {
 }
 
 export class TidewaterMemory extends LazaretMemory {}
+
+/** Per-session and per-IP behaviour windows (config.behaviour.store = "durable"). */
+export class TidewaterBehaviour extends LazaretBehaviour {}
 
 export class TidewaterReviewWorkflow extends LazaretReviewWorkflow<Env> {
   protected override lazaretConfig() {

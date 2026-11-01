@@ -4,11 +4,19 @@
   "name": "tidewater-lazaret",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
+  // Public only at demo.gleator.com (a Workers custom domain: Cloudflare manages its
+  // DNS record and certificate). No workers.dev URL, so every visitor meets the same
+  // guard, CORS policy and Turnstile hostname.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "demo.gleator.com", "custom_domain": true }],
+  "observability": { "enabled": true },
   "services": [{ "binding": "ORIGIN", "service": "tidewater-origin" }],
   "durable_objects": {
     "bindings": [
       { "name": "LAZARET_LEDGER", "class_name": "TidewaterLedger" },
-      { "name": "LAZARET_MEMORY", "class_name": "TidewaterMemory" }
+      { "name": "LAZARET_MEMORY", "class_name": "TidewaterMemory" },
+      { "name": "LAZARET_BEHAVIOUR", "class_name": "TidewaterBehaviour" }
     ]
   },
   "workflows": [
@@ -18,21 +26,32 @@
       "class_name": "TidewaterReviewWorkflow"
     }
   ],
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TidewaterLedger", "TidewaterMemory"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["TidewaterLedger", "TidewaterMemory"] },
+    // M8: behaviour samples in a Durable Object per session and per IP.
+    { "tag": "v2", "new_sqlite_classes": ["TidewaterBehaviour"] }
+  ],
   // Every minute: sweep re-dispatches any sealed batch whose review never started.
   // On the hour: the demo reset (src/guard.ts).
   "triggers": { "crons": ["* * * * *", "0 * * * *"] },
   // Per-IP limits for the public demo (src/guard.ts). Periods can only be 10 or 60 s.
+  // Namespace ids are account-wide integers; these are picked to stay clear of the
+  // account's other projects.
   "ratelimits": [
-    { "name": "WRITE_LIMIT", "namespace_id": "7001", "simple": { "limit": 30, "period": 60 } },
-    { "name": "PASS_LIMIT", "namespace_id": "7002", "simple": { "limit": 3, "period": 60 } }
+    { "name": "WRITE_LIMIT", "namespace_id": "41871", "simple": { "limit": 30, "period": 60 } },
+    { "name": "PASS_LIMIT", "namespace_id": "41872", "simple": { "limit": 3, "period": 60 } }
   ],
   "vars": {
     // Browser origins allowed to call the demo (the gleator.com console), comma-separated.
-    "DEMO_SITE_ORIGINS": "https://gleator.com"
+    // www.gleator.com redirects to the apex (apps/site/edge/worker.ts), so it never calls.
+    "DEMO_SITE_ORIGINS": "https://gleator.com",
+    // The Turnstile widget's public site key, for /demo/verify (the Tidewater UI's own
+    // check). The site gets the same key at build time (PUBLIC_TURNSTILE_SITE_KEY).
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAFvvMgNi15gwPGyt"
   }
-  // Secrets (set by you, never committed):
-  //   npx wrangler secret put LAZARET_SIGNING_SECRET   (same value as tidewater-origin)
-  //   npx wrangler secret put ANTHROPIC_API_KEY
-  //   npx wrangler secret put TURNSTILE_SECRET         (and TURNSTILE_SITE_KEY as a var, M8)
+  // Secrets (set by you, never committed; `-c apps/demo-lazaret/wrangler.jsonc`):
+  //   LAZARET_SIGNING_SECRET   same value as tidewater-origin's (≥ 32 chars)
+  //   ANTHROPIC_API_KEY        the reviewer's key
+  //   TURNSTILE_SECRET         the Turnstile widget's secret key
+  //   LAZARET_OPERATOR_TOKEN   bearer token for /__lazaret/operator/* (≥ 16 chars)
 }

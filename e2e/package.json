@@ -1,0 +1,16 @@
+{
+  "name": "@gleator/e2e",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Playwright E2E against the deployed demo (demo.gleator.com). Costs real model calls; never part of `npm test`.",
+  "type": "module",
+  "scripts": {
+    "test:prod": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^22.15.17",
+    "typescript": "^7.0.2"
+  }
+}

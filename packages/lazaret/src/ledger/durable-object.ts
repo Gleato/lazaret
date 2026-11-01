@@ -1,9 +1,18 @@
 import { DurableObject } from "cloudflare:workers";
-import { combineRisk } from "../gate/signals";
-import { type BudgetStatus, GLOBAL_BUDGET_KEY, SpendTable } from "../review/budget";
-import { RECEIPT_PLACEHOLDER } from "../routing/matcher";
-import type { LedgerEvent, StoredEvent } from "./events";
-import { applyEvent, initialState, nextBatchId } from "./machine";
+import { combineRisk } from "../gate/signals.ts";
+import { type BudgetStatus, GLOBAL_BUDGET_KEY, SpendTable } from "../review/budget.ts";
+import { RECEIPT_PLACEHOLDER } from "../routing/matcher.ts";
+import {
+  type CompactionConfig,
+  DEFAULT_COMPACTION,
+  migrateSnapshot,
+  pruneState,
+  readSnapshot,
+  validateCompactionConfig,
+  writeSnapshot,
+} from "./compaction.ts";
+import type { LedgerEvent, StoredEvent } from "./events.ts";
+import { applyEvent, initialState, nextBatchId } from "./machine.ts";
 import {
   type LiveFrame,
   type ObservedInput,
@@ -11,15 +20,16 @@ import {
   publicEntry,
   publicEvent,
   publicObservation,
-} from "./public";
-import { applyTaint } from "./taint";
+  publicSnapshot,
+} from "./public.ts";
+import { applyTaint } from "./taint.ts";
 import {
   type CycleConfig,
   DEFAULT_CYCLE,
   sealDeadline,
   sealReasonAfterAppend,
   validateCycleConfig,
-} from "./triggers";
+} from "./triggers.ts";
 import type {
   BatchStatus,
   EntryInput,
@@ -28,7 +38,7 @@ import type {
   OperatorDecision,
   SealReason,
   VerdictRecord,
-} from "./types";
+} from "./types.ts";
 
 // The Ledger is the harness (principle 1): it owns the escrow loop and the state
 // machine, and is the only thing allowed to change batch/entry state. The Review
@@ -39,6 +49,8 @@ import type {
 //   - Every change is an event appended to `ledger_events` in this object's SQLite.
 //   - In-memory state is a projection rebuilt by replaying the log on startup, so an
 //     eviction or crash loses nothing that was acknowledged.
+//   - Once the log is long, it is compacted (M8, compaction.ts): the projection is
+//     snapshotted and replay becomes snapshot + tail.
 //   - Multi-event operations run in one transaction: all events land or none do.
 //
 // Retry model (principle 4): every method the Review Workflow calls is idempotent
@@ -92,11 +104,13 @@ export interface ReviewDispatch {
 export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
   #state: LedgerState = initialState();
   readonly #cycle: CycleConfig;
+  readonly #compaction: CompactionConfig;
   #spendTable: SpendTable | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.#cycle = validateCycleConfig(this.cycleConfig());
+    this.#compaction = validateCompactionConfig(this.compactionConfig());
     // Answered by the runtime without waking a hibernated object.
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
     ctx.blockConcurrencyWhile(async () => {
@@ -109,6 +123,11 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
   /** Override to change cycle triggers. Called once per instance. */
   protected cycleConfig(): CycleConfig {
     return DEFAULT_CYCLE;
+  }
+
+  /** Override to change log compaction (ledger/compaction.ts). Called once per instance. */
+  protected compactionConfig(): CompactionConfig {
+    return DEFAULT_COMPACTION;
   }
 
   /**
@@ -345,12 +364,55 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
   settle(batchId: string): void {
     if (this.#state.batches[batchId]?.status === "SETTLED") return;
     this.#commit([{ type: "BATCH_SETTLED", batchId, at: this.now() }]);
+    // A batch reaching an end state is when the log has something to compact.
+    this.#compactQuietly();
   }
 
   /** Fail closed: hold the whole batch for second review instead of committing. Idempotent. */
   quarantine(batchId: string, reason: string): void {
     if (this.#state.batches[batchId]?.status === "QUARANTINED") return;
     this.#commit([{ type: "BATCH_QUARANTINED", batchId, reason, at: this.now() }]);
+    this.#compactQuietly();
+  }
+
+  /**
+   * Compact the log once it holds more than `minEvents` (or now, with `force`):
+   * prune terminal batches past retention, snapshot the projection, and delete the
+   * events the snapshot covers except the last `keepEvents`. One transaction, so a
+   * crash leaves either the old log or the new snapshot + tail, and both replay to
+   * the same state. Called after settle/quarantine; also an operator/test hook.
+   */
+  compact(force = false): {
+    compacted: boolean;
+    seq: number;
+    deletedEvents: number;
+    pruned: { batches: number; entries: number; flags: number };
+  } {
+    const stored = this.#storedEvents();
+    const none = { batches: 0, entries: 0, flags: 0 };
+    if (!force && stored.count <= this.#compaction.minEvents) {
+      return { compacted: false, seq: this.#state.seq, deletedEvents: 0, pruned: none };
+    }
+    const at = this.now();
+    const sql = this.ctx.storage.sql;
+    const cutoff = this.#state.seq - this.#compaction.keepEvents;
+    let deletedEvents = 0;
+    let pruned = none;
+    try {
+      this.ctx.storage.transactionSync(() => {
+        pruned = pruneState(this.#state, at, this.#compaction.retainSettledMs, SESSION_FLAG_TTL_MS);
+        writeSnapshot(sql, this.#state, at);
+        deletedEvents = sql.exec("DELETE FROM ledger_events WHERE seq <= ?", cutoff).rowsWritten;
+      });
+    } catch (err) {
+      // pruneState may have run on the projection; the log is unchanged, so rebuild.
+      this.#state = this.#replayFromLog();
+      throw err;
+    }
+    console.log(
+      JSON.stringify({ lazaret: "ledger_compacted", seq: this.#state.seq, deletedEvents, pruned }),
+    );
+    return { compacted: true, seq: this.#state.seq, deletedEvents, pruned };
   }
 
   // ── Operator (M6.7) ──────────────────────────────────────────────────────────
@@ -509,7 +571,10 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
     return structuredClone(this.#state);
   }
 
-  /** Page through the event log (used by the live visualiser and by tests). */
+  /**
+   * Page through the event log (used by the live visualiser and by tests). After
+   * compaction it starts at the oldest kept event; `getState()` is the full picture.
+   */
   getEvents(afterSeq = 0, limit = 500): StoredEvent[] {
     return this.ctx.storage.sql
       .exec<{ seq: number; payload: string }>(
@@ -624,7 +689,12 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
       if (frames.length) server.send(JSON.stringify(frames));
     };
     send([{ type: "HELLO", shard, head: this.#state.seq, previewChars }]);
-    for (let cursor = from; ; ) {
+    // The events after `from` were compacted away: send the current state instead, and
+    // the viewer continues live from its seq.
+    const { oldest } = this.#storedEvents();
+    const compacted = from < this.#state.seq && (oldest === null || oldest > from + 1);
+    if (compacted) send([publicSnapshot(this.#state, previewChars)]);
+    for (let cursor = compacted ? this.#state.seq : from; ; ) {
       const page = this.getEvents(cursor, 500);
       if (!page.length) break;
       send(page.map((e) => publicEvent(e, previewChars)));
@@ -837,6 +907,28 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
       .map((row) => JSON.parse(row.payload) as ReturnType<typeof publicObservation>);
   }
 
+  /**
+   * Compaction is housekeeping: it must never fail the settle or quarantine that
+   * triggered it (those already committed). A failure is logged and retried at the
+   * next one.
+   */
+  #compactQuietly(): void {
+    try {
+      this.compact();
+    } catch (err) {
+      console.error(JSON.stringify({ lazaret: "ledger_compaction_failed", error: String(err) }));
+    }
+  }
+
+  /** Rows in the log and the oldest kept seq. The log only loses a prefix, so it's contiguous. */
+  #storedEvents(): { count: number; oldest: number | null } {
+    const row = this.ctx.storage.sql
+      .exec<{ oldest: number | null }>("SELECT MIN(seq) AS oldest FROM ledger_events")
+      .one();
+    const oldest = row.oldest;
+    return { count: oldest === null ? 0 : this.#state.seq - oldest + 1, oldest };
+  }
+
   #migrate(): void {
     this.ctx.storage.sql.exec(`
       CREATE TABLE IF NOT EXISTS ledger_events (
@@ -854,14 +946,15 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
         payload TEXT    NOT NULL
       )
     `);
+    migrateSnapshot(this.ctx.storage.sql);
   }
 
-  // TODO(M5): replay is O(log length). Once settled batches are archived to R2 we can
-  // snapshot the projection and replay only the tail.
+  // Replay is the snapshot (if the log was ever compacted) plus the events after it.
   #replayFromLog(): LedgerState {
-    const state = initialState();
+    const state = readSnapshot(this.ctx.storage.sql) ?? initialState();
     const rows = this.ctx.storage.sql.exec<{ seq: number; payload: string }>(
-      "SELECT seq, payload FROM ledger_events ORDER BY seq",
+      "SELECT seq, payload FROM ledger_events WHERE seq > ? ORDER BY seq",
+      state.seq,
     );
     for (const row of rows) {
       applyEvent(state, JSON.parse(row.payload) as LedgerEvent);

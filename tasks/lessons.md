@@ -17,3 +17,21 @@
 - **Rule:** when work (mine or a subagent's) uncovers a defect in what we're building, it
   becomes part of the current task: fix it, test it, re-measure. Only park it if the user
   says so. A milestone isn't done while a known defect undermines the thing it claims to show.
+
+## Measure a latency budget in production before calling the design done (2026-11-01, M8)
+- **What happened:** the shared behaviour store awaited a Durable Object behind a 25 ms
+  deadline. Every test passed, and local workerd was fast. On the live demo, the
+  lookup was 25 ms at p50 *and* p95: every request paid the deadline and still fell
+  back to local counts. The SQLite write in the Durable Object, which the reply waits
+  to commit, was the cost.
+- **Rule:** anything on the request path that adds I/O gets a `Server-Timing` (or
+  equivalent) and a production measurement before it is called done. Prefer designs
+  that keep remote state off the critical path (sync in `waitUntil`, use the last-known
+  view).
+
+## Never read a terminal tab while it may hold a secret (2026-11-01, M8)
+- **What happened:** I read the user's secrets tab to see why it was waiting, and the
+  `openssl rand` signing secret it had just printed came into my context.
+- **Rule:** once a tab is for secrets, don't read it. Ask the user what it shows, or
+  check the outcome by other means (`wrangler secret list`, `npm whoami`). When one
+  comes into view anyway, say so at once and offer to rotate it.

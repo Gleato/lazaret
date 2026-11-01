@@ -1,4 +1,4 @@
-import type { GateSignal } from "./signals";
+import type { GateSignal } from "./signals.ts";
 
 // Behavioural scoring: does this client act like a person or an automated agent?
 // Content signatures can't see a credential-stuffing swarm whose every request
@@ -8,10 +8,13 @@ import type { GateSignal } from "./signals";
 // The scoring is a pure function of recent samples. Where samples live is
 // pluggable. `MemoryBehaviourStore` is per-isolate and best-effort: Cloudflare
 // usually routes one client to the same isolate, but not always, so it
-// under-counts rather than over-counts. A Durable Object-backed store for
-// cross-isolate and cross-IP (swarm) views can slot in behind the same interface.
+// under-counts rather than over-counts. `DurableBehaviourStore`
+// (behaviour-durable.ts, M8) keeps them in a Durable Object per key, so every
+// isolate sees the same counts.
 
 export interface BehaviourSample {
+  /** Set by stores that must find the sample again to record its status (durable). */
+  id?: string;
   at: number;
   method: string;
   path: string;
@@ -22,8 +25,23 @@ export interface BehaviourSample {
 }
 
 export interface BehaviourStore {
-  /** Record a sample under `key` and return that key's samples in the window (including this one). */
-  record(key: string, sample: BehaviourSample): BehaviourSample[];
+  /**
+   * Record a sample under `key` and return that key's samples in the window
+   * (including this one). `env` carries bindings for stores that need them;
+   * `background` (the request's waitUntil) carries work that must not delay it.
+   */
+  record(
+    key: string,
+    sample: BehaviourSample,
+    env?: object,
+    background?: (work: Promise<unknown>) => void,
+  ): BehaviourSample[] | Promise<BehaviourSample[]>;
+  /**
+   * The sample's `status` was just set (origin answered, or Lazaret refused). A store
+   * that holds the same object, like the memory store, has nothing to do; one that
+   * holds a copy elsewhere must be told. Never awaited on the request path.
+   */
+  settle?(keys: string[], sample: BehaviourSample, env?: object): Promise<void>;
 }
 
 export class MemoryBehaviourStore implements BehaviourStore {

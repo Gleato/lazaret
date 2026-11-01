@@ -12,4 +12,4 @@ export {
   HEADER_TIMESTAMP,
   type VerifyResult,
   verifyLazaretRequest,
-} from "../commit/sign";
+} from "../commit/sign.ts";

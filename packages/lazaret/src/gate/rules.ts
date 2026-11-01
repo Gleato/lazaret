@@ -1,4 +1,4 @@
-import type { GateSignal } from "./signals";
+import type { GateSignal } from "./signals.ts";
 
 // The rule DSL. Rules are *data*, not code, so they can be written by users, and
 // later (M5) promoted automatically from what the reviewer learns, without ever

@@ -11,10 +11,12 @@ Workers that holds every write bound for your origin in a stateful ledger. An
 independent Claude reviewer vets each batch, and only writes that pass reach your
 server. Writes that fail are dropped, along with anything that depends on them.
 
-> **Status: early development.** The library (Ledger, gateway and gate, Claude reviewer,
-> review workflow, signed committer, read overlay, self-improving memory, spend cap, live
-> event stream), the Tidewater Support demo app, the eval suite and the gleator.com site
-> are built and tested locally. Deploying to [gleator.com](https://gleator.com) is next.
+> **Status: the demo is live.** [demo.gleator.com](https://demo.gleator.com) is the
+> Tidewater Support helpdesk behind a real Lazaret deployment, on live Claude models. A
+> Playwright suite checks it in production: every canned attack is kept out of
+> Tidewater's database, and honest writes get through. The library is
+> [`@gleator/lazaret`](packages/lazaret) 0.1.0. The gleator.com site launches with a
+> redesign.
 
 ## How it works
 
@@ -66,11 +68,23 @@ randomness. The Durable Object
 ([`durable-object.ts`](packages/lazaret/src/ledger/durable-object.ts)) is a thin
 shell that persists events atomically in SQLite and replays them on startup.
 
+The log doesn't grow forever. Past 2,000 events, the Ledger snapshots its projection,
+replays from snapshot + tail, and keeps only the last 500 events for live viewers
+([`compaction.ts`](packages/lazaret/src/ledger/compaction.ts)). It prunes a batch only
+when the batch is settled, every entry is committed or dropped, and it is older than a
+retention window (7 days by default). A batch holding anything a human still has to
+decide is never pruned. A property test replays random histories and checks that the
+compacted state equals a full replay, apart from the pruned batches.
+
 ## Put Lazaret in front of your own API
 
 Lazaret is a Cloudflare Worker that sits in front of your origin. The worked example
 is [Tidewater Support](apps/demo-origin), a helpdesk that knew nothing about Lazaret,
 and [its Lazaret deployment](apps/demo-lazaret). The steps below follow that example.
+
+```bash
+npm install @gleator/lazaret
+```
 
 **1. Describe your routes.** One config holds the whole policy. Each route is passed
 through, reviewed inline, escrowed, or blocked. Escrowed writes declare the resources
@@ -196,6 +210,46 @@ a WebSocket stream of the Ledger at `/__lazaret/live`, plus `/__lazaret/status`,
 headers, tokens, IPs or queries, 8-character session hashes, and bodies cut to
 `live.bodyPreviewChars`. Acting on the queue still needs the operator token.
 
+**11. Share behaviour counts across isolates (recommended in production).** Rate,
+timing and failure scoring is per isolate by default, and Cloudflare can spread one
+client across several isolates. That client is often a credential-stuffing swarm.
+`behaviour: { store: "durable" }`, with a `LazaretBehaviour` Durable Object bound as
+`LAZARET_BEHAVIOUR`, gives every session and IP one shared window
+([`behaviour-durable.ts`](packages/lazaret/src/gate/behaviour-durable.ts)). The gate never
+waits on it. It scores from the isolate's own samples plus the last shared window, and
+syncs in the background, so the shared view lags by one request. On the live demo
+(2026-11-01), the lookup reports 0 ms at p50 and p95 in its `Server-Timing` header.
+The first version awaited the Durable Object behind a 25 ms deadline, which it hit at
+p50 _and_ p95, so that version was replaced.
+
+### Deploy it
+
+The live demo is three Workers in one Cloudflare account:
+
+| Host               | Worker                                                                                            | Config                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `demo.gleator.com` | `tidewater-lazaret`: the gateway, Ledger, Memory, behaviour store, review Workflow and demo guard | [`apps/demo-lazaret/wrangler.jsonc`](apps/demo-lazaret/wrangler.jsonc) |
+| none               | `tidewater-origin`: reachable only through the gateway's service binding, on D1                   | [`apps/demo-origin/wrangler.jsonc`](apps/demo-origin/wrangler.jsonc)   |
+| `gleator.com`      | `gleator-site`: the static site (launching with a redesign)                                       | [`apps/site/wrangler.jsonc`](apps/site/wrangler.jsonc)                 |
+
+```bash
+npx wrangler login
+npx wrangler d1 create tidewater          # put the id in apps/demo-origin/wrangler.jsonc
+npm run db:migrate:remote -w @gleator/tidewater-origin
+npm run deploy:origin                     # first: it is the gateway's binding target
+npm run deploy:demo
+```
+
+Secrets go in with `npx wrangler secret put <NAME> -c <config>`. Never put them in code.
+
+- origin: `LAZARET_SIGNING_SECRET` and `ANTHROPIC_API_KEY` (Tidewater's own agent).
+- gateway: the same `LAZARET_SIGNING_SECRET`, plus `ANTHROPIC_API_KEY`, `TURNSTILE_SECRET`
+  and `LAZARET_OPERATOR_TOKEN`.
+
+The signing secret is shared and must be identical on both; `openssl rand -base64 48`
+makes a good one. The Turnstile site key is public, so it lives in the config. Custom
+domains create their own DNS records and certificates.
+
 ### Try it locally
 
 The demo runs offline with a scripted reviewer in place of Claude, so it needs no API
@@ -287,6 +341,23 @@ The test suite covers illegal transitions, atomic rollback, and crash recovery: 
 evicts a live Durable Object mid-review and checks that the rebuilt state is
 identical and that no write is committed twice.
 
+**Against production.** [`e2e/`](e2e) is a Playwright suite for the deployed demo,
+run by hand, never in `npm test`. It fires each of the console's canned exhibits, using
+live models and a demo pass minted with the operator token. It then queries Tidewater's
+own D1 through wrangler. `lazaret_requests` is origin's log of every signed write it
+accepted, so "the attack never reached origin" is a direct query, not Lazaret vouching
+for itself. It also loads the UI at desktop and phone widths. A run costs about $0.06–0.15.
+
+```bash
+cp e2e/.env.example e2e/.env    # then add LAZARET_OPERATOR_TOKEN
+npm run e2e:prod
+```
+
+**The package.** `npm run build -w @gleator/lazaret` compiles to `packages/lazaret/dist`,
+with its own manifest. In the repo, the apps run straight from the TypeScript source.
+`npm run smoke:pack -w @gleator/lazaret` installs the packed tarball into an empty
+Worker, typechecks it under both `Bundler` and `NodeNext` resolution, and bundles it.
+
 ## Roadmap
 
 - [x] M1: Ledger core (event log, state machine, seal triggers, crash recovery)
@@ -297,7 +368,9 @@ identical and that no write is committed twice.
 - [x] M6: Demo origin (Tidewater Support helpdesk) and evals, plus the human review queue
 - [x] M7: gleator.com site, live ledger visualiser, attack console, evals and memory
   panels, spend cap, demo guard
-- [ ] M8: deploy and launch
+- [ ] M8: log compaction and a shared behaviour store (done), the demo deployed and
+  checked by a production E2E suite (done), the npm package, and the gleator.com launch
+  with the redesign
 
 The full spec is in [`tasks/todo.md`](tasks/todo.md).
 

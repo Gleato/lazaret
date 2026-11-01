@@ -1,17 +1,45 @@
 {
   "name": "@gleator/lazaret",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "An AI quarantine for your writes: an edge harness that holds mutations in a ledger until an independent reviewer vets them.",
   "license": "MIT",
+  "author": "Gleato",
+  "homepage": "https://github.com/Gleato/lazaret#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gleato/lazaret.git",
+    "directory": "packages/lazaret"
+  },
+  "bugs": {
+    "url": "https://github.com/Gleato/lazaret/issues"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "durable-objects",
+    "security",
+    "waf",
+    "llm",
+    "claude",
+    "ai-agents",
+    "prompt-injection",
+    "escrow"
+  ],
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./origin": "./src/origin/index.ts",
     "./public": "./src/ledger/public.ts"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node scripts/build-manifest.mjs",
+    "prepublishOnly": "echo 'Publish the built package: npm run build && npm publish ./dist' && exit 1",
+    "smoke:pack": "bash scripts/smoke-pack.sh"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.9",

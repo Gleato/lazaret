@@ -1,11 +1,11 @@
 import { DurableObject } from "cloudflare:workers";
-import { compileRule, type Rule } from "../gate/rules";
+import { compileRule, type Rule } from "../gate/rules.ts";
 import {
   backtest,
   pendingExpired,
   statusAfterBacktest,
   statusAfterLiveEvidence,
-} from "./lifecycle";
+} from "./lifecycle.ts";
 import {
   ACTIVE_STATUSES,
   type ActiveRuleSpec,
@@ -16,7 +16,7 @@ import {
   type RuleProposal,
   type RuleSample,
   type RuleStatus,
-} from "./types";
+} from "./types.ts";
 
 // The Memory is a Durable Object holding the verdict archive and the learned
 // rules (principle 5). It is deliberately separate from the Ledger: the Ledger is

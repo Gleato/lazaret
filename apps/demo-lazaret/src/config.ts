@@ -77,6 +77,9 @@ export function tidewaterConfig(overrides: Partial<LazaretConfig> = {}): Lazaret
     routes: TIDEWATER_ROUTES,
     // Lazaret's session is Tidewater's login: the bearer token, hashed.
     session: { header: "authorization" },
+    // Behaviour counts shared by every isolate (M8, decision-log #4): the credential-
+    // stuffing exhibit is exactly the traffic Cloudflare may spread across isolates.
+    behaviour: { store: "durable" },
     // Demo pacing (§7): a 30 s cycle, so visitors see a batch go through review.
     cycle: { intervalSec: 30, maxEntries: 50, riskSpikeThreshold: 0.8 },
     gate: { maxBodyBytes: 96 * 1024 },

@@ -1,4 +1,4 @@
-import type { ResolvedConfig } from "../config/define";
+import type { ResolvedConfig } from "../config/define.ts";
 
 // Session identity drives two things: the author-only read overlay (M4) and
 // per-session behaviour/taint. Raw cookies and tokens are hashed before use, so

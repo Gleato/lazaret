@@ -1,5 +1,5 @@
-import { type CompiledRule, compileRule } from "../gate/rules";
-import type { MemoryRule, MemoryThresholds, RuleSample, RuleStatus } from "./types";
+import { type CompiledRule, compileRule } from "../gate/rules.ts";
+import type { MemoryRule, MemoryThresholds, RuleSample, RuleStatus } from "./types.ts";
 
 // Pure decision logic for rule trust. Kept apart from storage so the policy is
 // easy to read and test exhaustively.

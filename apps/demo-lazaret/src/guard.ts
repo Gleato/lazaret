@@ -30,6 +30,15 @@ import {
 //
 // Everything here fails toward "no": a guard check that throws refuses the request.
 
+/** The Turnstile check page's CSP (exported for its test). */
+export const VERIFY_CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com",
+  "frame-src https://challenges.cloudflare.com",
+  "connect-src 'self' https://cloudflareinsights.com",
+  "style-src 'unsafe-inline'",
+].join("; ");
+
 const PASS_TTL_MS = 30 * 60_000;
 const PASS_COOKIE = "demo_pass";
 const PER_IP_DAILY_USD = 0.25;
@@ -49,6 +58,8 @@ export interface GuardEnv {
   LAZARET_SIGNING_SECRET: string;
   TURNSTILE_SECRET?: string;
   TURNSTILE_SITE_KEY?: string;
+  /** The operator API's token; also mints a demo pass without Turnstile (the E2E suite). */
+  LAZARET_OPERATOR_TOKEN?: string;
   /** Comma-separated origins allowed to call the demo from a browser (the site). */
   DEMO_SITE_ORIGINS?: string;
   WRITE_LIMIT?: RateLimit;
@@ -121,9 +132,20 @@ export function createGuard(gateway: Gateway, options: GuardOptions) {
         }
         const secret = env.TURNSTILE_SECRET;
         if (!secret) return reply(503, { error: "demo_closed" });
-        const token = await readToken(request);
-        if (!token || !(await verifyTurnstile(token, ip, secret).catch(() => false))) {
-          return reply(403, { error: "turnstile_failed" });
+        const bearer = request.headers.get("authorization");
+        if (bearer !== null) {
+          // M8: an automated check (the production E2E suite, e2e/) can't pass Turnstile,
+          // by design. The operator token stands in for it and skips Turnstile only: the
+          // pass limit above, the write limits, the per-IP share and the spend cap all
+          // still apply. A wrong token is refused outright, never retried as Turnstile.
+          if (!(await operatorBearer(bearer, env.LAZARET_OPERATOR_TOKEN))) {
+            return reply(403, { error: "turnstile_failed" });
+          }
+        } else {
+          const token = await readToken(request);
+          if (!token || !(await verifyTurnstile(token, ip, secret).catch(() => false))) {
+            return reply(403, { error: "turnstile_failed" });
+          }
         }
         const expires = now() + PASS_TTL_MS;
         const pass = await mintPass(env.LAZARET_SIGNING_SECRET, expires);
@@ -143,8 +165,10 @@ export function createGuard(gateway: Gateway, options: GuardOptions) {
             headers: {
               "content-type": "text/html; charset=utf-8",
               "cache-control": "no-store",
-              "content-security-policy":
-                "default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; style-src 'unsafe-inline'",
+              // Turnstile needs its script and frame. Cloudflare Web Analytics, which
+              // the zone injects into HTML responses, needs its beacon script and
+              // endpoint; without them every visit logged a CSP error (found in M8).
+              "content-security-policy": VERIFY_CSP,
             },
           },
         );
@@ -403,6 +427,15 @@ export async function checkPass(secret: string, pass: string, at: number): Promi
     bytes,
     new TextEncoder().encode(`demo-pass.v1.${expires}`),
   );
+}
+
+/** `Bearer <token>` against the operator token, compared as digests (no timing leak). */
+async function operatorBearer(header: string, token: string | undefined): Promise<boolean> {
+  if (typeof token !== "string" || token.length < 16) return false;
+  const given = /^Bearer\s+(\S+)$/.exec(header)?.[1];
+  if (!given) return false;
+  const [a, b] = await Promise.all([hashHex(given), hashHex(token)]);
+  return a === b;
 }
 
 async function hashHex(input: string): Promise<string> {

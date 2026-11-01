@@ -1,8 +1,8 @@
-import { decode } from "../gate/inspect";
-import { combineRisk } from "../gate/signals";
-import type { Actor } from "../gateway/actor";
-import type { EntryState, VerdictRecord } from "../ledger/types";
-import { MEMORY_SIGNAL_PREFIX } from "../memory/types";
+import { decode } from "../gate/inspect.ts";
+import { combineRisk } from "../gate/signals.ts";
+import type { Actor } from "../gateway/actor.ts";
+import type { EntryState, VerdictRecord } from "../ledger/types.ts";
+import { MEMORY_SIGNAL_PREFIX } from "../memory/types.ts";
 
 // Prompt construction for the reviewer.
 //

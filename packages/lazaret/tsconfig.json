@@ -2,6 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "types": ["@cloudflare/workers-types", "@cloudflare/vitest-plugin/types"]
+    // allowImportingTsExtensions comes from the base: source imports name their .ts
+    // files, and the build rewrites them to .js (tsconfig.build.json), so the published
+    // package resolves under every module resolution mode, not only bundlers.
   },
   "include": ["src", "test", "vitest.config.ts"]
 }

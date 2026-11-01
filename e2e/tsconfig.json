@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "resolveJsonModule": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "test-results", "playwright-report"]
+}

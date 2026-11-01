@@ -9,7 +9,8 @@
   "durable_objects": {
     "bindings": [
       { "name": "LAZARET_LEDGER", "class_name": "TestLedger" },
-      { "name": "LAZARET_MEMORY", "class_name": "TidewaterMemory" }
+      { "name": "LAZARET_MEMORY", "class_name": "TidewaterMemory" },
+      { "name": "LAZARET_BEHAVIOUR", "class_name": "TidewaterBehaviour" }
     ]
   },
   "workflows": [
@@ -19,5 +20,8 @@
       "class_name": "TestReviewWorkflow"
     }
   ],
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TestLedger", "TidewaterMemory"] }]
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["TestLedger", "TidewaterMemory"] },
+    { "tag": "v2", "new_sqlite_classes": ["TidewaterBehaviour"] }
+  ]
 }

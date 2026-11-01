@@ -1,8 +1,8 @@
-import type { ResolvedConfig } from "../config/define";
-import type { LazaretLedger } from "../ledger/durable-object";
-import type { LazaretMemory } from "../memory/store";
-import type { BudgetStatus } from "../review/budget";
-import { json } from "./http";
+import type { ResolvedConfig } from "../config/define.ts";
+import type { LazaretLedger } from "../ledger/durable-object.ts";
+import type { LazaretMemory } from "../memory/store.ts";
+import type { BudgetStatus } from "../review/budget.ts";
+import { json } from "./http.ts";
 
 // The public, read-only face of a Lazaret deployment (M7), on when `live.enabled`:
 //

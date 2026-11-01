@@ -10,7 +10,9 @@
     "preview": "astro preview --port 4321",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "record": "node --experimental-strip-types scripts/record.ts"
+    "record": "node --experimental-strip-types scripts/record.ts",
+    "build:prod": "PUBLIC_DEMO_ORIGIN=https://demo.gleator.com PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAFvvMgNi15gwPGyt astro build",
+    "deploy": "npm run build:prod && wrangler deploy"
   },
   "dependencies": {
     "astro": "^7.4.3"
@@ -19,6 +21,7 @@
     "@gleator/lazaret": "*",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5",
-    "@types/node": "^22.15.17"
+    "@types/node": "^22.15.17",
+    "wrangler": "^4.154.0"
   }
 }

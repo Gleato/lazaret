@@ -1,4 +1,4 @@
-import type { EntryInput, OperatorDecision, SealReason, VerdictRecord } from "./types";
+import type { EntryInput, OperatorDecision, SealReason, VerdictRecord } from "./types.ts";
 
 // The append-only event log is the source of truth (principle 3). Every state change
 // is one of these events; the in-memory state is a fold over them. Events carry

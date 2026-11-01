@@ -1,4 +1,4 @@
-import type { ResolvedConfig } from "../config/define";
+import type { ResolvedConfig } from "../config/define.ts";
 
 // Who is making an inline-reviewed request, according to origin.
 //

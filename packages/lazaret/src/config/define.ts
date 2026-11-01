@@ -1,7 +1,7 @@
-import { type CompiledRule, compileRule, type Rule } from "../gate/rules";
-import { type CycleConfig, DEFAULT_CYCLE, validateCycleConfig } from "../ledger/triggers";
-import { builtinMerge, type MergeFn, type OverlayConfig } from "../overlay/merge";
-import { type CompiledPattern, compilePattern, templateParams } from "../routing/matcher";
+import { type CompiledRule, compileRule, type Rule } from "../gate/rules.ts";
+import { type CycleConfig, DEFAULT_CYCLE, validateCycleConfig } from "../ledger/triggers.ts";
+import { builtinMerge, type MergeFn, type OverlayConfig } from "../overlay/merge.ts";
+import { type CompiledPattern, compilePattern, templateParams } from "../routing/matcher.ts";
 
 // `defineLazaret` is the single place a deployment is described. It validates
 // everything up front and reports *all* problems at once, so a bad config fails
@@ -65,6 +65,15 @@ export interface LazaretConfig {
   };
   /** How to identify a session. Checked in order: cookie, header, then IP + user agent. */
   session?: { cookie?: string; header?: string };
+  /**
+   * Where behaviour samples (request rate, timing, failures per session and IP) live
+   * (M8, decision-log #4). `memory` (default) is per isolate: Cloudflare usually sends
+   * one client to one isolate, but not always, so a swarm spread over isolates is
+   * under-counted. `durable` keeps one Durable Object per session and per IP
+   * (`LazaretBehaviour`, bound as `binding`), shared by every isolate. The gate never
+   * waits for it: it syncs in the background, so the shared view lags by one request.
+   */
+  behaviour?: { store?: "memory" | "durable"; binding?: string };
   gate?: {
     /**
      * Risk at or above which the gate blocks outright. Reads have no reviewer behind
@@ -171,6 +180,7 @@ export interface ResolvedConfig {
   cycle: CycleConfig;
   ledger: { binding: string; shardAt: (now: number) => string };
   session: { cookie?: string; header?: string };
+  behaviour: { store: "memory" | "durable"; binding: string };
   gate: {
     thresholds: { pass: number; review: number };
     maxBodyBytes: number;
@@ -356,6 +366,14 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
     }
   }
 
+  const behaviour = {
+    store: config.behaviour?.store ?? "memory",
+    binding: config.behaviour?.binding ?? "LAZARET_BEHAVIOUR",
+  } as const;
+  if (behaviour.store !== "memory" && behaviour.store !== "durable") {
+    problems.push('behaviour.store must be "memory" or "durable"');
+  }
+
   const shard = config.ledger?.shard ?? "default";
   const bodyPreviewChars = config.live?.bodyPreviewChars ?? 280;
   if (!(Number.isInteger(bodyPreviewChars) && bodyPreviewChars >= 0 && bodyPreviewChars <= 2000)) {
@@ -390,6 +408,7 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
       shardAt: typeof shard === "function" ? shard : () => shard,
     },
     session: { ...config.session },
+    behaviour,
     gate: {
       thresholds,
       maxBodyBytes,

@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { ResolvedConfig } from "../config/define";
-import { SYSTEM_PROMPT } from "./prompt";
-import { VERDICT_SCHEMA } from "./schema";
+import type { ResolvedConfig } from "../config/define.ts";
+import { SYSTEM_PROMPT } from "./prompt.ts";
+import { VERDICT_SCHEMA } from "./schema.ts";
 
 // The reviewer "brain" (principle 2). It takes a prompt and returns raw structured
 // output. It has no tools, no network of its own, and no way to act. Everything

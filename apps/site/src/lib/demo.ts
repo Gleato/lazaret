@@ -102,6 +102,7 @@ export function startDemo(): void {
       if (f.type === "RESET") view = emptyView();
       changed = applyFrame(view, f) || changed;
       if (
+        f.type === "SNAPSHOT" ||
         f.type === "BATCH_QUARANTINED" ||
         f.type === "ENTRY_RESOLVED" ||
         (f.type === "ENTRY_VERDICT" && f.verdict.verdict === "quarantine")
