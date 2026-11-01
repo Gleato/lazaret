@@ -81,7 +81,45 @@ corpus is split once, by a hash of each case id ranked within its class (~60% tr
 | `live` | Claude (as above) + Sonnet 5.5 distiller | ~$0.45/run | `EVAL_CONFIRM_SPEND=yes npm run eval:memory:live` |
 
 Results: `results/memory-fake.json`, and for live `results/memory-live-<time>.json` plus
-`results/memory-latest.json` (what the site's memory panel reads). The fake run checks the
+`results/memory-latest.json`. The fake run checks the
 learning loop's wiring, not distillation quality; its proposer mirrors the scripted
 reviewer's keyword list. The eval Memory uses smaller promotion thresholds than production
 (`EVAL_MEMORY_THRESHOLDS` in `src/worker.ts`), because the corpus is small.
+
+## Campaign replay (M7.1)
+
+Real attackers send many variants of one payload, not one. The campaign replay asks
+whether Lazaret gets cheaper as the Memory learns from such a campaign, while recall and
+FPR hold (`src/campaign.ts`, `src/mutate.ts`).
+
+- **Traffic.** A deterministic mutator (seeded PRNG, no model) re-sends each attack
+  family (one corpus case) as URL-, HTML-entity- and full-width-encoded, re-cased,
+  whitespace-padded, SQL-comment-split and field-moved variants. Benign cases get the
+  same treatment, minus comment-splitting. Attacks are 30% of writes. Every window has the
+  same mix of classes, so windows are comparable. Credential bursts, taint chains and
+  reads are left out: they test other mechanisms.
+- **Replay.** 6 windows of about 50 writes go through the real stack against one Memory
+  that keeps learning, with one distillation pass per window. Each window gets its own
+  Ledger shard.
+- **Simulated operator.** A scripted operator works the human queue and the disputes
+  view one window late. It labels from the corpus through the real operator API. It is
+  labelled as simulated in the results and on the site.
+- **Hold-out.** About a third of the families in each class with 3 or more families
+  never appear in the stream. After every window, a free gate-only probe (rules frozen,
+  no model calls) sends fresh variants of held-out families, training families and
+  benign cases.
+- **Reported per window:** recall, FPR, model calls and reviewed writes per 1,000
+  writes, USD per 1,000 (live), the gate's share of stops, rule promotions, the
+  operator's work, and the probe.
+- **Offline extras:** a counterfactual arm (same stream, a Memory that never learns), and
+  a decoded-view ablation (the scripted reviewer reading only the raw body, as before
+  M7.1).
+
+| Mode   | Reviewer / distiller                     | Cost     | Run                                                 |
+| ------ | ---------------------------------------- | -------- | --------------------------------------------------- |
+| `fake` | scripted reviewer + scripted proposer    | free     | every `npm test`; `npm run eval:campaign` writes it |
+| `live` | Claude (as above) + Sonnet 5.5 distiller | ~$1-1.50 | `EVAL_CONFIRM_SPEND=yes npm run eval:campaign:live` |
+
+Results: `results/campaign-fake.json`, and for live `results/campaign-live-<time>.json`
+plus `results/campaign-latest.json`, which the site's memory panel reads. The
+thresholds are `EVAL_MEMORY_THRESHOLDS`, the same as the Memory eval.

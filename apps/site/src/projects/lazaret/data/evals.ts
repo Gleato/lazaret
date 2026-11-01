@@ -65,6 +65,7 @@ const STAGES: { key: string; label: string }[] = [
   { key: "review", label: "Batch review" },
   { key: "escalation", label: "Escalation to the stronger model" },
   { key: "taint", label: "Taint" },
+  { key: "parent_stopped", label: "Its first write was stopped at the gate" },
 ];
 
 export const evals = {

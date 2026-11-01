@@ -1,8 +1,10 @@
 ---
-// The Memory: what the eval says learning buys (two-phase eval, built at build time
-// from evals/results/memory-*.json), and the rules the live demo has learned so far
-// (fetched from the demo's read-only /__lazaret/memory).
-import { memoryEval } from "../data/memory";
+// The Memory: what learning buys, as a learning curve from the campaign replay eval
+// (M7.1, built at build time from evals/results/campaign-*.json; it replaced the
+// two-phase cold/warm table, which could only ever say "nothing learned"), and the
+// rules the live demo has learned so far (fetched from the demo's /__lazaret/memory).
+import CurveChart from "../components/CurveChart.astro";
+import { curve } from "../data/memory";
 ---
 
 <section class="section" id="memory" aria-labelledby="memory-title">
@@ -12,70 +14,62 @@ import { memoryEval } from "../data/memory";
       <p>
         Every verdict is archived. After a batch with drops, a model proposes a deterministic rule.
         The rule is tested against past traffic, watched on live traffic, and only then allowed to
-        flag or block at the gate, where it costs nothing and takes microseconds.
+        flag or block at the gate, where it costs nothing and takes microseconds. Where a rule and
+        the reviewer disagree, a person decides.
       </p>
     </header>
 
-    <div class="cols">
-      <div>
-        <h3>Does learning help on attacks it hasn't seen?</h3>
-        {
-          memoryEval ? (
-            <>
-              <p class="sans hint">{memoryEval.summary}</p>
-              <table class="lining">
+    <h3>Under a sustained attack, the gate takes over</h3>
+    {
+      curve ? (
+        <div class="curve-block">
+          <p class="sans hint">{curve.summary}</p>
+          <div class="charts">
+            {curve.charts.map((c) => (
+              <CurveChart chart={c} />
+            ))}
+          </div>
+          <div class="tip sans" id="curve-tip" role="status" hidden>
+            <strong class="tip-value" />
+            <span class="tip-label" />
+          </div>
+          <details class="numbers">
+            <summary class="sans">Show the numbers, window by window</summary>
+            <div class="scroll" tabindex="0" role="region" aria-label="Learning curve numbers">
+              <table class="lining sans">
                 <thead>
                   <tr>
-                    <th scope="col">Held-out cases</th>
-                    <th scope="col">Cold memory</th>
-                    <th scope="col">After training</th>
+                    {curve.table.head.map((h) => (
+                      <th scope="col">{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {[...memoryEval.rows, ...memoryEval.rows2].map((r) => (
+                  {curve.table.rows.map((row) => (
                     <tr>
-                      <th scope="row">{r.label}</th>
-                      <td>{r.cold}</td>
-                      <td>{r.warm}</td>
+                      {row.map((cell, i) => (i === 0 ? <th scope="row">{cell}</th> : <td>{cell}</td>))}
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {memoryEval.learned.length > 0 && (
-                <>
-                  <p class="sans hint">Rules that passed their backtest:</p>
-                  <ul class="catches sans">
-                    {memoryEval.learned.map((l) => (
-                      <li>
-                        {l.rule} <span class="st">({l.status === "shadow" ? "watching, no effect yet" : l.status === "flag" ? "adds risk" : "blocks"})</span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              {memoryEval.catches.length > 0 && (
-                <ul class="catches sans">
-                  {memoryEval.catches.map((c) => (
-                    <li>
-                      <code>{c.caseId}</code>{" "}
-                      {c.acted ? "was caught by a learned rule:" : "was matched by a rule still in shadow mode, which would stop it once promoted:"}{" "}
-                      {c.rule}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p class="sans source">{memoryEval.source}</p>
-            </>
-          ) : (
-            <p class="sans hint">The two-phase memory eval hasn't been published yet.</p>
-          )
-        }
-      </div>
-      <div>
-        <h3>Rules the demo has learned</h3>
-        <p class="sans hint" id="rules-summary">Loading the live Memory…</p>
-        <ol class="rules" id="rules"></ol>
-      </div>
+            </div>
+          </details>
+          <ul class="caveats sans">
+            {curve.caveats.map((c) => (
+              <li>{c}</li>
+            ))}
+          </ul>
+          <p class="sans source">{curve.source}</p>
+        </div>
+      ) : (
+        <p class="sans hint">The campaign replay eval hasn't been published yet.</p>
+      )
+    }
+
+    <div class="live-rules">
+      <h3>Rules the demo has learned</h3>
+      <p class="sans hint" id="rules-summary">Loading the live Memory…</p>
+      <ol class="rules" id="rules"></ol>
     </div>
   </div>
 </section>
@@ -96,11 +90,11 @@ import { memoryEval } from "../data/memory";
   }
 
   const STATUS: Record<string, string> = {
-    pending: "Waiting for enough clean traffic to test against",
+    pending: "Waiting for evidence: more matching drops, clean traffic, or a person's label",
     shadow: "Watching live traffic, no effect yet",
     flag: "Adds risk at the gate",
     block: "Blocks at the gate",
-    rejected: "Rejected by its backtest",
+    rejected: "Rejected: it matched traffic known to be clean",
     retired: "Retired",
   };
   const ORDER = ["block", "flag", "shadow", "pending", "retired", "rejected"];
@@ -130,7 +124,7 @@ import { memoryEval } from "../data/memory";
             h(
               "span",
               { class: "meta" },
-              `${r.category}. Matched ${r.support} past drops and none of ${r.cleanSamples} clean writes. Live: ${r.liveTruePositives} right, ${r.liveFalsePositives} wrong.`,
+              `${r.category}. Matched ${r.support} past drops, tested against ${r.cleanSamples} clean writes. Live: ${r.liveTruePositives} right, ${r.liveFalsePositives} wrong.`,
             ),
           ),
         ),
@@ -140,14 +134,39 @@ import { memoryEval } from "../data/memory";
     }
   }
   void load();
+
+  // One shared tooltip for the learning-curve charts: value first, then the window.
+  // Text only (textContent), and every value it shows is also in the table.
+  const tip = document.getElementById("curve-tip");
+  if (tip) {
+    const value = tip.querySelector(".tip-value") as HTMLElement;
+    const label = tip.querySelector(".tip-label") as HTMLElement;
+    const show = (el: Element) => {
+      const box = (tip.parentElement as HTMLElement).getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      value.textContent = el.getAttribute("data-tip-value");
+      label.textContent = el.getAttribute("data-tip-label");
+      tip.hidden = false;
+      const left = Math.min(
+        Math.max(r.left + r.width / 2 - box.left - tip.offsetWidth / 2, 0),
+        box.width - tip.offsetWidth,
+      );
+      tip.style.left = `${left}px`;
+      tip.style.top = `${r.top - box.top - tip.offsetHeight - 6}px`;
+    };
+    const hide = () => {
+      tip.hidden = true;
+    };
+    for (const el of document.querySelectorAll("#memory .pt")) {
+      el.addEventListener("pointerenter", () => show(el));
+      el.addEventListener("pointerleave", hide);
+      el.addEventListener("focus", () => show(el));
+      el.addEventListener("blur", hide);
+    }
+  }
 </script>
 
 <style>
-  .cols {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(24px, 4vw, 48px);
-  }
   h3 {
     margin-bottom: 0.4rem;
   }
@@ -156,29 +175,86 @@ import { memoryEval } from "../data/memory";
     color: var(--ink-2);
     font-size: var(--t-1);
   }
+  .curve-block {
+    position: relative;
+    margin-bottom: clamp(28px, 4vw, 48px);
+  }
+  .charts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(20px, 3vw, 40px);
+    margin: 1rem 0 0.75rem;
+  }
+  .tip {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    display: grid;
+    padding: 0.3rem 0.55rem;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    box-shadow: 0 1px 6px rgb(0 0 0 / 0.12);
+    font-size: var(--t-1);
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .tip[hidden] {
+    display: none;
+  }
+  .tip-value {
+    font-size: var(--t0);
+    color: var(--ink);
+  }
+  .tip-label {
+    color: var(--ink-2);
+  }
+  .numbers {
+    margin: 0.5rem 0 0.75rem;
+  }
+  .numbers summary {
+    cursor: pointer;
+    font-size: var(--t-1);
+    color: var(--lagoon);
+  }
+  .scroll {
+    overflow-x: auto;
+    margin-top: 0.5rem;
+  }
   table {
     width: 100%;
+    /* Scrolls inside .scroll on narrow screens rather than wrapping every cell. */
+    min-width: 44rem;
     border-collapse: collapse;
-    font-size: 0.92rem;
-    margin-bottom: 0.75rem;
+    font-size: var(--t-1);
+    font-variant-numeric: lining-nums tabular-nums;
   }
   th,
   td {
     text-align: left;
-    padding: 0.35rem 0.5rem 0.35rem 0;
+    padding: 0.35rem 0.75rem 0.35rem 0;
     border-bottom: 1px solid var(--rule);
+    vertical-align: top;
   }
   thead th {
-    font: 700 var(--t-1) / 1.2 var(--sans);
+    font-weight: 700;
     color: var(--ink-2);
   }
   tbody th {
     font-weight: 400;
   }
-  .catches {
-    margin: 0 0 0.75rem;
+  .caveats {
+    margin: 0 0 0.6rem;
     padding-left: 1.1rem;
+    max-width: var(--measure);
     font-size: var(--t-1);
+    color: var(--ink-2);
+  }
+  .caveats li + li {
+    margin-top: 0.25rem;
+  }
+  .live-rules {
+    max-width: 48rem;
   }
   .rules {
     list-style: none;
@@ -208,7 +284,7 @@ import { memoryEval } from "../data/memory";
     font: 400 var(--t-1) / 1.4 var(--sans);
   }
   @media (max-width: 860px) {
-    .cols {
+    .charts {
       grid-template-columns: minmax(0, 1fr);
     }
   }

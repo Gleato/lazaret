@@ -2,7 +2,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import type { Reporter, TestCase } from "vitest/node";
 
 // Writes each eval run's results JSON (attached by the in-worker test as
-// `task.meta.evalResult`, or `task.meta.memoryResult` for the Memory eval) to
+// `task.meta.evalResult`, `memoryResult` for the Memory eval, `campaignResult` for the
+// campaign replay) to
 // evals/results/. Only when EVAL_WRITE=1, so a plain `npm test` never dirties the tree.
 
 type Written = { mode: string; startedAt: string };
@@ -13,9 +14,12 @@ export default class EvalResultsReporter implements Reporter {
     const meta = testCase.meta();
     const corpus = meta.evalResult as Written | undefined;
     const memory = meta.memoryResult as Written | undefined;
+    const campaign = meta.campaignResult as Written | undefined;
     if (corpus) write(corpus, "", "live-latest.json");
     // The Memory eval (M7 E) feeds the site's memory panel, which reads memory-latest.json.
     if (memory) write(memory, "memory-", "memory-latest.json");
+    // The campaign replay (M7.1 C) feeds the site's learning curve: campaign-latest.json.
+    if (campaign) write(campaign, "campaign-", "campaign-latest.json");
   }
 }
 

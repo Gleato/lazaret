@@ -70,8 +70,12 @@ export function summarize(results: CaseResult[], calls: CallRecord[]) {
   return {
     cases: results.length,
     overall: confusion(results),
-    // What the deterministic gate alone stopped, before any model saw anything.
-    gateOnly: confusion(results.map((r) => ({ ...r, stopped: r.stage === "gate" }))),
+    // What the deterministic gate alone stopped, before any model saw anything. A chain
+    // cut because its first write was stopped at the edge counts: only the gate refuses
+    // an escrowable write outright, so the gate stopped it.
+    gateOnly: confusion(
+      results.map((r) => ({ ...r, stopped: r.stage === "gate" || r.stage === "parent_stopped" })),
+    ),
     byAttackClass: Object.fromEntries(
       Object.entries(groupBy(attacks, (r) => r.class)).map(([cls, rs]) => [
         cls,

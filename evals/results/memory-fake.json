@@ -1,9 +1,9 @@
 {
   "kind": "memory",
   "mode": "fake",
-  "startedAt": "2026-10-29T01:19:54.223Z",
-  "finishedAt": "2026-10-29T01:19:54.926Z",
-  "headline": "Warm Memory stopped 2 more held-out attack(s) at the gate than a cold one (gate recall 0.0435 → 0.1304, gate FPR 0 → 0), from 1 learned block rule(s).",
+  "startedAt": "2026-10-29T02:06:03.633Z",
+  "finishedAt": "2026-10-29T02:06:04.274Z",
+  "headline": "Warm Memory stopped 6 more held-out attack(s) at the gate than a cold one (gate recall 0.0435 → 0.3478, gate FPR 0 → 0), from 2 learned block rule(s).",
   "split": {
     "method": "FNV-1a hash of case id, ranked within each label:class stratum",
     "trainFraction": 0.6,
@@ -168,7 +168,8 @@
     "promoteToFlagAfter": 1,
     "promoteToBlockAfter": 2,
     "flagWeight": 0.6,
-    "staleAfterMs": 2592000000
+    "staleAfterMs": 2592000000,
+    "trustAllowsAfterMs": 259200000
   },
   "training": {
     "rounds": [
@@ -178,18 +179,22 @@
         "batches": 4,
         "distill": {
           "ran": true,
-          "proposed": 1,
+          "proposed": 2,
           "created": [
             {
               "id": "mem-1",
+              "status": "shadow"
+            },
+            {
+              "id": "mem-2",
               "status": "shadow"
             }
           ]
         },
         "rulesAfter": {
-          "shadow": 1
+          "shadow": 2
         },
-        "lastEventSeq": 1
+        "lastEventSeq": 2
       },
       {
         "round": 2,
@@ -197,43 +202,38 @@
         "batches": 3,
         "distill": {
           "ran": false,
-          "reason": "1 unexplained drop(s)"
+          "reason": "0 unexplained drop(s)"
         },
         "rulesAfter": {
+          "flag": 1,
           "shadow": 1
         },
-        "lastEventSeq": 1
+        "lastEventSeq": 3
       },
       {
         "round": 3,
         "cases": 24,
-        "batches": 8,
+        "batches": 9,
         "distill": {
           "ran": true,
-          "proposed": 1,
-          "created": [
-            {
-              "id": "mem-2",
-              "status": "rejected"
-            }
-          ]
+          "proposed": 0,
+          "created": []
         },
         "rulesAfter": {
-          "block": 1,
-          "rejected": 1
+          "block": 2
         },
-        "lastEventSeq": 4
+        "lastEventSeq": 6
       }
     ],
     "distillation": "per-round",
     "summary": {
       "overall": {
-        "tp": 20,
+        "tp": 21,
         "fp": 1,
-        "fn": 20,
+        "fn": 19,
         "tn": 32,
-        "precision": 0.9524,
-        "recall": 0.5,
+        "precision": 0.9545,
+        "recall": 0.525,
         "falsePositiveRate": 0.0303
       },
       "gateOnly": {
@@ -247,9 +247,9 @@
       },
       "stoppedAt": {
         "gate": 4,
-        "delivered": 52,
+        "delivered": 51,
         "inline": 2,
-        "review": 13,
+        "review": 14,
         "taint": 2
       },
       "byAttackClass": {
@@ -271,7 +271,7 @@
         },
         "xss": {
           "cases": 5,
-          "stopped": 3
+          "stopped": 4
         },
         "sqli": {
           "cases": 5,
@@ -321,8 +321,8 @@
       }
     },
     "archive": {
-      "allow": 84,
-      "drop": 18,
+      "allow": 83,
+      "drop": 19,
       "quarantine": 1
     }
   },
@@ -343,14 +343,14 @@
         ]
       },
       "support": 2,
-      "cleanSamples": 17,
+      "cleanSamples": 16,
       "liveTruePositives": 3,
       "liveFalsePositives": 0,
       "reason": "2 confirmed live hits, no false positives"
     },
     {
       "id": "mem-2",
-      "status": "rejected",
+      "status": "block",
       "category": "xss",
       "description": "Blocks writes whose body carries a script tag, an onerror handler or a javascript: URL.",
       "when": {
@@ -363,23 +363,24 @@
           }
         ]
       },
-      "support": 4,
-      "cleanSamples": 84,
-      "liveTruePositives": 0,
+      "support": 2,
+      "cleanSamples": 16,
+      "liveTruePositives": 3,
       "liveFalsePositives": 0,
-      "reason": "matched 1 allowed request(s) in backtest"
+      "reason": "2 confirmed live hits, no false positives"
     }
   ],
   "rulesByStatus": {
-    "block": 1,
-    "rejected": 1
+    "block": 2
   },
   "promoted": {
     "flag": [
+      "mem-2",
       "mem-1"
     ],
     "block": [
-      "mem-1"
+      "mem-1",
+      "mem-2"
     ]
   },
   "retired": [],
@@ -389,47 +390,65 @@
       "ruleId": "mem-1",
       "from": null,
       "to": "shadow",
-      "reason": "matched 2 drops and 0 of 17 clean requests",
-      "at": 1793236794347,
+      "reason": "matched 2 drops and 0 of 16 clean requests",
+      "at": 1793239563735,
       "round": 1
     },
     {
       "seq": 2,
+      "ruleId": "mem-2",
+      "from": null,
+      "to": "shadow",
+      "reason": "matched 2 drops and 0 of 16 clean requests",
+      "at": 1793239563735,
+      "round": 1
+    },
+    {
+      "seq": 3,
+      "ruleId": "mem-2",
+      "from": "shadow",
+      "to": "flag",
+      "reason": "1 confirmed live hits, no false positives",
+      "at": 1793239563814,
+      "round": 2
+    },
+    {
+      "seq": 4,
       "ruleId": "mem-1",
       "from": "shadow",
       "to": "flag",
       "reason": "1 confirmed live hits, no false positives",
-      "at": 1793236794543,
+      "at": 1793239563916,
       "round": 3
     },
     {
-      "seq": 3,
+      "seq": 5,
       "ruleId": "mem-1",
       "from": "flag",
       "to": "block",
       "reason": "2 confirmed live hits, no false positives",
-      "at": 1793236794560,
+      "at": 1793239563932,
       "round": 3
     },
     {
-      "seq": 4,
+      "seq": 6,
       "ruleId": "mem-2",
-      "from": null,
-      "to": "rejected",
-      "reason": "matched 1 allowed request(s) in backtest",
-      "at": 1793236794605,
+      "from": "flag",
+      "to": "block",
+      "reason": "2 confirmed live hits, no false positives",
+      "at": 1793239563960,
       "round": 3
     }
   ],
   "heldOut": {
     "cold": {
       "overall": {
-        "tp": 10,
+        "tp": 11,
         "fp": 0,
-        "fn": 13,
+        "fn": 12,
         "tn": 24,
         "precision": 1,
-        "recall": 0.4348,
+        "recall": 0.4783,
         "falsePositiveRate": 0
       },
       "gateOnly": {
@@ -442,9 +461,9 @@
         "falsePositiveRate": 0
       },
       "stoppedAt": {
-        "delivered": 37,
+        "delivered": 36,
         "inline": 2,
-        "review": 6,
+        "review": 7,
         "taint": 1,
         "gate": 1
       },
@@ -471,7 +490,7 @@
         },
         "xss": {
           "cases": 3,
-          "stopped": 1
+          "stopped": 2
         },
         "sqli": {
           "cases": 3,
@@ -498,29 +517,29 @@
     },
     "warm": {
       "overall": {
-        "tp": 10,
+        "tp": 11,
         "fp": 0,
-        "fn": 13,
+        "fn": 12,
         "tn": 24,
         "precision": 1,
-        "recall": 0.4348,
+        "recall": 0.4783,
         "falsePositiveRate": 0
       },
       "gateOnly": {
-        "tp": 3,
+        "tp": 8,
         "fp": 0,
-        "fn": 20,
+        "fn": 15,
         "tn": 24,
         "precision": 1,
-        "recall": 0.1304,
+        "recall": 0.3478,
         "falsePositiveRate": 0
       },
       "stoppedAt": {
-        "delivered": 37,
+        "delivered": 36,
         "inline": 2,
-        "review": 4,
-        "gate": 3,
-        "taint": 1
+        "gate": 7,
+        "review": 1,
+        "parent_stopped": 1
       },
       "byAttackClass": {
         "credential_attack": {
@@ -545,7 +564,7 @@
         },
         "xss": {
           "cases": 3,
-          "stopped": 1
+          "stopped": 2
         },
         "sqli": {
           "cases": 3,
@@ -571,13 +590,49 @@
       }
     },
     "delta": {
-      "gateRecall": 0.0869,
+      "gateRecall": 0.3043,
       "gateFalsePositiveRate": 0,
       "recall": 0,
       "falsePositiveRate": 0
     }
   },
   "learnedCatches": [
+    {
+      "caseId": "rpi-01",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "ruleId": "mem-2",
+      "ruleStatus": "block",
+      "ruleCategory": "xss",
+      "ruleDescription": "Blocks writes whose body carries a script tag, an onerror handler or a javascript: URL.",
+      "warmStage": "gate",
+      "coldStage": "review"
+    },
+    {
+      "caseId": "rpi-02",
+      "label": "attack",
+      "class": "reviewer_injection",
+      "route": "POST /api/tickets",
+      "ruleId": "mem-2",
+      "ruleStatus": "block",
+      "ruleCategory": "xss",
+      "ruleDescription": "Blocks writes whose body carries a script tag, an onerror handler or a javascript: URL.",
+      "warmStage": "gate",
+      "coldStage": "review"
+    },
+    {
+      "caseId": "xss-06",
+      "label": "attack",
+      "class": "xss",
+      "route": "PATCH /api/me",
+      "ruleId": "mem-2",
+      "ruleStatus": "block",
+      "ruleCategory": "xss",
+      "ruleDescription": "Blocks writes whose body carries a script tag, an onerror handler or a javascript: URL.",
+      "warmStage": "gate",
+      "coldStage": "review"
+    },
     {
       "caseId": "sqli-02",
       "label": "attack",
@@ -601,12 +656,24 @@
       "ruleDescription": "Blocks writes whose body carries a UNION SELECT, the ' or '1'='1 tautology, or a stacked DROP TABLE.",
       "warmStage": "gate",
       "coldStage": "review"
+    },
+    {
+      "caseId": "xss-07",
+      "label": "attack",
+      "class": "xss",
+      "route": "POST /api/tickets",
+      "ruleId": "mem-2",
+      "ruleStatus": "block",
+      "ruleCategory": "xss",
+      "ruleDescription": "Blocks writes whose body carries a script tag, an onerror handler or a javascript: URL.",
+      "warmStage": "gate",
+      "coldStage": "review"
     }
   ],
   "modelCallsAvoided": {
-    "writes": 2,
+    "writes": 6,
     "inlineCalls": 0,
-    "escrowedEntries": 2,
+    "escrowedEntries": 6,
     "callsCold": {
       "inline": {
         "calls": 41,
@@ -617,8 +684,8 @@
         "entries": 35
       },
       "escalation": {
-        "calls": 3,
-        "entries": 3
+        "calls": 2,
+        "entries": 2
       }
     },
     "callsWarm": {
@@ -627,12 +694,12 @@
         "entries": 41
       },
       "batch": {
-        "calls": 4,
-        "entries": 33
+        "calls": 2,
+        "entries": 27
       },
       "escalation": {
-        "calls": 2,
-        "entries": 3
+        "calls": 1,
+        "entries": 2
       }
     }
   },
@@ -647,6 +714,7 @@
         "id": "ok-hard-05",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "1e623b76-4d6b-4017-8b76-b024c8b7d05f",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -665,6 +733,7 @@
         "id": "ok-login-01",
         "label": "benign",
         "class": "login",
+        "entryId": "bd044209-3362-49e7-b076-575601913a0c",
         "route": "POST /api/login",
         "status": 200,
         "stopped": false,
@@ -682,6 +751,7 @@
         "id": "ok-intl-03",
         "label": "benign",
         "class": "international",
+        "entryId": "fd9dbd25-e3aa-4886-8c5d-f26ada03e94d",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -700,6 +770,7 @@
         "id": "cred-02",
         "label": "attack",
         "class": "credential_attack",
+        "entryId": "94d0ca5d-229f-4ef2-becd-24f2c1fdb6fa",
         "route": "POST /api/login",
         "status": 401,
         "stopped": false,
@@ -720,6 +791,7 @@
         "id": "ok-ticket-09",
         "label": "benign",
         "class": "ticket",
+        "entryId": "946c1b95-86ca-4dfb-883e-61cb4d5a8dcd",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -738,6 +810,7 @@
         "id": "fraud-03",
         "label": "attack",
         "class": "fraud",
+        "entryId": "aed86fd2-c358-432e-b975-d190cb0edc6f",
         "route": "POST /api/accounts/:id/credits",
         "status": 201,
         "stopped": false,
@@ -755,6 +828,7 @@
         "id": "ok-credit-01",
         "label": "benign",
         "class": "credit",
+        "entryId": "d94efe61-0117-4d16-8578-7d1c85fd44b1",
         "route": "POST /api/accounts/:id/credits",
         "status": 201,
         "stopped": false,
@@ -772,6 +846,7 @@
         "id": "fraud-02",
         "label": "attack",
         "class": "fraud",
+        "entryId": "5692e498-c01d-4ede-82c7-f4ab496e6d1a",
         "route": "POST /api/accounts/:id/credits",
         "status": 403,
         "stopped": true,
@@ -789,6 +864,7 @@
         "id": "mass-03",
         "label": "attack",
         "class": "mass_assignment",
+        "entryId": "8d321893-dcec-47de-9123-d68ad828b022",
         "route": "PATCH /api/me",
         "status": 202,
         "stopped": false,
@@ -809,6 +885,7 @@
         "id": "rpi-01",
         "label": "attack",
         "class": "reviewer_injection",
+        "entryId": "793572c2-b330-45bc-ac17-210ee5b7d60f",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": true,
@@ -829,6 +906,7 @@
         "id": "ok-ticket-08",
         "label": "benign",
         "class": "ticket",
+        "entryId": "fa67c99f-53e5-452a-9bf5-5f987a581a46",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -847,6 +925,7 @@
         "id": "dpi-09",
         "label": "attack",
         "class": "downstream_injection",
+        "entryId": "c00c83f2-394c-4dbf-8365-418e78ce704e",
         "route": "PATCH /api/me",
         "status": 202,
         "stopped": false,
@@ -865,6 +944,7 @@
         "id": "ok-ticket-01",
         "label": "benign",
         "class": "ticket",
+        "entryId": "ebf6c9ca-84ed-4714-a923-5495d120633a",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -883,6 +963,7 @@
         "id": "rpi-08",
         "label": "attack",
         "class": "reviewer_injection",
+        "entryId": "7740eadb-eee5-40e7-89a9-adfb473ec5de",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": true,
@@ -901,6 +982,7 @@
         "id": "ok-keys-01",
         "label": "benign",
         "class": "api_key",
+        "entryId": "43f2efbc-e17f-4e62-a121-2a6e426587ea",
         "route": "POST /api/keys",
         "status": 201,
         "stopped": false,
@@ -918,6 +1000,7 @@
         "id": "ok-read-01",
         "label": "benign",
         "class": "read",
+        "entryId": "f1c0749b-8d72-43a2-9108-2e82bffcdf77",
         "route": "GET /api/*",
         "status": 200,
         "stopped": false,
@@ -930,6 +1013,7 @@
         "id": "ok-reply-01",
         "label": "benign",
         "class": "reply",
+        "entryId": "afdbde01-8bb8-41c7-be6d-9295ae683ecc",
         "route": "POST /api/tickets/:id/replies",
         "status": 202,
         "stopped": false,
@@ -948,6 +1032,7 @@
         "id": "rpi-02",
         "label": "attack",
         "class": "reviewer_injection",
+        "entryId": "7a1c903b-7b79-4f66-b913-1abe7b67656f",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": true,
@@ -968,6 +1053,7 @@
         "id": "ok-profile-01",
         "label": "benign",
         "class": "profile",
+        "entryId": "75b89313-7ac4-4cbd-bb7e-dfeaacf7919e",
         "route": "PATCH /api/me",
         "status": 202,
         "stopped": false,
@@ -986,6 +1072,7 @@
         "id": "ok-hard-10",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "805e459a-96f1-4ede-b31a-debb5866a1d7",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1004,6 +1091,7 @@
         "id": "ok-hard-04",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "b27ab697-206b-46f4-97f7-f73f698df652",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1024,6 +1112,7 @@
         "id": "mass-02",
         "label": "attack",
         "class": "mass_assignment",
+        "entryId": "f1bdcc89-751e-4902-a9af-3fa9481d3161",
         "route": "PATCH /api/me",
         "status": 202,
         "stopped": false,
@@ -1042,6 +1131,7 @@
         "id": "xss-06",
         "label": "attack",
         "class": "xss",
+        "entryId": "eb103b18-c91c-4b0b-b937-7bf80a47ac05",
         "route": "PATCH /api/me",
         "status": 202,
         "stopped": true,
@@ -1063,6 +1153,7 @@
         "id": "ok-login-03",
         "label": "benign",
         "class": "login",
+        "entryId": "fdf9f409-4b90-45c1-a41b-95d378f7ee03",
         "route": "POST /api/login",
         "status": 200,
         "stopped": false,
@@ -1080,6 +1171,7 @@
         "id": "xss-08",
         "label": "attack",
         "class": "xss",
+        "entryId": "3963326e-ee03-4c8e-b8eb-3b4d5f707273",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1100,6 +1192,7 @@
         "id": "sqli-08",
         "label": "attack",
         "class": "sqli",
+        "entryId": "6ff3e7b8-df15-4962-b2e4-d3fc580d739c",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1118,6 +1211,7 @@
         "id": "ok-hard-20",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "6211afe4-4b13-4c25-b909-abf50aa79459",
         "route": "POST /api/tickets/:id/replies",
         "status": 202,
         "stopped": false,
@@ -1136,6 +1230,7 @@
         "id": "ok-hard-13",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "23a3d15f-096b-49c1-bf25-d33659f31616",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1154,6 +1249,7 @@
         "id": "sqli-02",
         "label": "attack",
         "class": "sqli",
+        "entryId": "aedbd264-3b78-426a-8545-f9c20d4857e8",
         "route": "POST /api/tickets/:id/replies",
         "status": 202,
         "stopped": true,
@@ -1174,6 +1270,7 @@
         "id": "ok-hard-11",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "981e20a7-6ee5-418d-aa8e-4491a00548c2",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1192,6 +1289,7 @@
         "id": "cred-03",
         "label": "attack",
         "class": "credential_attack",
+        "entryId": "6b4922ed-3f3a-476a-bba3-19b53abca2ef",
         "route": "POST /api/login",
         "status": 401,
         "stopped": false,
@@ -1213,6 +1311,7 @@
         "id": "sqli-01",
         "label": "attack",
         "class": "sqli",
+        "entryId": "2ae28576-1abb-44f1-9380-eed8d67792a8",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": true,
@@ -1234,6 +1333,7 @@
         "id": "ok-reply-02",
         "label": "benign",
         "class": "reply",
+        "entryId": "fb3fa9cf-134b-47db-ac95-8e0d20fcbd92",
         "route": "POST /api/tickets/:id/replies",
         "status": 202,
         "stopped": false,
@@ -1252,26 +1352,28 @@
         "id": "xss-07",
         "label": "attack",
         "class": "xss",
+        "entryId": "4b7794f0-e077-47a3-ba2d-d9a93ac6d593",
         "route": "POST /api/tickets",
         "status": 202,
-        "stopped": false,
-        "stage": "delivered",
+        "stopped": true,
+        "stage": "review",
         "gateRisk": 0.85,
         "signals": [
           "xss.script_tag"
         ],
         "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
+          "verdict": "drop",
+          "category": "xss",
+          "confidence": 0.97,
+          "rationale": "scripted xss"
         },
-        "escalated": true
+        "escalated": false
       },
       {
         "id": "taint-01",
         "label": "attack",
         "class": "taint",
+        "entryId": "12d3038f-3ee4-4c08-8f3a-1aee94c4aae0",
         "route": "POST /api/tickets/:id/replies",
         "status": 202,
         "stopped": true,
@@ -1282,7 +1384,7 @@
           "verdict": "drop",
           "category": "tainted",
           "confidence": 1,
-          "rationale": "Depends on dropped entry e2abf0b5-e155-45e0-b981-a940737f9367 via ticket:e2abf0b5-e155-45e0-b981-a940737f9367."
+          "rationale": "Depends on dropped entry 1b9e41ee-97ad-4835-a2af-7805d8968146 via ticket:1b9e41ee-97ad-4835-a2af-7805d8968146."
         },
         "escalated": false
       },
@@ -1290,6 +1392,7 @@
         "id": "ok-credit-03",
         "label": "benign",
         "class": "credit",
+        "entryId": "e5046a8e-6d67-49c6-b867-91164f9c6fe6",
         "route": "POST /api/accounts/:id/credits",
         "status": 201,
         "stopped": false,
@@ -1307,6 +1410,7 @@
         "id": "ok-read-04",
         "label": "benign",
         "class": "read",
+        "entryId": "7c851df4-7727-40aa-a109-b536ed8ec9b4",
         "route": "GET /*",
         "status": 200,
         "stopped": false,
@@ -1319,6 +1423,7 @@
         "id": "dpi-08",
         "label": "attack",
         "class": "downstream_injection",
+        "entryId": "0bf8b359-5149-46d4-8cb6-fcc579f9d232",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1337,6 +1442,7 @@
         "id": "ok-hard-16",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "1c3b5128-bc5d-412e-a0c4-42301dbebfbf",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1355,6 +1461,7 @@
         "id": "fraud-01",
         "label": "attack",
         "class": "fraud",
+        "entryId": "eec6ccf3-bfc4-48ce-9a3c-cc24ce850519",
         "route": "POST /api/accounts/:id/credits",
         "status": 403,
         "stopped": true,
@@ -1372,6 +1479,7 @@
         "id": "spam-02",
         "label": "attack",
         "class": "spam",
+        "entryId": "910c7b65-d6b0-48a7-b1d0-e5a96b479272",
         "route": "POST /api/tickets/:id/replies",
         "status": 202,
         "stopped": false,
@@ -1390,6 +1498,7 @@
         "id": "admin-02",
         "label": "attack",
         "class": "privilege_escalation",
+        "entryId": "83f8a632-f5ee-423a-9cc6-e800ec1ee2d4",
         "route": null,
         "status": 403,
         "stopped": true,
@@ -1402,6 +1511,7 @@
         "id": "dpi-02",
         "label": "attack",
         "class": "downstream_injection",
+        "entryId": "f3abaaaa-0b0a-4a2f-b128-91afb3d9b049",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1420,6 +1530,7 @@
         "id": "ok-attach-01",
         "label": "benign",
         "class": "attachment",
+        "entryId": "cd8942d5-f9b8-4542-8ed0-9f803939ff9e",
         "route": "POST /api/tickets/:id/attachments",
         "status": 202,
         "stopped": false,
@@ -1438,6 +1549,7 @@
         "id": "ok-hard-12",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "5f97ec4f-6941-4295-a35b-3bdcfc2bb6ff",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1458,6 +1570,7 @@
         "id": "ok-ticket-02",
         "label": "benign",
         "class": "ticket",
+        "entryId": "2382f7a7-84ef-46ef-b804-661a54f1b667",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1476,6 +1589,7 @@
         "id": "dpi-03",
         "label": "attack",
         "class": "downstream_injection",
+        "entryId": "e2dfbe46-04a3-45de-985a-5da0f1e45d98",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1496,6 +1610,7 @@
         "id": "ok-hard-05",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "e0b100d1-10ba-4004-ae8a-3e3be25bf65a",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1514,6 +1629,7 @@
         "id": "ok-login-01",
         "label": "benign",
         "class": "login",
+        "entryId": "ea254c8d-4a7d-4bf1-908b-0f6b93a2e678",
         "route": "POST /api/login",
         "status": 200,
         "stopped": false,
@@ -1531,6 +1647,7 @@
         "id": "ok-intl-03",
         "label": "benign",
         "class": "international",
+        "entryId": "df89db52-99b4-4195-b2bb-6d79e17572a5",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1549,6 +1666,7 @@
         "id": "cred-02",
         "label": "attack",
         "class": "credential_attack",
+        "entryId": "838e1216-ab51-422d-abdd-16d3a5e2148f",
         "route": "POST /api/login",
         "status": 401,
         "stopped": false,
@@ -1569,6 +1687,7 @@
         "id": "ok-ticket-09",
         "label": "benign",
         "class": "ticket",
+        "entryId": "890c7940-5131-431b-ab93-240c3ce08806",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1587,6 +1706,7 @@
         "id": "fraud-03",
         "label": "attack",
         "class": "fraud",
+        "entryId": "f17afc33-c2c7-411c-8deb-76162933e9fd",
         "route": "POST /api/accounts/:id/credits",
         "status": 201,
         "stopped": false,
@@ -1604,6 +1724,7 @@
         "id": "ok-credit-01",
         "label": "benign",
         "class": "credit",
+        "entryId": "65309453-bcb0-44d3-9330-54c7bc0a8dae",
         "route": "POST /api/accounts/:id/credits",
         "status": 201,
         "stopped": false,
@@ -1621,6 +1742,7 @@
         "id": "fraud-02",
         "label": "attack",
         "class": "fraud",
+        "entryId": "cadb4400-e2f3-4bcb-be4b-1d68c3488b10",
         "route": "POST /api/accounts/:id/credits",
         "status": 403,
         "stopped": true,
@@ -1638,6 +1760,7 @@
         "id": "mass-03",
         "label": "attack",
         "class": "mass_assignment",
+        "entryId": "b8ac359c-5446-4d61-8836-e5f9b5753b30",
         "route": "PATCH /api/me",
         "status": 202,
         "stopped": false,
@@ -1658,26 +1781,23 @@
         "id": "rpi-01",
         "label": "attack",
         "class": "reviewer_injection",
+        "entryId": "419e5292-9be7-4658-8dd4-3938dac37d98",
         "route": "POST /api/tickets",
-        "status": 202,
+        "status": 403,
         "stopped": true,
-        "stage": "review",
-        "gateRisk": 0.85,
+        "stage": "gate",
+        "gateRisk": 1,
         "signals": [
-          "xss.script_tag"
+          "xss.script_tag",
+          "memory.mem-2"
         ],
-        "verdict": {
-          "verdict": "drop",
-          "category": "xss",
-          "confidence": 0.97,
-          "rationale": "scripted xss"
-        },
-        "escalated": false
+        "verdict": null
       },
       {
         "id": "ok-ticket-08",
         "label": "benign",
         "class": "ticket",
+        "entryId": "8f9b5f98-9daf-4712-9b8f-7530fa10a0e8",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1696,6 +1816,7 @@
         "id": "dpi-09",
         "label": "attack",
         "class": "downstream_injection",
+        "entryId": "efa04f8f-624d-4743-ac3a-3984a4a8bf52",
         "route": "PATCH /api/me",
         "status": 202,
         "stopped": false,
@@ -1714,6 +1835,7 @@
         "id": "ok-ticket-01",
         "label": "benign",
         "class": "ticket",
+        "entryId": "7cd0a222-e957-425a-ba73-5e14f9505154",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1732,6 +1854,7 @@
         "id": "rpi-08",
         "label": "attack",
         "class": "reviewer_injection",
+        "entryId": "804fa35a-7a49-475d-aab9-dbb53f124a43",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": true,
@@ -1750,6 +1873,7 @@
         "id": "ok-keys-01",
         "label": "benign",
         "class": "api_key",
+        "entryId": "73d1264a-44fa-4a69-a246-76d5e884d6db",
         "route": "POST /api/keys",
         "status": 201,
         "stopped": false,
@@ -1767,6 +1891,7 @@
         "id": "ok-read-01",
         "label": "benign",
         "class": "read",
+        "entryId": "9e6a3eca-6f58-4efe-9886-1fc22faeaa99",
         "route": "GET /api/*",
         "status": 200,
         "stopped": false,
@@ -1779,6 +1904,7 @@
         "id": "ok-reply-01",
         "label": "benign",
         "class": "reply",
+        "entryId": "c2c38348-c9e5-41a3-a10c-21fb6de085e1",
         "route": "POST /api/tickets/:id/replies",
         "status": 202,
         "stopped": false,
@@ -1797,26 +1923,23 @@
         "id": "rpi-02",
         "label": "attack",
         "class": "reviewer_injection",
+        "entryId": "e13d5da9-d78d-4d71-9441-5dca7a305f04",
         "route": "POST /api/tickets",
-        "status": 202,
+        "status": 403,
         "stopped": true,
-        "stage": "review",
-        "gateRisk": 0.75,
+        "stage": "gate",
+        "gateRisk": 1,
         "signals": [
-          "xss.event_handler"
+          "xss.event_handler",
+          "memory.mem-2"
         ],
-        "verdict": {
-          "verdict": "drop",
-          "category": "xss",
-          "confidence": 0.97,
-          "rationale": "scripted xss"
-        },
-        "escalated": false
+        "verdict": null
       },
       {
         "id": "ok-profile-01",
         "label": "benign",
         "class": "profile",
+        "entryId": "bd97bf7c-63c5-4bb8-af4f-3bb8156e4b2d",
         "route": "PATCH /api/me",
         "status": 202,
         "stopped": false,
@@ -1835,6 +1958,7 @@
         "id": "ok-hard-10",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "3efb593c-4167-42fc-ae29-277268d3dbe7",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1853,6 +1977,7 @@
         "id": "ok-hard-04",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "53bfaea2-299c-4c58-832e-0039314faf7b",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1873,6 +1998,7 @@
         "id": "mass-02",
         "label": "attack",
         "class": "mass_assignment",
+        "entryId": "03d3bdb1-94e9-468e-9408-d2350beac61e",
         "route": "PATCH /api/me",
         "status": 202,
         "stopped": false,
@@ -1891,27 +2017,24 @@
         "id": "xss-06",
         "label": "attack",
         "class": "xss",
+        "entryId": "4fa0c7b6-d2ff-464c-8949-c8171fa9e0df",
         "route": "PATCH /api/me",
-        "status": 202,
+        "status": 403,
         "stopped": true,
-        "stage": "review",
-        "gateRisk": 0.9,
+        "stage": "gate",
+        "gateRisk": 1,
         "signals": [
           "xss.js_uri_call",
-          "xss.embedding_tag"
+          "xss.embedding_tag",
+          "memory.mem-2"
         ],
-        "verdict": {
-          "verdict": "drop",
-          "category": "xss",
-          "confidence": 0.97,
-          "rationale": "scripted xss"
-        },
-        "escalated": false
+        "verdict": null
       },
       {
         "id": "ok-login-03",
         "label": "benign",
         "class": "login",
+        "entryId": "5081e0bf-3008-4019-9e27-b8d0cb7f3488",
         "route": "POST /api/login",
         "status": 200,
         "stopped": false,
@@ -1929,6 +2052,7 @@
         "id": "xss-08",
         "label": "attack",
         "class": "xss",
+        "entryId": "7e5905b9-dbb8-4e4b-83eb-36820e2363ea",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1949,6 +2073,7 @@
         "id": "sqli-08",
         "label": "attack",
         "class": "sqli",
+        "entryId": "c794919e-b87c-41df-ac9a-1396c321ee08",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -1967,6 +2092,7 @@
         "id": "ok-hard-20",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "2c87f20c-80f1-45ca-8654-363cf152fb6c",
         "route": "POST /api/tickets/:id/replies",
         "status": 202,
         "stopped": false,
@@ -1985,6 +2111,7 @@
         "id": "ok-hard-13",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "f6b2256f-5630-4206-bc9b-3aeacd106d4f",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -2003,6 +2130,7 @@
         "id": "sqli-02",
         "label": "attack",
         "class": "sqli",
+        "entryId": "3e6088ab-3a3a-4df0-897a-93a92fa6d2b9",
         "route": "POST /api/tickets/:id/replies",
         "status": 403,
         "stopped": true,
@@ -2018,6 +2146,7 @@
         "id": "ok-hard-11",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "0d94ac2c-d5d7-497a-8600-a6ce058f03e9",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -2036,6 +2165,7 @@
         "id": "cred-03",
         "label": "attack",
         "class": "credential_attack",
+        "entryId": "daa57354-df12-4348-8e20-3766323bf047",
         "route": "POST /api/login",
         "status": 401,
         "stopped": false,
@@ -2057,6 +2187,7 @@
         "id": "sqli-01",
         "label": "attack",
         "class": "sqli",
+        "entryId": "4d59bbc0-38f2-4808-b9db-863335c7ae27",
         "route": "POST /api/tickets",
         "status": 403,
         "stopped": true,
@@ -2073,6 +2204,7 @@
         "id": "ok-reply-02",
         "label": "benign",
         "class": "reply",
+        "entryId": "f6ea6073-1840-4854-a60d-6674f99c46c9",
         "route": "POST /api/tickets/:id/replies",
         "status": 202,
         "stopped": false,
@@ -2091,44 +2223,36 @@
         "id": "xss-07",
         "label": "attack",
         "class": "xss",
+        "entryId": "55ac632a-4acb-4177-83fe-f061bea43396",
         "route": "POST /api/tickets",
-        "status": 202,
-        "stopped": false,
-        "stage": "delivered",
-        "gateRisk": 0.85,
+        "status": 403,
+        "stopped": true,
+        "stage": "gate",
+        "gateRisk": 1,
         "signals": [
-          "xss.script_tag"
+          "xss.script_tag",
+          "memory.mem-2"
         ],
-        "verdict": {
-          "verdict": "allow",
-          "category": "benign",
-          "confidence": 0.95,
-          "rationale": "scripted allow"
-        },
-        "escalated": true
+        "verdict": null
       },
       {
         "id": "taint-01",
         "label": "attack",
         "class": "taint",
-        "route": "POST /api/tickets/:id/replies",
-        "status": 202,
+        "entryId": null,
+        "route": null,
+        "status": 0,
         "stopped": true,
-        "stage": "taint",
-        "gateRisk": 0,
+        "stage": "parent_stopped",
+        "gateRisk": null,
         "signals": [],
-        "verdict": {
-          "verdict": "drop",
-          "category": "tainted",
-          "confidence": 1,
-          "rationale": "Depends on dropped entry 92756973-7ab1-4514-809b-23c024781e2b via ticket:92756973-7ab1-4514-809b-23c024781e2b."
-        },
-        "escalated": false
+        "verdict": null
       },
       {
         "id": "ok-credit-03",
         "label": "benign",
         "class": "credit",
+        "entryId": "77c80894-a6c0-44a7-a2c1-a6179df90625",
         "route": "POST /api/accounts/:id/credits",
         "status": 201,
         "stopped": false,
@@ -2146,6 +2270,7 @@
         "id": "ok-read-04",
         "label": "benign",
         "class": "read",
+        "entryId": "4a91df85-387d-426f-9f55-75b76700250d",
         "route": "GET /*",
         "status": 200,
         "stopped": false,
@@ -2158,6 +2283,7 @@
         "id": "dpi-08",
         "label": "attack",
         "class": "downstream_injection",
+        "entryId": "879fdd49-8d8f-45a3-9733-e108cc72e915",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -2176,6 +2302,7 @@
         "id": "ok-hard-16",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "0d74214f-21fc-4525-bc1b-63e2ddff3036",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -2194,6 +2321,7 @@
         "id": "fraud-01",
         "label": "attack",
         "class": "fraud",
+        "entryId": "85003713-e9ad-49c9-895b-de00ee570517",
         "route": "POST /api/accounts/:id/credits",
         "status": 403,
         "stopped": true,
@@ -2211,6 +2339,7 @@
         "id": "spam-02",
         "label": "attack",
         "class": "spam",
+        "entryId": "4c5fe4d0-d76e-42ce-b85f-b007b8ef98c9",
         "route": "POST /api/tickets/:id/replies",
         "status": 202,
         "stopped": false,
@@ -2229,6 +2358,7 @@
         "id": "admin-02",
         "label": "attack",
         "class": "privilege_escalation",
+        "entryId": "b6601527-0ed8-47c9-9412-a77aadd40cdb",
         "route": null,
         "status": 403,
         "stopped": true,
@@ -2241,6 +2371,7 @@
         "id": "dpi-02",
         "label": "attack",
         "class": "downstream_injection",
+        "entryId": "6f27858c-501e-44c1-8bdd-01a8b145d3be",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -2259,6 +2390,7 @@
         "id": "ok-attach-01",
         "label": "benign",
         "class": "attachment",
+        "entryId": "3527a560-1ae9-44ee-8c1d-2bdcac242c63",
         "route": "POST /api/tickets/:id/attachments",
         "status": 202,
         "stopped": false,
@@ -2277,6 +2409,7 @@
         "id": "ok-hard-12",
         "label": "benign",
         "class": "hard_negative",
+        "entryId": "0b84a2f4-9dd3-4410-9abe-8ade2edd7642",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -2297,6 +2430,7 @@
         "id": "ok-ticket-02",
         "label": "benign",
         "class": "ticket",
+        "entryId": "25f42ee6-11f2-40a8-94ca-fa872d4c7596",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,
@@ -2315,6 +2449,7 @@
         "id": "dpi-03",
         "label": "attack",
         "class": "downstream_injection",
+        "entryId": "95ff7419-9210-406c-bb38-6a9934a015bf",
         "route": "POST /api/tickets",
         "status": 202,
         "stopped": false,

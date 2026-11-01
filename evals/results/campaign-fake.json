@@ -1,0 +1,1710 @@
+{
+  "kind": "campaign",
+  "mode": "fake",
+  "learning": true,
+  "startedAt": "2026-10-29T02:19:51.259Z",
+  "finishedAt": "2026-10-29T02:19:54.703Z",
+  "headline": "Over 6 windows of 50 cases, model calls per 1k writes went 365.38 → 283.02 and the gate's share of stops 0 → 1, with recall 0.4 → 0.3333 and FPR 0.0286 → 0.0286. Held-out families at the gate: 0 → 0.3125.",
+  "simulated": {
+    "operator": "Human queue and disputes resolved by a scripted operator from the corpus labels, 1 window(s) late, through the real operator API. Not a person.",
+    "traffic": "Deterministic mutations of corpus cases (mutate.ts), not captured production traffic."
+  },
+  "config": {
+    "seed": 2026,
+    "windows": 6,
+    "casesPerWindow": 50,
+    "attackShare": 0.3,
+    "operatorDelayWindows": 1,
+    "holdoutFraction": 0.3333333333333333,
+    "probeVariants": {
+      "heldOut": 4,
+      "train": 2,
+      "benign": 2
+    },
+    "thresholds": {
+      "minSupport": 2,
+      "minCleanSamples": 10,
+      "promoteToFlagAfter": 1,
+      "promoteToBlockAfter": 2,
+      "flagWeight": 0.6,
+      "staleAfterMs": 2592000000,
+      "trustAllowsAfterMs": 259200000
+    }
+  },
+  "families": {
+    "train": [
+      "dpi-07",
+      "dpi-06",
+      "dpi-01",
+      "dpi-03",
+      "dpi-02",
+      "trav-01",
+      "dpi-09",
+      "dpi-08",
+      "mass-01",
+      "mass-02",
+      "mass-03",
+      "cmd-01",
+      "fraud-06",
+      "fraud-07",
+      "fraud-01",
+      "fraud-02",
+      "fraud-03",
+      "tmpl-01",
+      "spam-01",
+      "spam-02",
+      "rpi-04",
+      "rpi-03",
+      "rpi-02",
+      "rpi-01",
+      "rpi-08",
+      "xss-04",
+      "xss-05",
+      "xss-06",
+      "xss-07",
+      "xss-08",
+      "nosql-01",
+      "sqli-04",
+      "sqli-03",
+      "sqli-02",
+      "sqli-01",
+      "sqli-08",
+      "ssrf-01"
+    ],
+    "heldOut": [
+      "dpi-10",
+      "dpi-05",
+      "dpi-04",
+      "mass-04",
+      "mass-05",
+      "fraud-04",
+      "fraud-05",
+      "rpi-07",
+      "rpi-06",
+      "rpi-05",
+      "xss-01",
+      "xss-02",
+      "xss-03",
+      "sqli-07",
+      "sqli-06",
+      "sqli-05"
+    ],
+    "benign": 53
+  },
+  "baselineProbe": {
+    "heldOutGateRecall": 0,
+    "trainGateRecall": 0,
+    "benignStoppedAtGate": 0,
+    "benignStoppedIds": [],
+    "benignStoppedSignals": [],
+    "benignProbed": 106
+  },
+  "windows": [
+    {
+      "window": 1,
+      "cases": 50,
+      "writes": 52,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 0.4,
+      "falsePositiveRate": 0.0286,
+      "stops": 7,
+      "gateStops": 0,
+      "gateShareOfStops": 0,
+      "modelCalls": 19,
+      "modelCallsPer1k": 365.38,
+      "modelReviews": 52,
+      "modelReviewsPer1k": 1000,
+      "errors": [
+        {
+          "id": "nosql-01~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "body.operator_injection"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "fraud-07~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "dpi-06~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "prompt.override"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "spam-01~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "cmd-01~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "cmdi.shell_chain"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "ok-hard-02~v0",
+          "label": "benign",
+          "stage": "review",
+          "signals": [
+            "sqli.union_select"
+          ],
+          "verdict": {
+            "verdict": "drop",
+            "category": "sqli",
+            "confidence": 0.97,
+            "rationale": "scripted sqli"
+          }
+        },
+        {
+          "id": "tmpl-01~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssti.template_probe"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "ssrf-01~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssrf.metadata"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "trav-01~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "traversal.dot_dot",
+            "traversal.sensitive_file"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "dpi-07~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        }
+      ],
+      "falsePositiveIds": [
+        {
+          "id": "ok-hard-02~v0",
+          "stage": "review"
+        }
+      ],
+      "callsByTier": {
+        "inline": 8,
+        "batch": 6,
+        "escalation": 4
+      },
+      "usd": 0,
+      "usdPer1k": 0,
+      "stoppedAt": {
+        "delivered": 43,
+        "review": 6,
+        "inline": 1
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 2,
+        "created": 2
+      },
+      "ruleEvents": [
+        {
+          "ruleId": "mem-1",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 2 drops and 0 of 45 clean requests"
+        },
+        {
+          "ruleId": "mem-2",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 3 drops and 0 of 45 clean requests"
+        }
+      ],
+      "promotions": {
+        "shadow": 2,
+        "flag": 0,
+        "block": 0,
+        "retired": 0,
+        "rejected": 0,
+        "pending": 0
+      },
+      "activeRules": {
+        "shadow": 2
+      },
+      "simulatedOperator": null,
+      "probe": {
+        "heldOutGateRecall": 0,
+        "trainGateRecall": 0,
+        "benignStoppedAtGate": 0,
+        "benignStoppedIds": [],
+        "benignStoppedSignals": [],
+        "benignProbed": 106
+      }
+    },
+    {
+      "window": 2,
+      "cases": 50,
+      "writes": 52,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 0.4667,
+      "falsePositiveRate": 0.0286,
+      "stops": 8,
+      "gateStops": 0,
+      "gateShareOfStops": 0,
+      "modelCalls": 21,
+      "modelCallsPer1k": 403.85,
+      "modelReviews": 52,
+      "modelReviewsPer1k": 1000,
+      "errors": [
+        {
+          "id": "nosql-01~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "body.operator_injection"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "ssrf-01~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssrf.metadata"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "dpi-03~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "spam-02~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "ok-hard-02~v1",
+          "label": "benign",
+          "stage": "review",
+          "signals": [
+            "sqli.union_select",
+            "memory.mem-2"
+          ],
+          "verdict": {
+            "verdict": "drop",
+            "category": "sqli",
+            "confidence": 0.97,
+            "rationale": "scripted sqli"
+          }
+        },
+        {
+          "id": "tmpl-01~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssti.template_probe"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "cmd-01~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "cmdi.shell_chain"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "trav-01~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "traversal.dot_dot",
+            "traversal.sensitive_file"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "mass-02~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        }
+      ],
+      "falsePositiveIds": [
+        {
+          "id": "ok-hard-02~v1",
+          "stage": "review"
+        }
+      ],
+      "callsByTier": {
+        "inline": 9,
+        "batch": 8,
+        "escalation": 3
+      },
+      "usd": 0,
+      "usdPer1k": 0,
+      "stoppedAt": {
+        "inline": 2,
+        "review": 6,
+        "delivered": 42
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 2,
+        "created": 2
+      },
+      "ruleEvents": [
+        {
+          "ruleId": "mem-2",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-2",
+          "from": "flag",
+          "to": "block",
+          "reason": "2 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-3",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 3 drops and 0 of 89 clean requests"
+        },
+        {
+          "ruleId": "mem-4",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 4 drops and 0 of 89 clean requests"
+        }
+      ],
+      "promotions": {
+        "shadow": 2,
+        "flag": 1,
+        "block": 1,
+        "retired": 0,
+        "rejected": 0,
+        "pending": 0
+      },
+      "activeRules": {
+        "block": 1,
+        "shadow": 3
+      },
+      "simulatedOperator": {
+        "released": 0,
+        "dropped": 0,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "probe": {
+        "heldOutGateRecall": 0,
+        "trainGateRecall": 0.1081,
+        "benignStoppedAtGate": 2,
+        "benignStoppedIds": [
+          "ok-hard-02~v1001",
+          "ok-hard-02~v1000"
+        ],
+        "benignStoppedSignals": [
+          [
+            "sqli.union_select",
+            "memory.mem-2"
+          ],
+          [
+            "sqli.union_select",
+            "memory.mem-2"
+          ]
+        ],
+        "benignProbed": 106
+      }
+    },
+    {
+      "window": 3,
+      "cases": 50,
+      "writes": 51,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 0.3333,
+      "falsePositiveRate": 0.0286,
+      "stops": 6,
+      "gateStops": 2,
+      "gateShareOfStops": 0.3333,
+      "modelCalls": 16,
+      "modelCallsPer1k": 313.73,
+      "modelReviews": 49,
+      "modelReviewsPer1k": 960.78,
+      "errors": [
+        {
+          "id": "spam-01~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "cmd-01~v2",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "cmdi.shell_chain"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "ok-hard-02~v2",
+          "label": "benign",
+          "stage": "gate",
+          "signals": [
+            "sqli.union_select",
+            "memory.mem-2"
+          ],
+          "verdict": null
+        },
+        {
+          "id": "ssrf-01~v2",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssrf.metadata"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "nosql-01~v2",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "body.operator_injection"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "dpi-09~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "trav-01~v2",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "traversal.dot_dot",
+            "traversal.sensitive_file"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "tmpl-01~v2",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssti.template_probe"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "dpi-02~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "fraud-03~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "mass-03~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "body.mass_assignment"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        }
+      ],
+      "falsePositiveIds": [
+        {
+          "id": "ok-hard-02~v2",
+          "stage": "gate"
+        }
+      ],
+      "callsByTier": {
+        "inline": 8,
+        "batch": 4,
+        "escalation": 4
+      },
+      "usd": 0,
+      "usdPer1k": 0,
+      "stoppedAt": {
+        "delivered": 44,
+        "review": 3,
+        "inline": 1,
+        "gate": 2
+      },
+      "distill": {
+        "ran": false,
+        "reason": "0 unexplained drop(s)"
+      },
+      "ruleEvents": [
+        {
+          "ruleId": "mem-3",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-4",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-1",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        }
+      ],
+      "promotions": {
+        "shadow": 0,
+        "flag": 3,
+        "block": 0,
+        "retired": 0,
+        "rejected": 0,
+        "pending": 0
+      },
+      "activeRules": {
+        "block": 1,
+        "flag": 3
+      },
+      "simulatedOperator": {
+        "released": 0,
+        "dropped": 0,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "probe": {
+        "heldOutGateRecall": 0,
+        "trainGateRecall": 0.1351,
+        "benignStoppedAtGate": 2,
+        "benignStoppedIds": [
+          "ok-hard-02~v1001",
+          "ok-hard-02~v1000"
+        ],
+        "benignStoppedSignals": [
+          [
+            "sqli.union_select",
+            "memory.mem-2"
+          ],
+          [
+            "sqli.union_select",
+            "memory.mem-2"
+          ]
+        ],
+        "benignProbed": 106
+      }
+    },
+    {
+      "window": 4,
+      "cases": 50,
+      "writes": 53,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 0.4,
+      "falsePositiveRate": 0,
+      "stops": 6,
+      "gateStops": 2,
+      "gateShareOfStops": 0.3333,
+      "modelCalls": 21,
+      "modelCallsPer1k": 396.23,
+      "modelReviews": 51,
+      "modelReviewsPer1k": 962.26,
+      "errors": [
+        {
+          "id": "trav-01~v3",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "traversal.dot_dot",
+            "traversal.sensitive_file"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "spam-02~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "nosql-01~v3",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "body.operator_injection"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "cmd-01~v3",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "cmdi.shell_chain"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "tmpl-01~v3",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssti.template_probe"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "dpi-07~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "dpi-08~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "ssrf-01~v3",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssrf.metadata"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "fraud-07~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        }
+      ],
+      "falsePositiveIds": [],
+      "callsByTier": {
+        "inline": 9,
+        "batch": 7,
+        "escalation": 5
+      },
+      "usd": 0,
+      "usdPer1k": 0,
+      "stoppedAt": {
+        "delivered": 44,
+        "review": 3,
+        "inline": 1,
+        "gate": 2
+      },
+      "distill": {
+        "ran": false,
+        "reason": "0 unexplained drop(s)"
+      },
+      "ruleEvents": [
+        {
+          "ruleId": "mem-3",
+          "from": "flag",
+          "to": "block",
+          "reason": "2 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-4",
+          "from": "flag",
+          "to": "block",
+          "reason": "2 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-1",
+          "from": "flag",
+          "to": "block",
+          "reason": "2 confirmed live hits, no false positives"
+        }
+      ],
+      "promotions": {
+        "shadow": 0,
+        "flag": 0,
+        "block": 3,
+        "retired": 0,
+        "rejected": 0,
+        "pending": 0
+      },
+      "activeRules": {
+        "block": 4
+      },
+      "simulatedOperator": {
+        "released": 0,
+        "dropped": 1,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "probe": {
+        "heldOutGateRecall": 0.3125,
+        "trainGateRecall": 0.4054,
+        "benignStoppedAtGate": 2,
+        "benignStoppedIds": [
+          "ok-hard-02~v1001",
+          "ok-hard-02~v1000"
+        ],
+        "benignStoppedSignals": [
+          [
+            "sqli.union_select",
+            "memory.mem-2"
+          ],
+          [
+            "sqli.union_select",
+            "memory.mem-2"
+          ]
+        ],
+        "benignProbed": 106
+      }
+    },
+    {
+      "window": 5,
+      "cases": 50,
+      "writes": 50,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 0.2667,
+      "falsePositiveRate": 0.0286,
+      "stops": 5,
+      "gateStops": 3,
+      "gateShareOfStops": 0.6,
+      "modelCalls": 17,
+      "modelCallsPer1k": 340,
+      "modelReviews": 47,
+      "modelReviewsPer1k": 940,
+      "errors": [
+        {
+          "id": "ssrf-01~v4",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssrf.metadata"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "tmpl-01~v4",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssti.template_probe"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "sqli-08~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "spam-01~v2",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "ok-hard-02~v3",
+          "label": "benign",
+          "stage": "gate",
+          "signals": [
+            "sqli.union_select",
+            "memory.mem-2"
+          ],
+          "verdict": null
+        },
+        {
+          "id": "cmd-01~v4",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "cmdi.shell_chain"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "nosql-01~v4",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "body.operator_injection"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "dpi-06~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "prompt.override"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "trav-01~v4",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "traversal.dot_dot",
+            "traversal.sensitive_file"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "xss-08~v0",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "xss.event_handler"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "mass-02~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "fraud-03~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        }
+      ],
+      "falsePositiveIds": [
+        {
+          "id": "ok-hard-02~v3",
+          "stage": "gate"
+        }
+      ],
+      "callsByTier": {
+        "inline": 7,
+        "batch": 5,
+        "escalation": 4
+      },
+      "usd": 0,
+      "usdPer1k": 0,
+      "stoppedAt": {
+        "review": 2,
+        "delivered": 45,
+        "gate": 3
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 0,
+        "created": 0
+      },
+      "ruleEvents": [],
+      "promotions": {
+        "shadow": 0,
+        "flag": 0,
+        "block": 0,
+        "retired": 0,
+        "rejected": 0,
+        "pending": 0
+      },
+      "activeRules": {
+        "block": 4
+      },
+      "simulatedOperator": {
+        "released": 0,
+        "dropped": 0,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "probe": {
+        "heldOutGateRecall": 0.3125,
+        "trainGateRecall": 0.4054,
+        "benignStoppedAtGate": 2,
+        "benignStoppedIds": [
+          "ok-hard-02~v1001",
+          "ok-hard-02~v1000"
+        ],
+        "benignStoppedSignals": [
+          [
+            "sqli.union_select",
+            "memory.mem-2"
+          ],
+          [
+            "sqli.union_select",
+            "memory.mem-2"
+          ]
+        ],
+        "benignProbed": 106
+      }
+    },
+    {
+      "window": 6,
+      "cases": 50,
+      "writes": 53,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 0.3333,
+      "falsePositiveRate": 0.0286,
+      "stops": 6,
+      "gateStops": 6,
+      "gateShareOfStops": 1,
+      "modelCalls": 15,
+      "modelCallsPer1k": 283.02,
+      "modelReviews": 47,
+      "modelReviewsPer1k": 886.79,
+      "errors": [
+        {
+          "id": "nosql-01~v5",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "body.operator_injection"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "fraud-07~v2",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "ssrf-01~v5",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssrf.metadata"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "spam-02~v2",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "ok-hard-02~v4",
+          "label": "benign",
+          "stage": "gate",
+          "signals": [
+            "sqli.union_select",
+            "memory.mem-2"
+          ],
+          "verdict": null
+        },
+        {
+          "id": "cmd-01~v5",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "cmdi.shell_chain"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "trav-01~v5",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "traversal.dot_dot",
+            "traversal.sensitive_file"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "tmpl-01~v5",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "ssti.template_probe"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "dpi-03~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "mass-03~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [
+            "body.mass_assignment"
+          ],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        },
+        {
+          "id": "dpi-02~v1",
+          "label": "attack",
+          "stage": "delivered",
+          "signals": [],
+          "verdict": {
+            "verdict": "allow",
+            "category": "benign",
+            "confidence": 0.95,
+            "rationale": "scripted allow"
+          }
+        }
+      ],
+      "falsePositiveIds": [
+        {
+          "id": "ok-hard-02~v4",
+          "stage": "gate"
+        }
+      ],
+      "callsByTier": {
+        "inline": 8,
+        "batch": 4,
+        "escalation": 3
+      },
+      "usd": 0,
+      "usdPer1k": 0,
+      "stoppedAt": {
+        "delivered": 44,
+        "gate": 6
+      },
+      "distill": {
+        "ran": false,
+        "reason": "0 unexplained drop(s)"
+      },
+      "ruleEvents": [],
+      "promotions": {
+        "shadow": 0,
+        "flag": 0,
+        "block": 0,
+        "retired": 0,
+        "rejected": 0,
+        "pending": 0
+      },
+      "activeRules": {
+        "block": 4
+      },
+      "simulatedOperator": {
+        "released": 0,
+        "dropped": 1,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "probe": {
+        "heldOutGateRecall": 0.3125,
+        "trainGateRecall": 0.4054,
+        "benignStoppedAtGate": 2,
+        "benignStoppedIds": [
+          "ok-hard-02~v1001",
+          "ok-hard-02~v1000"
+        ],
+        "benignStoppedSignals": [
+          [
+            "sqli.union_select",
+            "memory.mem-2"
+          ],
+          [
+            "sqli.union_select",
+            "memory.mem-2"
+          ]
+        ],
+        "benignProbed": 106
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "mem-1",
+      "status": "block",
+      "category": "mass_assignment",
+      "description": "Blocks profile updates that try to set the account's role to admin.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/me"
+          },
+          {
+            "field": "json:role",
+            "op": "eq",
+            "value": "admin",
+            "ci": true
+          }
+        ]
+      },
+      "support": 2,
+      "liveTruePositives": 2,
+      "liveFalsePositives": 0,
+      "reason": "2 confirmed live hits, no false positives"
+    },
+    {
+      "id": "mem-2",
+      "status": "block",
+      "category": "sqli",
+      "description": "Blocks writes whose body carries a UNION SELECT, the ' or '1'='1 tautology, or a stacked DROP TABLE.",
+      "when": {
+        "all": [
+          {
+            "field": "body",
+            "op": "matches",
+            "value": "\\bunion\\b.+\\bselect\\b|' or '1'='1|;\\s*drop\\s+table",
+            "ci": true
+          }
+        ]
+      },
+      "support": 3,
+      "liveTruePositives": 2,
+      "liveFalsePositives": 0,
+      "reason": "2 confirmed live hits, no false positives"
+    },
+    {
+      "id": "mem-3",
+      "status": "block",
+      "category": "fraud",
+      "description": "Blocks account credits of $100 or more, which no support policy issues in one go.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "matches",
+            "value": "^/api/accounts/[^/]+/credits$"
+          },
+          {
+            "field": "json:amount_cents",
+            "op": "gte",
+            "value": 10000
+          }
+        ]
+      },
+      "support": 3,
+      "liveTruePositives": 2,
+      "liveFalsePositives": 0,
+      "reason": "2 confirmed live hits, no false positives"
+    },
+    {
+      "id": "mem-4",
+      "status": "block",
+      "category": "xss",
+      "description": "Blocks writes whose body carries a script tag, an onerror handler or a javascript: URL.",
+      "when": {
+        "all": [
+          {
+            "field": "body",
+            "op": "matches",
+            "value": "<script|onerror=|javascript:",
+            "ci": true
+          }
+        ]
+      },
+      "support": 4,
+      "liveTruePositives": 3,
+      "liveFalsePositives": 0,
+      "reason": "2 confirmed live hits, no false positives"
+    }
+  ],
+  "cost": {
+    "totalUsd": 0
+  },
+  "models": "scripted",
+  "counterfactual": {
+    "note": "Same stream and scripted reviewer, Memory never learns.",
+    "windows": [
+      {
+        "window": 1,
+        "recall": 0.4,
+        "falsePositiveRate": 0.0286,
+        "modelReviewsPer1k": 1000,
+        "modelCallsPer1k": 346.15,
+        "gateShareOfStops": 0,
+        "stoppedAttacks": 6
+      },
+      {
+        "window": 2,
+        "recall": 0.4667,
+        "falsePositiveRate": 0.0286,
+        "modelReviewsPer1k": 1000,
+        "modelCallsPer1k": 384.62,
+        "gateShareOfStops": 0,
+        "stoppedAttacks": 7
+      },
+      {
+        "window": 3,
+        "recall": 0.3333,
+        "falsePositiveRate": 0.0286,
+        "modelReviewsPer1k": 1000,
+        "modelCallsPer1k": 372.55,
+        "gateShareOfStops": 0,
+        "stoppedAttacks": 5
+      },
+      {
+        "window": 4,
+        "recall": 0.4,
+        "falsePositiveRate": 0,
+        "modelReviewsPer1k": 1000,
+        "modelCallsPer1k": 377.36,
+        "gateShareOfStops": 0,
+        "stoppedAttacks": 6
+      },
+      {
+        "window": 5,
+        "recall": 0.2667,
+        "falsePositiveRate": 0.0286,
+        "modelReviewsPer1k": 1000,
+        "modelCallsPer1k": 360,
+        "gateShareOfStops": 0,
+        "stoppedAttacks": 4
+      },
+      {
+        "window": 6,
+        "recall": 0.3333,
+        "falsePositiveRate": 0.0286,
+        "modelReviewsPer1k": 1000,
+        "modelCallsPer1k": 339.62,
+        "gateShareOfStops": 0,
+        "stoppedAttacks": 5
+      }
+    ]
+  },
+  "decodedViewAblation": {
+    "note": "Same campaign, scripted reviewer reading only the raw body (pre-M7.1).",
+    "windows": [
+      {
+        "window": 1,
+        "recall": 0.4,
+        "falsePositiveRate": 0.0286,
+        "modelReviewsPer1k": 1000,
+        "modelCallsPer1k": 365.38,
+        "gateShareOfStops": 0,
+        "stoppedAttacks": 6
+      },
+      {
+        "window": 2,
+        "recall": 0.4,
+        "falsePositiveRate": 0.0286,
+        "modelReviewsPer1k": 1000,
+        "modelCallsPer1k": 423.08,
+        "gateShareOfStops": 0,
+        "stoppedAttacks": 6
+      },
+      {
+        "window": 3,
+        "recall": 0.3333,
+        "falsePositiveRate": 0.0286,
+        "modelReviewsPer1k": 960.78,
+        "modelCallsPer1k": 313.73,
+        "gateShareOfStops": 0.3333,
+        "stoppedAttacks": 5
+      },
+      {
+        "window": 4,
+        "recall": 0.3333,
+        "falsePositiveRate": 0,
+        "modelReviewsPer1k": 962.26,
+        "modelCallsPer1k": 396.23,
+        "gateShareOfStops": 0.4,
+        "stoppedAttacks": 5
+      },
+      {
+        "window": 5,
+        "recall": 0.2667,
+        "falsePositiveRate": 0.0286,
+        "modelReviewsPer1k": 960,
+        "modelCallsPer1k": 360,
+        "gateShareOfStops": 0.4,
+        "stoppedAttacks": 4
+      },
+      {
+        "window": 6,
+        "recall": 0.3333,
+        "falsePositiveRate": 0.0286,
+        "modelReviewsPer1k": 905.66,
+        "modelCallsPer1k": 301.89,
+        "gateShareOfStops": 0.8333,
+        "stoppedAttacks": 5
+      }
+    ],
+    "rules": [
+      {
+        "id": "mem-1",
+        "status": "block",
+        "reason": "2 confirmed live hits, no false positives"
+      },
+      {
+        "id": "mem-2",
+        "status": "block",
+        "reason": "2 confirmed live hits, no false positives"
+      },
+      {
+        "id": "mem-3",
+        "status": "block",
+        "reason": "2 confirmed live hits, no false positives"
+      },
+      {
+        "id": "mem-4",
+        "status": "flag",
+        "reason": "1 confirmed live hits, no false positives"
+      }
+    ]
+  },
+  "decodedView": {
+    "targets": 300,
+    "withDecodedView": {
+      "attack": 16,
+      "benign": 52
+    },
+    "of": {
+      "attack": 90,
+      "benign": 210
+    },
+    "extraCharsWhenPresent": {
+      "mean": 180,
+      "max": 351
+    },
+    "attacksStoppedOverRun": {
+      "decoded": 33,
+      "rawOnly": 31
+    }
+  }
+}

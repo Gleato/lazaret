@@ -634,6 +634,58 @@ attacks, per-target-account spraying (decision #5).
 - the public memory/queue/status views (C);
 - `ledger.shard` as a function of time (D).
 
+### M7.1 — Make the Memory learn, and show the gain (2026-10-29, approved, done)
+The live memory eval learned nothing usable. Two library bugs are part of why, and the
+eval's corpus can't show learning either. All three get fixed here, before M8.
+
+- [x] **A. Rules starved of evidence can come back.** Today a candidate rejected for low
+  support is final, its fingerprint blocks it from being proposed again, and its drops are
+  marked as used. Fix:
+  - "not enough evidence yet" (too few matching drops *or* too few clean samples) becomes
+    `pending`, re-backtested as traffic arrives (that's already done for clean samples);
+  - only a false-positive rejection is final;
+  - pending rules expire after `staleAfterMs`.
+  Tests: a rule with 1 drop waits, then promotes when a second matching drop arrives.
+- [x] **B. A rule that disagrees with the reviewer is a question, not a verdict.**
+  - **Today:** any archived allow the rule matches counts as a false positive. Rules see
+    the decoded request and the reviewer sees the raw one, so a rule that catches a
+    reviewer miss (`&lt;script&gt;`) is rejected.
+  - **Fix:** a match on an allow the reviewer gave is a *dispute*. Only a match on a
+    trusted allow is a false positive. A trusted allow is one an operator labelled, or one
+    that was committed and never reported. The rule stays pending while disputed, and each
+    disputed write goes to a new operator view,
+    `GET /__lazaret/operator/disputes`, for a human label. That label feeds `label()`,
+    which re-backtests the rule. The decision stays deterministic, and a model never
+    breaks the tie.
+  - **Root cause too:** the reviewer gets the gate's decoded view next to the raw body, so
+    it stops missing encoded payloads. That touches the reviewer prompt, so it gets its own
+    eval run.
+  - **Tests:** a disputed rule never promotes; an operator "attack" label promotes it, a
+    "benign" label rejects it; reviewer prompt snapshot.
+- [x] **C. Campaign replay eval (the production-shaped way to show a gain).** Real attackers
+  don't send one payload; they send many variants of it.
+  - **Traffic:** a deterministic mutator, with no model involved, so runs are
+    reproducible. It turns each attack family into variants: URL, HTML-entity and Unicode
+    encodings, casing, whitespace, comment-splitting, field moves. Those are mixed into
+    benign traffic at a realistic ratio, with benign variants too.
+  - **Replay:** the stream is replayed through the real stack in time windows, with the
+    Memory learning as it goes.
+  - **Operator:** the human queue is resolved by a *simulated operator* using the corpus
+    labels after a delay, labelled as simulated everywhere.
+  - **Hold-out:** some whole attack families are never shown in training, to separate
+    "learned the family" from "memorised the payload".
+  - **Reported per window:** gate share of stops, model calls and $ per 1k writes, recall,
+    FPR, and rule promotions.
+  - **The claim it can support:** "cost and latency fall as it learns, while recall and
+    FPR hold", the thing a production team pays for.
+  - **Cost:** offline (free) first, then live, est. **~$1–1.50** for about 300 writes
+    (cheaper as the gate takes over), capped by EVAL_MAX_USD. Live only with your OK.
+- [x] **D. Site:** the memory panel shows the learning curve (cost per 1k and gate share
+  per window, one axis per chart), replacing the cold/warm table. The demo keeps learning
+  across hourly resets, as now.
+- [x] **E. Verify + review:** tests, typecheck, biome, offline then live runs, and the
+  panel checked in the browser (desktop and 375 px, light and dark).
+
 ### M8 — Ship
 - [ ] Ledger log compaction: snapshot the projection + prune archived batches (deferred from M5)
 - [ ] Deploy site to gleator.com, demo Lazaret + origin on routes/subdomain
@@ -1174,3 +1226,101 @@ attacks, per-target-account spraying (decision #5).
     labels) also limit it.
   - Footer name to confirm.
 
+
+### M7.1 (2026-10-29)
+- **A. Thin evidence waits** (`memory/lifecycle.ts`, `memory/store.ts`):
+  - Too few matching drops, or too few clean samples, now means `pending`, not `rejected`.
+    Pending rules are re-backtested on every archive and every label.
+  - Only a false positive on trusted clean traffic is a final rejection.
+  - Pending rules expire to `retired` after `staleAfterMs`.
+  - Pre-M7.1 support rejections no longer block the same fingerprint (`LEGACY_SUPPORT_REJECTION`).
+  - Test: a rule with 1 drop waits, and promotes on the second.
+- **B. Disputes, not verdicts:**
+  - New threshold `trustAllowsAfterMs` (3 days). An allow is trusted clean traffic if an
+    operator labelled it, or if it is older than that (a report would have relabelled it
+    a drop). A rule that matches a fresher model allow is *disputed* and stays pending.
+  - The same rule applies to live hits, found while building C. A shadow rule that fired
+    on a reviewer allow used to retire at once, which is the same defect. Now it is an
+    open dispute: the rule can't be promoted until a human labels the write. Unlabelled,
+    it becomes a false positive after `trustAllowsAfterMs` and retires the rule.
+    `verdicts` gains `hits` and `open_dispute` columns, migrated in place.
+  - `GET /__lazaret/operator/disputes` lists disputed writes with the decoded body and
+    the rules that matched. `POST .../disputes/:entryId {label}` goes through
+    `labelArchived` → `label()`, which re-backtests the rule. No model breaks the tie.
+  - Reviewer prompt: entries carry a `decoded` object, but only when the gate's decoding
+    changed a field (`decodedView` in `review/prompt.ts`, built on the new
+    `gate/inspect.decode`). One sentence was added to the static system prompt, which
+    stays cacheable. The scripted reviewer reads it too (`makeScriptedReviewer`).
+  - Offline measure: on the corpus, the fake reviewer went 30 → 32/63 (xss-05 and xss-07),
+    with FP unchanged. On the campaign it stopped 33 attacks vs 31 reading raw bodies. The
+    view appears on 16/90 attack and 37/210 benign targets, at about 180 extra chars each.
+  - **Live corpus run 9 (02:06Z, $0.23):** recall 63/63, FPR 0/57, precision 1.0.
+    Escalations 4 (run 8: 7) with 0 declines (run 8: 3 `cyber`). The batch reviewer
+    dropped sqli-06 itself; in runs 5-8 it allowed it and escalation caught it. Inline
+    p50 1.6 s / p95 2.3 s, TTFT p50 0.8 s. One run, so read the decline drop as
+    encouraging, not settled.
+- **C. Campaign replay** (`evals/src/mutate.ts`, `evals/src/campaign.ts`,
+  `evals/test/campaign.test.ts`; README's evals section):
+  - The stream is deterministic, dealt with fixed per-class quotas so windows are
+    comparable. Held-out families never appear in it. Each window gets a free gate-only
+    probe. The simulated operator works the queue and disputes one window late, through
+    the real API.
+  - Offline-only arms: a counterfactual (the Memory never learns) and a decoded-view
+    ablation.
+  - **Fake:** calls per 1k 365 → 283 (counterfactual 346 → 340). Gate share of stops
+    0 → 100%. Recall equals the counterfactual's in every window. Held-out families at
+    the gate 0 → 31%.
+  - **Live, run 2 (02:20Z, $0.80, published as `campaign-latest.json`):**
+    - recall 100% in all 6 windows;
+    - FPR 0 in four windows, 1/35 in two (both reviewer *holds*: an attachment with
+      swapped fields, and a forwarded bounce asking for an invoice redirect);
+    - model calls per 1k 327 → 283, reviewed writes per 1k 1000 → 906;
+    - gate share of stops 0 → 33% (5 of 15 in window 6);
+    - 3 rules promoted to block (role mass-assignment, NoSQL `$ne` login, text addressed
+      to the reviewer);
+    - 12 disputes labelled benign by the simulated operator, which rejected two
+      over-broad rules (an XSS rule and a 169.254 SSRF rule). The UNION SELECT rule
+      stayed pending, disputed on 5 ok-hard-02 variants the reviewer rightly allowed.
+      Without B, that rule would have been a candidate to block a customer's SQL question.
+  - **Live: what didn't improve.**
+    - Cost per 1k didn't fall ($2.32 → $2.48). Benign writes are 70% of traffic and
+      every one still needs a model, and window-to-window escalations dominate the noise.
+    - Held-out families at the gate stayed 0 → 0. Claude's rules are specific to the
+      payloads they were learned from. Training families went 0 → 24%, so it learned
+      payloads in any encoding, not classes.
+    - The site says both in words.
+  - **Live, run 1 (02:11Z, $0.83, kept as `campaign-live-2026-10-29T02-11-12Z.json`, not
+    published):** I found a mutator defect. Benign variants got evasion transforms
+    (random case flips, tab stuffing), and the reviewer rightly held them (FPR 20% in
+    window 3). That measured the mutator, not Lazaret. Benign variants now get only
+    url / entity / unicode / move, and a test pins it. The campaign output now keeps
+    every miss and FP with its verdict, so a live run can be audited without re-running.
+  - **Harness defect found and fixed:** a taint case whose parent was stopped at the
+    gate still sent its child to `/api/tickets/missing/...`, and the stub origin scored
+    it "delivered". It is now `parent_stopped`, counted as a gate stop. The fake Memory
+    eval's "warm never loses recall" test caught it once the archive became
+    deterministic: the harness now awaits `waitUntil` work, so inline verdicts land
+    before scoring.
+  - **Finding:** a learned rule inherits the reviewer's false drops. The keyword
+    reviewer drops ok-hard-02, so the fake SQLi rule blocks its probe variants. The fake
+    test's bar is "no gate FP the reviewer didn't already make". Live, the reviewer
+    allows ok-hard-02 and the dispute held the rule back.
+- **D. Site** (`sections/Memory.astro`, `components/CurveChart.astro`, `lib/curve.ts`,
+  `data/memory.ts`):
+  - The cold/warm table is replaced by three single-axis charts: calls per 1k, gate
+    share, and held-out families at the gate.
+  - There is a shared hover and focus tooltip, a table view, and caveats (simulated
+    operator, generated traffic, held-out count, offline label).
+  - Marks use the new `--chart` token (#2f5bb5 / #5f8fe8, validated with the dataviz
+    script; lagoon failed its chroma floor).
+  - Checked in the browser pane at desktop and 375 px, light and dark, offline and on
+    the built page with live data. No page overflow; the table scrolls in its own region.
+- **Verified:** 405 tests pass: 305 library, 27 demo, 44 origin, 12 site, and 17 evals
+  plus 3 live skipped. `npm run typecheck` and `npx biome check .` are clean.
+- **Spend:** $0.23 + $0.83 + $0.80 = **$1.86**, under the $2 ceiling. The second
+  campaign run re-measured after the mutator fix.
+- **Not done / caveats:**
+  - Recall and FPR from one live campaign; no live counterfactual arm (it would double
+    the cost).
+  - The operator is simulated from corpus labels.
+  - The live "Rules the demo has learned" list wasn't exercised (demo not running).

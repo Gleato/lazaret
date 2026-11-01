@@ -32,12 +32,21 @@ export interface Inspection {
 }
 
 export function canonicalize(input: string): string {
+  return decode(input).toLowerCase();
+}
+
+/**
+ * Canonicalisation without the lowercasing: what the text says once its encodings are
+ * undone. The reviewer gets this next to the raw body (M7.1), because case carries
+ * meaning for a human reader and the reviewer had been missing encoded payloads that
+ * the gate (and learned rules) see decoded.
+ */
+export function decode(input: string): string {
   let s = input.length > MAX_STRING_SCAN ? input.slice(0, MAX_STRING_SCAN) : input;
   s = urlDecode(urlDecode(s));
   s = htmlDecode(s);
   s = s.normalize("NFKC");
-  s = s.replace(/\/\*[^*]{0,200}\*\//g, " ").replaceAll("\0", "");
-  return s.toLowerCase();
+  return s.replace(/\/\*[^*]{0,200}\*\//g, " ").replaceAll("\0", "");
 }
 
 function urlDecode(s: string): string {

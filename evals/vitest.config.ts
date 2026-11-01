@@ -28,9 +28,12 @@ if (live) {
   if (process.env.EVAL_CONFIRM_SPEND !== "yes")
     throw new Error(
       // The Memory eval (eval:memory:live) runs ~1.4 corpora (training once, held-out
-      // twice) plus up to 3 Sonnet distillation calls, hence its higher estimate.
+      // twice) plus up to 3 Sonnet distillation calls, hence its higher estimate. The
+      // campaign replay (eval:campaign:live) reviews ~300 writes over 6 windows plus up
+      // to 6 distillation calls; its gate-only probes are free.
       `Live eval over ${corpus.length} cases calls the Claude API (about $0.25 per corpus run, ` +
-        `about $0.45 for the Memory eval; capped at $${process.env.EVAL_MAX_USD ?? 6}). ` +
+        `about $0.45 for the Memory eval, about $1-1.50 for the campaign replay; capped at ` +
+        `$${process.env.EVAL_MAX_USD ?? 6}). ` +
         "Re-run with EVAL_CONFIRM_SPEND=yes to proceed.",
     );
   if (!process.env.ANTHROPIC_API_KEY)

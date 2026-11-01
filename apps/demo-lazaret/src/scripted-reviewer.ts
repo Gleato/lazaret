@@ -46,19 +46,32 @@ export function scriptedVerdict(body: string | null): VerdictRecord {
 /** Every call the scripted reviewer has answered, by tier (tests assert on it). */
 export const calls: { tier: string }[] = [];
 
-export const scriptedReviewer: Reviewer = {
-  async review({ tier, prompt }) {
-    calls.push({ tier });
-    const start = prompt.indexOf("<batch_data>\n") + "<batch_data>\n".length;
-    const data = JSON.parse(prompt.slice(start, prompt.lastIndexOf("\n</batch_data>"))) as {
-      entries: { entry_id: string; body: string | null }[];
-    };
-    return {
-      kind: "output",
-      model: "scripted",
-      output: {
-        verdicts: data.entries.map((e) => ({ entry_id: e.entry_id, ...scriptedVerdict(e.body) })),
-      },
-    };
-  },
-};
+/**
+ * `readDecoded` (M7.1): read the gate's decoded view of the body when the prompt has one,
+ * as the real reviewer prompt now asks the model to. The default. `false` reads only
+ * the raw body, the pre-M7.1 behaviour, kept so the campaign eval can measure what the
+ * decoded view is worth (evals/src/campaign.ts).
+ */
+export function makeScriptedReviewer({ readDecoded = true } = {}): Reviewer {
+  return {
+    async review({ tier, prompt }) {
+      calls.push({ tier });
+      const start = prompt.indexOf("<batch_data>\n") + "<batch_data>\n".length;
+      const data = JSON.parse(prompt.slice(start, prompt.lastIndexOf("\n</batch_data>"))) as {
+        entries: { entry_id: string; body: string | null; decoded?: { body?: string } }[];
+      };
+      return {
+        kind: "output",
+        model: "scripted",
+        output: {
+          verdicts: data.entries.map((e) => ({
+            entry_id: e.entry_id,
+            ...scriptedVerdict((readDecoded ? e.decoded?.body : undefined) ?? e.body),
+          })),
+        },
+      };
+    },
+  };
+}
+
+export const scriptedReviewer: Reviewer = makeScriptedReviewer();

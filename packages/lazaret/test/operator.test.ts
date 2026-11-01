@@ -172,3 +172,99 @@ describe("operator queue", () => {
     expect((await act(held, "approve")).status).toBe(400);
   });
 });
+
+// M7.1 B: writes a pending rule matched but only a model allowed, for a human to settle.
+describe("operator disputes", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const sample = (body: string) => ({
+    method: "POST",
+    path: "/api/tickets",
+    query: "",
+    body,
+    headers: {},
+    json: undefined,
+    signals: [],
+  });
+  let n = 0;
+  const archived = (verdict: "allow" | "drop", body: string, at = Date.now()) => ({
+    entryId: `d${++n}`,
+    route: "POST /api/tickets",
+    sessionId: "s",
+    verdict,
+    category: verdict === "drop" ? "xss" : "benign",
+    confidence: 0.9,
+    rationale: verdict === "drop" ? "script tag" : "looks like a normal ticket",
+    source: "batch" as const,
+    at,
+    sample: sample(body),
+    memoryHits: [],
+  });
+
+  async function withDispute() {
+    const ctx = await setup();
+    const old = Date.now() - 4 * DAY;
+    const missed = archived("allow", "hi <script>steal()</script>");
+    await ctx.memory.archive([
+      archived("allow", "printer on fire", old),
+      archived("allow", "cannot log in", old),
+      archived("allow", "thanks", old),
+      archived("drop", "<script>a()</script>"),
+      archived("drop", "<script>b()</script>"),
+      missed,
+    ]);
+    const [rule] = await ctx.memory.submitCandidates(
+      [
+        {
+          description: "Script tags.",
+          category: "xss",
+          when: { field: "body", op: "contains", value: "<script" },
+        },
+      ],
+      [],
+    );
+    return { ...ctx, missed, rule };
+  }
+  const label = (call: Awaited<ReturnType<typeof setup>>["call"], id: string, body: unknown) =>
+    call(`disputes/${id}`, {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: { "content-type": "application/json" },
+    });
+
+  it("lists disputed writes with the decoded body and the rules that matched", async () => {
+    const { call, missed, rule } = await withDispute();
+    const res = await call("disputes");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      disputes: [
+        expect.objectContaining({
+          entryId: missed.entryId,
+          reviewedBy: "batch",
+          request: expect.objectContaining({ body: "hi <script>steal()</script>" }),
+          rules: [expect.objectContaining({ id: rule?.id })],
+        }),
+      ],
+    });
+  });
+
+  it("an attack label promotes the rule; a benign one rejects it", async () => {
+    const a = await withDispute();
+    const res = await label(a.call, a.missed.entryId, { label: "attack", category: "xss" });
+    expect(await res.json()).toMatchObject({
+      label: "attack",
+      transitions: [expect.objectContaining({ ruleId: a.rule?.id, to: "shadow" })],
+    });
+    const b = await withDispute();
+    const benign = await label(b.call, b.missed.entryId, { label: "benign" });
+    expect(await benign.json()).toMatchObject({
+      transitions: [expect.objectContaining({ ruleId: b.rule?.id, to: "rejected" })],
+    });
+  });
+
+  it("validates the label and the entry, and needs the token", async () => {
+    const { call, missed } = await withDispute();
+    expect((await label(call, missed.entryId, { label: "maybe" })).status).toBe(400);
+    expect((await label(call, "nope", { label: "attack" })).status).toBe(404);
+    expect((await call("disputes", {}, "Bearer wrong-token")).status).toBe(401);
+  });
+});

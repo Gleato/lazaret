@@ -1,0 +1,170 @@
+---
+// One learning-curve chart (M7.1): one measure, one axis, one series, so no legend;
+// the title names what is plotted. Rendered at build time as SVG. Each point is a
+// focusable hit target (wider than the mark) whose value shows in the shared tooltip
+// on hover and keyboard focus; every value is also in the table below the charts.
+import { columnPath, plot, VIEW } from "../../../lib/curve";
+import type { ChartSpec } from "../data/memory";
+
+interface Props {
+  chart: ChartSpec;
+}
+const { chart } = Astro.props;
+const fmt = (v: number) => (chart.percent ? `${Math.round(v * 100)}%` : String(Math.round(v)));
+const p = plot(chart.points, chart.yMax, fmt);
+const lastWithValue = [...p.marks].reverse().find((m) => m.point.value !== null);
+const xName = (label: string) => (label === "0" ? "Before training" : `Window ${label}`);
+---
+
+<figure class="curve">
+  <figcaption>
+    <span class="title">{chart.title}</span>
+    <span class="note">{chart.note}</span>
+  </figcaption>
+  <svg viewBox={`0 0 ${VIEW.w} ${VIEW.h}`} role="group" aria-label={chart.title}>
+    {
+      p.ticks.map((t) => (
+        <g class="tick" aria-hidden="true">
+          <line x1={VIEW.left} x2={VIEW.w - VIEW.right} y1={t.y} y2={t.y} />
+          <text x={VIEW.left - 6} y={t.y + 3.5} text-anchor="end">
+            {t.label}
+          </text>
+        </g>
+      ))
+    }
+    {
+      p.marks.map((m) => (
+        <text class="xlabel" x={m.cx} y={VIEW.h - 8} text-anchor="middle" aria-hidden="true">
+          {m.point.label === "0" ? "start" : m.point.label}
+        </text>
+      ))
+    }
+    {chart.kind === "line" && <path class="line" d={p.path} aria-hidden="true" />}
+    {
+      p.marks.map((m) => (
+        <g
+          class="pt"
+          tabindex="0"
+          role="img"
+          aria-label={`${xName(m.point.label)}: ${m.point.display}`}
+          data-tip-value={m.point.display}
+          data-tip-label={xName(m.point.label)}
+        >
+          <rect
+            class="hit"
+            x={m.cx - p.slot / 2}
+            y={VIEW.top}
+            width={p.slot}
+            height={m.baseY - VIEW.top}
+          />
+          {chart.kind === "columns" ? (
+            m.point.value !== null && (
+              <path class="col" d={columnPath(m.cx, m.cy, m.baseY, p.slot)} />
+            )
+          ) : (
+            m.point.value !== null && <circle class="dot" cx={m.cx} cy={m.cy} r="4" />
+          )}
+        </g>
+      ))
+    }
+    {
+      // Direct label on the last value only: the axis, tooltip and table carry the rest.
+      lastWithValue && (
+        <text
+          class="end"
+          x={lastWithValue.cx}
+          y={lastWithValue.cy - 9}
+          text-anchor="middle"
+          aria-hidden="true"
+        >
+          {lastWithValue.point.display}
+        </text>
+      )
+    }
+  </svg>
+</figure>
+
+<style>
+  .curve {
+    margin: 0;
+    min-width: 0;
+  }
+  figcaption {
+    display: grid;
+    gap: 0.1rem;
+    margin-bottom: 0.4rem;
+    min-height: 4.2em;
+  }
+  .title {
+    font: 700 var(--t0) / 1.25 var(--sans);
+  }
+  .note {
+    font: 400 var(--t-1) / 1.35 var(--sans);
+    color: var(--ink-2);
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    font-family: var(--sans);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  .tick line {
+    stroke: var(--chart-grid);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+  .tick text,
+  .xlabel {
+    fill: var(--ink-3);
+    font-size: 10px;
+  }
+  .line {
+    fill: none;
+    stroke: var(--chart);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .dot {
+    fill: var(--chart);
+    stroke: var(--paper);
+    stroke-width: 2;
+  }
+  .col {
+    fill: var(--chart);
+  }
+  .hit {
+    fill: transparent;
+  }
+  .end {
+    fill: var(--ink);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .pt {
+    cursor: default;
+    outline: none;
+  }
+  .pt:hover .hit,
+  .pt:focus-visible .hit {
+    fill: var(--chart-grid);
+    fill-opacity: 0.45;
+  }
+  .pt:focus-visible .hit {
+    stroke: var(--focus);
+    stroke-width: 1.5;
+  }
+  @media (forced-colors: active) {
+    .line,
+    .dot,
+    .col {
+      stroke: CanvasText;
+      fill: CanvasText;
+    }
+    .line {
+      fill: none;
+    }
+  }
+</style>

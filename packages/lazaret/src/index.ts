@@ -67,10 +67,16 @@ export {
   type RuleProposer,
   runDistillation,
 } from "./memory/distill";
-export { backtest, statusAfterBacktest, statusAfterLiveEvidence } from "./memory/lifecycle";
+export {
+  backtest,
+  pendingExpired,
+  statusAfterBacktest,
+  statusAfterLiveEvidence,
+} from "./memory/lifecycle";
 export { archiveRecord, sampleFromEntry } from "./memory/sample";
 export {
   type ArchiveInput,
+  type DisputedWrite,
   type DistillInput,
   LazaretMemory,
   type RuleEvent,
@@ -135,6 +141,7 @@ export type { MemoryHint } from "./review/prompt";
 export {
   buildBatchPrompt,
   buildEscalationPrompt,
+  decodedView,
   encodeUntrusted,
   SYSTEM_PROMPT,
 } from "./review/prompt";

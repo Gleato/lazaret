@@ -11,7 +11,10 @@ import type { Verdict } from "../ledger/types";
 //   proposed ─▶ pending ─▶ shadow ─▶ flag ─▶ block
 //      │          │          │        │        │
 //      ▼          ▼          └────────┴────────┴─▶ retired (any false positive, or stale)
-//   rejected   (waits for enough clean traffic to judge)
+//   rejected   waits for evidence: more matching drops, more clean traffic, or a
+//   (matched   human label on a disputed write; expires to retired after staleAfterMs
+//   trusted
+//   clean traffic: the only final rejection, M7.1)
 //
 //   shadow  evaluated on live traffic but has no effect; its hits are scored
 //           against the reviewer's independent verdicts
@@ -85,8 +88,17 @@ export interface MemoryThresholds {
   promoteToBlockAfter: number;
   /** Risk weight of a flag-tier rule. */
   flagWeight: number;
-  /** Active rules with no hits for this long are retired. */
+  /**
+   * Active rules with no hits for this long are retired; pending rules that haven't
+   * qualified within it expire (M7.1).
+   */
   staleAfterMs: number;
+  /**
+   * When a model's allow becomes trusted clean traffic for backtests (M7.1): a write
+   * committed this long ago and never reported. Until then a rule that matches it is
+   * disputed, not rejected. Operator-labelled allows are trusted at once.
+   */
+  trustAllowsAfterMs: number;
 }
 
 export const DEFAULT_MEMORY_THRESHOLDS: MemoryThresholds = {
@@ -96,6 +108,7 @@ export const DEFAULT_MEMORY_THRESHOLDS: MemoryThresholds = {
   promoteToBlockAfter: 10,
   flagWeight: 0.6,
   staleAfterMs: 30 * 24 * 60 * 60 * 1000,
+  trustAllowsAfterMs: 3 * 24 * 60 * 60 * 1000,
 };
 
 /** A proposal from the distiller, before it is compiled and backtested. */

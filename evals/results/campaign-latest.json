@@ -1,0 +1,1217 @@
+{
+  "kind": "campaign",
+  "mode": "live",
+  "learning": true,
+  "startedAt": "2026-10-29T02:20:01.756Z",
+  "finishedAt": "2026-10-29T02:26:31.328Z",
+  "headline": "Over 6 windows of 50 cases, model calls per 1k writes went 326.92 → 283.02 and the gate's share of stops 0 → 0.3333, with recall 1 → 1 and FPR 0 → 0. Held-out families at the gate: 0 → 0.",
+  "simulated": {
+    "operator": "Human queue and disputes resolved by a scripted operator from the corpus labels, 1 window(s) late, through the real operator API. Not a person.",
+    "traffic": "Deterministic mutations of corpus cases (mutate.ts), not captured production traffic."
+  },
+  "config": {
+    "seed": 2026,
+    "windows": 6,
+    "casesPerWindow": 50,
+    "attackShare": 0.3,
+    "operatorDelayWindows": 1,
+    "holdoutFraction": 0.3333333333333333,
+    "probeVariants": {
+      "heldOut": 4,
+      "train": 2,
+      "benign": 2
+    },
+    "thresholds": {
+      "minSupport": 2,
+      "minCleanSamples": 10,
+      "promoteToFlagAfter": 1,
+      "promoteToBlockAfter": 2,
+      "flagWeight": 0.6,
+      "staleAfterMs": 2592000000,
+      "trustAllowsAfterMs": 259200000
+    }
+  },
+  "families": {
+    "train": [
+      "dpi-07",
+      "dpi-06",
+      "dpi-01",
+      "dpi-03",
+      "dpi-02",
+      "trav-01",
+      "dpi-09",
+      "dpi-08",
+      "mass-01",
+      "mass-02",
+      "mass-03",
+      "cmd-01",
+      "fraud-06",
+      "fraud-07",
+      "fraud-01",
+      "fraud-02",
+      "fraud-03",
+      "tmpl-01",
+      "spam-01",
+      "spam-02",
+      "rpi-04",
+      "rpi-03",
+      "rpi-02",
+      "rpi-01",
+      "rpi-08",
+      "xss-04",
+      "xss-05",
+      "xss-06",
+      "xss-07",
+      "xss-08",
+      "nosql-01",
+      "sqli-04",
+      "sqli-03",
+      "sqli-02",
+      "sqli-01",
+      "sqli-08",
+      "ssrf-01"
+    ],
+    "heldOut": [
+      "dpi-10",
+      "dpi-05",
+      "dpi-04",
+      "mass-04",
+      "mass-05",
+      "fraud-04",
+      "fraud-05",
+      "rpi-07",
+      "rpi-06",
+      "rpi-05",
+      "xss-01",
+      "xss-02",
+      "xss-03",
+      "sqli-07",
+      "sqli-06",
+      "sqli-05"
+    ],
+    "benign": 53
+  },
+  "baselineProbe": {
+    "heldOutGateRecall": 0,
+    "trainGateRecall": 0,
+    "benignStoppedAtGate": 0,
+    "benignStoppedIds": [],
+    "benignStoppedSignals": [],
+    "benignProbed": 106
+  },
+  "windows": [
+    {
+      "window": 1,
+      "cases": 50,
+      "writes": 52,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 1,
+      "falsePositiveRate": 0,
+      "stops": 15,
+      "gateStops": 0,
+      "gateShareOfStops": 0,
+      "modelCalls": 17,
+      "modelCallsPer1k": 326.92,
+      "modelReviews": 52,
+      "modelReviewsPer1k": 1000,
+      "errors": [],
+      "falsePositiveIds": [],
+      "callsByTier": {
+        "inline": 8,
+        "batch": 6,
+        "escalation": 2
+      },
+      "usd": 0.1207,
+      "usdPer1k": 2.3203,
+      "stoppedAt": {
+        "inline": 3,
+        "delivered": 35,
+        "review": 12
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 3,
+        "created": 3
+      },
+      "ruleEvents": [
+        {
+          "ruleId": "mem-1",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 2 drops and 0 of 37 clean requests"
+        },
+        {
+          "ruleId": "mem-2",
+          "from": null,
+          "to": "pending",
+          "reason": "matched 1 dropped request(s); waiting for 2"
+        },
+        {
+          "ruleId": "mem-3",
+          "from": null,
+          "to": "pending",
+          "reason": "matched 1 dropped request(s); waiting for 2"
+        }
+      ],
+      "promotions": {
+        "shadow": 1,
+        "flag": 0,
+        "block": 0,
+        "retired": 0,
+        "rejected": 0,
+        "pending": 2
+      },
+      "activeRules": {
+        "pending": 2,
+        "shadow": 1
+      },
+      "simulatedOperator": null,
+      "probe": {
+        "heldOutGateRecall": 0,
+        "trainGateRecall": 0,
+        "benignStoppedAtGate": 0,
+        "benignStoppedIds": [],
+        "benignStoppedSignals": [],
+        "benignProbed": 106
+      }
+    },
+    {
+      "window": 2,
+      "cases": 50,
+      "writes": 52,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 1,
+      "falsePositiveRate": 0,
+      "stops": 15,
+      "gateStops": 0,
+      "gateShareOfStops": 0,
+      "modelCalls": 22,
+      "modelCallsPer1k": 423.08,
+      "modelReviews": 52,
+      "modelReviewsPer1k": 1000,
+      "errors": [],
+      "falsePositiveIds": [],
+      "callsByTier": {
+        "inline": 9,
+        "batch": 8,
+        "escalation": 4
+      },
+      "usd": 0.1453,
+      "usdPer1k": 2.7952,
+      "stoppedAt": {
+        "inline": 3,
+        "review": 11,
+        "delivered": 35,
+        "escalation": 1
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 3,
+        "created": 3
+      },
+      "ruleEvents": [
+        {
+          "ruleId": "mem-3",
+          "from": "pending",
+          "to": "shadow",
+          "reason": "matched 2 drops and 0 of 38 clean requests"
+        },
+        {
+          "ruleId": "mem-4",
+          "from": null,
+          "to": "pending",
+          "reason": "matched 1 dropped request(s); waiting for 2"
+        },
+        {
+          "ruleId": "mem-5",
+          "from": null,
+          "to": "pending",
+          "reason": "matched 1 dropped request(s); waiting for 2"
+        },
+        {
+          "ruleId": "mem-6",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 2 drops and 0 of 74 clean requests"
+        }
+      ],
+      "promotions": {
+        "shadow": 2,
+        "flag": 0,
+        "block": 0,
+        "retired": 0,
+        "rejected": 0,
+        "pending": 2
+      },
+      "activeRules": {
+        "pending": 3,
+        "shadow": 3
+      },
+      "simulatedOperator": {
+        "released": 0,
+        "dropped": 0,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "probe": {
+        "heldOutGateRecall": 0,
+        "trainGateRecall": 0,
+        "benignStoppedAtGate": 0,
+        "benignStoppedIds": [],
+        "benignStoppedSignals": [],
+        "benignProbed": 106
+      }
+    },
+    {
+      "window": 3,
+      "cases": 50,
+      "writes": 51,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 1,
+      "falsePositiveRate": 0.0286,
+      "stops": 16,
+      "gateStops": 0,
+      "gateShareOfStops": 0,
+      "modelCalls": 17,
+      "modelCallsPer1k": 333.33,
+      "modelReviews": 51,
+      "modelReviewsPer1k": 1000,
+      "errors": [
+        {
+          "id": "ok-attach-02~v1",
+          "label": "benign",
+          "stage": "review",
+          "signals": [],
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "other",
+            "confidence": 0.5,
+            "rationale": "The filename and content_type values are swapped, which resembles a past attack pattern, but the values themselves are benign: a PDF MIME type and a plain filename. The base64 decodes to a PDF header, and the entity-encoded padding is just an encoding artifact. Likely a client bug, but a human should confirm."
+          }
+        }
+      ],
+      "falsePositiveIds": [
+        {
+          "id": "ok-attach-02~v1",
+          "stage": "review"
+        }
+      ],
+      "callsByTier": {
+        "inline": 8,
+        "batch": 6,
+        "escalation": 2
+      },
+      "usd": 0.1304,
+      "usdPer1k": 2.5576,
+      "stoppedAt": {
+        "delivered": 34,
+        "review": 13,
+        "inline": 3
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 3,
+        "created": 3
+      },
+      "ruleEvents": [
+        {
+          "ruleId": "mem-3",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-1",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-2",
+          "from": "pending",
+          "to": "shadow",
+          "reason": "matched 2 drops and 0 of 94 clean requests"
+        },
+        {
+          "ruleId": "mem-7",
+          "from": null,
+          "to": "pending",
+          "reason": "matched 1 dropped request(s); waiting for 2"
+        },
+        {
+          "ruleId": "mem-8",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 6 drops and 0 of 109 clean requests"
+        },
+        {
+          "ruleId": "mem-9",
+          "from": null,
+          "to": "pending",
+          "reason": "disputed: matched 2 request(s) the reviewer allowed; waiting for a human label"
+        }
+      ],
+      "promotions": {
+        "shadow": 2,
+        "flag": 2,
+        "block": 0,
+        "retired": 0,
+        "rejected": 0,
+        "pending": 2
+      },
+      "activeRules": {
+        "flag": 2,
+        "pending": 4,
+        "shadow": 3
+      },
+      "simulatedOperator": {
+        "released": 0,
+        "dropped": 1,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "probe": {
+        "heldOutGateRecall": 0,
+        "trainGateRecall": 0,
+        "benignStoppedAtGate": 0,
+        "benignStoppedIds": [],
+        "benignStoppedSignals": [],
+        "benignProbed": 106
+      }
+    },
+    {
+      "window": 4,
+      "cases": 50,
+      "writes": 53,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 1,
+      "falsePositiveRate": 0,
+      "stops": 15,
+      "gateStops": 0,
+      "gateShareOfStops": 0,
+      "modelCalls": 19,
+      "modelCallsPer1k": 358.49,
+      "modelReviews": 53,
+      "modelReviewsPer1k": 1000,
+      "errors": [],
+      "falsePositiveIds": [],
+      "callsByTier": {
+        "inline": 9,
+        "batch": 7,
+        "escalation": 2
+      },
+      "usd": 0.136,
+      "usdPer1k": 2.5668,
+      "stoppedAt": {
+        "review": 12,
+        "delivered": 35,
+        "inline": 3
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 3,
+        "created": 3
+      },
+      "ruleEvents": [
+        {
+          "ruleId": "mem-3",
+          "from": "flag",
+          "to": "block",
+          "reason": "2 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-2",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-8",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-1",
+          "from": "flag",
+          "to": "block",
+          "reason": "2 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-10",
+          "from": null,
+          "to": "pending",
+          "reason": "disputed: matched 3 request(s) the reviewer allowed; waiting for a human label"
+        },
+        {
+          "ruleId": "mem-11",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 3 drops and 0 of 147 clean requests"
+        },
+        {
+          "ruleId": "mem-12",
+          "from": null,
+          "to": "pending",
+          "reason": "matched 1 dropped request(s); waiting for 2"
+        },
+        {
+          "ruleId": "mem-9",
+          "from": "pending",
+          "to": "rejected",
+          "reason": "matched 1 allowed request(s) in backtest"
+        }
+      ],
+      "promotions": {
+        "shadow": 1,
+        "flag": 2,
+        "block": 2,
+        "retired": 0,
+        "rejected": 1,
+        "pending": 2
+      },
+      "activeRules": {
+        "block": 2,
+        "flag": 2,
+        "pending": 5,
+        "rejected": 1,
+        "shadow": 2
+      },
+      "simulatedOperator": {
+        "released": 1,
+        "dropped": 0,
+        "disputesAttack": 0,
+        "disputesBenign": 2,
+        "unknown": 0
+      },
+      "probe": {
+        "heldOutGateRecall": 0,
+        "trainGateRecall": 0.1081,
+        "benignStoppedAtGate": 0,
+        "benignStoppedIds": [],
+        "benignStoppedSignals": [],
+        "benignProbed": 106
+      }
+    },
+    {
+      "window": 5,
+      "cases": 50,
+      "writes": 50,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 1,
+      "falsePositiveRate": 0.0286,
+      "stops": 16,
+      "gateStops": 1,
+      "gateShareOfStops": 0.0625,
+      "modelCalls": 16,
+      "modelCallsPer1k": 320,
+      "modelReviews": 49,
+      "modelReviewsPer1k": 980,
+      "errors": [
+        {
+          "id": "ok-hard-19~v3",
+          "label": "benign",
+          "stage": "review",
+          "signals": [],
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.5,
+            "rationale": "The forwarded bounce message carries a 'System:' line and asks for an invoice to be resent to a different address, which could be a payment-redirect scam or an innocent request. It has no code or injection payload, so the intent is ambiguous and a human should look."
+          }
+        }
+      ],
+      "falsePositiveIds": [
+        {
+          "id": "ok-hard-19~v3",
+          "stage": "review"
+        }
+      ],
+      "callsByTier": {
+        "inline": 7,
+        "batch": 6,
+        "escalation": 2
+      },
+      "usd": 0.1329,
+      "usdPer1k": 2.6576,
+      "stoppedAt": {
+        "review": 13,
+        "delivered": 34,
+        "gate": 1,
+        "inline": 2
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 3,
+        "created": 3
+      },
+      "ruleEvents": [
+        {
+          "ruleId": "mem-6",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-8",
+          "from": "flag",
+          "to": "block",
+          "reason": "2 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-5",
+          "from": "pending",
+          "to": "shadow",
+          "reason": "matched 2 drops and 0 of 180 clean requests"
+        },
+        {
+          "ruleId": "mem-4",
+          "from": "pending",
+          "to": "shadow",
+          "reason": "matched 2 drops and 0 of 182 clean requests"
+        },
+        {
+          "ruleId": "mem-13",
+          "from": null,
+          "to": "pending",
+          "reason": "matched 1 dropped request(s); waiting for 2"
+        },
+        {
+          "ruleId": "mem-14",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 7 drops and 0 of 182 clean requests"
+        },
+        {
+          "ruleId": "mem-15",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 3 drops and 0 of 182 clean requests"
+        },
+        {
+          "ruleId": "mem-10",
+          "from": "pending",
+          "to": "rejected",
+          "reason": "matched 1 allowed request(s) in backtest"
+        }
+      ],
+      "promotions": {
+        "shadow": 4,
+        "flag": 1,
+        "block": 1,
+        "retired": 0,
+        "rejected": 1,
+        "pending": 1
+      },
+      "activeRules": {
+        "block": 3,
+        "flag": 2,
+        "pending": 3,
+        "rejected": 2,
+        "shadow": 5
+      },
+      "simulatedOperator": {
+        "released": 0,
+        "dropped": 0,
+        "disputesAttack": 0,
+        "disputesBenign": 6,
+        "unknown": 0
+      },
+      "probe": {
+        "heldOutGateRecall": 0,
+        "trainGateRecall": 0.2432,
+        "benignStoppedAtGate": 0,
+        "benignStoppedIds": [],
+        "benignStoppedSignals": [],
+        "benignProbed": 106
+      }
+    },
+    {
+      "window": 6,
+      "cases": 50,
+      "writes": 53,
+      "attacks": 15,
+      "benign": 35,
+      "recall": 1,
+      "falsePositiveRate": 0,
+      "stops": 15,
+      "gateStops": 5,
+      "gateShareOfStops": 0.3333,
+      "modelCalls": 15,
+      "modelCallsPer1k": 283.02,
+      "modelReviews": 48,
+      "modelReviewsPer1k": 905.66,
+      "errors": [],
+      "falsePositiveIds": [],
+      "callsByTier": {
+        "inline": 7,
+        "batch": 5,
+        "escalation": 2
+      },
+      "usd": 0.1315,
+      "usdPer1k": 2.4807,
+      "stoppedAt": {
+        "delivered": 35,
+        "review": 9,
+        "gate": 5,
+        "inline": 1
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 3,
+        "created": 3
+      },
+      "ruleEvents": [
+        {
+          "ruleId": "mem-11",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        },
+        {
+          "ruleId": "mem-7",
+          "from": "pending",
+          "to": "shadow",
+          "reason": "matched 2 drops and 0 of 220 clean requests"
+        },
+        {
+          "ruleId": "mem-16",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 2 drops and 0 of 220 clean requests"
+        },
+        {
+          "ruleId": "mem-17",
+          "from": null,
+          "to": "pending",
+          "reason": "disputed: matched 5 request(s) the reviewer allowed; waiting for a human label"
+        },
+        {
+          "ruleId": "mem-18",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 6 drops and 0 of 220 clean requests"
+        }
+      ],
+      "promotions": {
+        "shadow": 3,
+        "flag": 1,
+        "block": 0,
+        "retired": 0,
+        "rejected": 0,
+        "pending": 1
+      },
+      "activeRules": {
+        "block": 3,
+        "flag": 3,
+        "pending": 3,
+        "rejected": 2,
+        "shadow": 7
+      },
+      "simulatedOperator": {
+        "released": 1,
+        "dropped": 0,
+        "disputesAttack": 0,
+        "disputesBenign": 4,
+        "unknown": 0
+      },
+      "probe": {
+        "heldOutGateRecall": 0,
+        "trainGateRecall": 0.2432,
+        "benignStoppedAtGate": 0,
+        "benignStoppedIds": [],
+        "benignStoppedSignals": [],
+        "benignProbed": 106
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "mem-1",
+      "status": "block",
+      "category": "mass_assignment",
+      "description": "Profile update on /api/me tries to set a privileged role field, which the profile route should never accept.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/me",
+            "ci": true
+          },
+          {
+            "field": "json:role",
+            "op": "exists"
+          }
+        ]
+      },
+      "support": 2,
+      "liveTruePositives": 2,
+      "liveFalsePositives": 0,
+      "reason": "2 confirmed live hits, no false positives"
+    },
+    {
+      "id": "mem-2",
+      "status": "flag",
+      "category": "path_traversal",
+      "description": "Attachment filename contains a parent-directory traversal sequence.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "endsWith",
+            "value": "/attachments",
+            "ci": true
+          },
+          {
+            "field": "json:filename",
+            "op": "contains",
+            "value": "../"
+          }
+        ]
+      },
+      "support": 2,
+      "liveTruePositives": 1,
+      "liveFalsePositives": 0,
+      "reason": "1 confirmed live hits, no false positives"
+    },
+    {
+      "id": "mem-3",
+      "status": "block",
+      "category": "nosql_injection",
+      "description": "Login request body contains a MongoDB-style $ne operator object instead of a plain credential string.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/login",
+            "ci": true
+          },
+          {
+            "field": "body",
+            "op": "matches",
+            "value": "\\{\\s*\"\\$(ne|gt|gte|lt|lte|regex|where|in|nin)\"",
+            "ci": true
+          }
+        ]
+      },
+      "support": 2,
+      "liveTruePositives": 2,
+      "liveFalsePositives": 0,
+      "reason": "2 confirmed live hits, no false positives"
+    },
+    {
+      "id": "mem-4",
+      "status": "shadow",
+      "category": "mass_assignment",
+      "description": "Profile update on /api/me tries to set balance_cents, a financial field users must never set themselves.",
+      "when": {
+        "all": [
+          {
+            "field": "method",
+            "op": "eq",
+            "value": "PATCH",
+            "ci": true
+          },
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/me",
+            "ci": true
+          },
+          {
+            "field": "json:balance_cents",
+            "op": "exists"
+          }
+        ]
+      },
+      "support": 2,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "matched 2 drops and 0 of 182 clean requests"
+    },
+    {
+      "id": "mem-5",
+      "status": "shadow",
+      "category": "path_traversal",
+      "description": "Attachment upload has a content_type field containing a parent-directory traversal sequence instead of a MIME type.",
+      "when": {
+        "all": [
+          {
+            "field": "method",
+            "op": "eq",
+            "value": "POST",
+            "ci": true
+          },
+          {
+            "field": "path",
+            "op": "endsWith",
+            "value": "/attachments",
+            "ci": true
+          },
+          {
+            "field": "json:content_type",
+            "op": "contains",
+            "value": "../"
+          }
+        ]
+      },
+      "support": 2,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "matched 2 drops and 0 of 180 clean requests"
+    },
+    {
+      "id": "mem-6",
+      "status": "flag",
+      "category": "prompt_injection",
+      "description": "New ticket body contains a note addressed to the AI assistant or the Lazaret reviewer, which is an attempt to manipulate the automated review.",
+      "when": {
+        "all": [
+          {
+            "field": "method",
+            "op": "eq",
+            "value": "POST",
+            "ci": true
+          },
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/tickets",
+            "ci": true
+          },
+          {
+            "field": "json:body",
+            "op": "matches",
+            "value": "note for the (ai assistant|lazaret reviewer)",
+            "ci": true
+          }
+        ]
+      },
+      "support": 2,
+      "liveTruePositives": 1,
+      "liveFalsePositives": 0,
+      "reason": "1 confirmed live hits, no false positives"
+    },
+    {
+      "id": "mem-7",
+      "status": "shadow",
+      "category": "mass_assignment",
+      "description": "Profile update on /api/me tries to set a permissions object, which grants staff or credit rights the profile route should never accept.",
+      "when": {
+        "all": [
+          {
+            "field": "method",
+            "op": "eq",
+            "value": "PATCH",
+            "ci": true
+          },
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/me",
+            "ci": true
+          },
+          {
+            "field": "json:permissions",
+            "op": "exists"
+          }
+        ]
+      },
+      "support": 2,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "matched 2 drops and 0 of 220 clean requests"
+    },
+    {
+      "id": "mem-8",
+      "status": "block",
+      "category": "prompt_injection",
+      "description": "Request text contains a message addressed to the reviewer or AI assistant (such as 'verdict: allow', 'reviewer:' or 'return allow'), which is an attempt to manipulate automated review.",
+      "when": {
+        "all": [
+          {
+            "field": "body",
+            "op": "matches",
+            "value": "reviewer:|verdict: ?allow|return allow|as the ai assistant|ai: always",
+            "ci": true
+          }
+        ]
+      },
+      "support": 6,
+      "liveTruePositives": 2,
+      "liveFalsePositives": 0,
+      "reason": "2 confirmed live hits, no false positives"
+    },
+    {
+      "id": "mem-9",
+      "status": "rejected",
+      "category": "xss",
+      "description": "Request body contains a script or iframe tag or a javascript: URI, including backslash-u escaped script tags, which is stored XSS.",
+      "when": {
+        "all": [
+          {
+            "field": "body",
+            "op": "matches",
+            "value": "<script|<iframe|javascript:|u003cscript",
+            "ci": true
+          }
+        ]
+      },
+      "support": 6,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "matched 1 allowed request(s) in backtest"
+    },
+    {
+      "id": "mem-10",
+      "status": "rejected",
+      "category": "ssrf",
+      "description": "Ticket text references the cloud metadata service address 169.254.169.254, an attempt to make the server fetch internal credentials.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/tickets",
+            "ci": true
+          },
+          {
+            "field": "body",
+            "op": "contains",
+            "value": "169.254.169.254",
+            "ci": true
+          }
+        ]
+      },
+      "support": 5,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "matched 1 allowed request(s) in backtest"
+    },
+    {
+      "id": "mem-11",
+      "status": "flag",
+      "category": "sqli",
+      "description": "Ticket body contains a SQL tautology such as ' or '1'='1 used as a login bypass.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/tickets",
+            "ci": true
+          },
+          {
+            "field": "body",
+            "op": "matches",
+            "value": "'\\s*or\\s*'[^']{1,10}'\\s*=\\s*'",
+            "ci": true
+          }
+        ]
+      },
+      "support": 3,
+      "liveTruePositives": 1,
+      "liveFalsePositives": 0,
+      "reason": "1 confirmed live hits, no false positives"
+    },
+    {
+      "id": "mem-12",
+      "status": "pending",
+      "category": "command_injection",
+      "description": "Attachment content_type contains a shell separator followed by curl or wget instead of a MIME type, which is a command injection attempt.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "contains",
+            "value": "/attachments",
+            "ci": true
+          },
+          {
+            "field": "json:content_type",
+            "op": "matches",
+            "value": "[;|&]\\s*(curl|wget)",
+            "ci": true
+          }
+        ]
+      },
+      "support": 1,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "matched 1 dropped request(s); waiting for 2"
+    },
+    {
+      "id": "mem-13",
+      "status": "pending",
+      "category": "sqli",
+      "description": "Ticket submission containing a SQL subquery of the form (select column from table), a blind SQL injection probe.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/tickets"
+          },
+          {
+            "field": "body",
+            "op": "matches",
+            "value": "\\(\\s*select\\s+[a-z_*,]+\\s+from\\s",
+            "ci": true
+          }
+        ]
+      },
+      "support": 1,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "matched 1 dropped request(s); waiting for 2"
+    },
+    {
+      "id": "mem-14",
+      "status": "shadow",
+      "category": "xss",
+      "description": "Ticket submission containing a script tag or an HTML element with an inline event handler attribute, a stored XSS payload.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/tickets"
+          },
+          {
+            "field": "body",
+            "op": "matches",
+            "value": "<script|<[a-z]+[^>]* on[a-z]+=",
+            "ci": true
+          }
+        ]
+      },
+      "support": 7,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "matched 7 drops and 0 of 182 clean requests"
+    },
+    {
+      "id": "mem-15",
+      "status": "shadow",
+      "category": "command_injection",
+      "description": "Attachment filename contains a shell separator followed by curl or wget, a command injection attempt.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "endsWith",
+            "value": "/attachments"
+          },
+          {
+            "field": "json:filename",
+            "op": "matches",
+            "value": "[;|&]\\s*(curl|wget)\\s",
+            "ci": true
+          }
+        ]
+      },
+      "support": 3,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "matched 3 drops and 0 of 182 clean requests"
+    },
+    {
+      "id": "mem-16",
+      "status": "shadow",
+      "category": "xss",
+      "description": "New ticket contains a javascript: URI that calls a function, such as a markdown link used for stored XSS.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/tickets"
+          },
+          {
+            "field": "body",
+            "op": "matches",
+            "value": "javascript:\\s*\\w+\\(",
+            "ci": true
+          }
+        ]
+      },
+      "support": 2,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "matched 2 drops and 0 of 220 clean requests"
+    },
+    {
+      "id": "mem-17",
+      "status": "pending",
+      "category": "sqli",
+      "description": "New ticket contains a UNION SELECT clause, a SQL injection attempt to read other tables.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/tickets"
+          },
+          {
+            "field": "body",
+            "op": "matches",
+            "value": "union\\s+select",
+            "ci": true
+          }
+        ]
+      },
+      "support": 2,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "disputed: matched 5 request(s) the reviewer allowed; waiting for a human label"
+    },
+    {
+      "id": "mem-18",
+      "status": "shadow",
+      "category": "template_injection",
+      "description": "New ticket contains template expression braces together with Python internals such as __class__ or __globals__, a server-side template injection chain.",
+      "when": {
+        "all": [
+          {
+            "field": "path",
+            "op": "eq",
+            "value": "/api/tickets"
+          },
+          {
+            "field": "body",
+            "op": "contains",
+            "value": "{{"
+          },
+          {
+            "field": "body",
+            "op": "matches",
+            "value": "__(class|globals|mro|subclasses|builtins)__",
+            "ci": true
+          }
+        ]
+      },
+      "support": 6,
+      "liveTruePositives": 0,
+      "liveFalsePositives": 0,
+      "reason": "matched 6 drops and 0 of 220 clean requests"
+    }
+  ],
+  "cost": {
+    "totalUsd": 0.7968
+  },
+  "models": {
+    "batch": "claude-sonnet-5-5",
+    "escalation": "claude-opus-5-5",
+    "inline": "claude-haiku-5-5",
+    "distill": "claude-sonnet-5-5"
+  }
+}

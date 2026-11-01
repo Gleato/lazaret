@@ -3,7 +3,7 @@ import type { ResolvedConfig } from "../config/define";
 import type { LazaretLedger, OperatorResult } from "../ledger/durable-object";
 import type { EntryState } from "../ledger/types";
 import { archiveRecord } from "../memory/sample";
-import type { LazaretMemory } from "../memory/store";
+import type { DisputedWrite, LazaretMemory } from "../memory/store";
 import { json } from "./http";
 import { sha256Hex } from "./session";
 
@@ -18,6 +18,15 @@ import { sha256Hex } from "./session";
 //   release  commits the held write to origin (signed, with the entry's idempotency key)
 //   drop     discards it and the held writes that depend on it
 //   report   marks a committed write as an attack the reviewer missed
+//
+//   GET  /__lazaret/operator/disputes           writes a pending rule matched but only a
+//                                               model allowed (M7.1)
+//   POST /__lazaret/operator/disputes/:id       { label: "attack" | "benign", note?, category? }
+//
+// A dispute is the rule and the reviewer disagreeing. Rules see the decoded request, so
+// they can catch an encoded payload the reviewer let through; or the rule is too broad.
+// Only a human settles it: the label goes through LazaretMemory.label() like any other
+// operator decision, and the rule is re-backtested at once.
 //
 // Every decision is labelled into the Memory as ground truth, so the system also
 // learns from the writes its reviewer got wrong (see LazaretMemory.label).
@@ -61,6 +70,8 @@ export async function handleOperator(
     const entries = await deps.ledger.getQuarantine();
     return json(200, { entries: entries.map(queueView) }, headers);
   }
+
+  if (segments[2] === "disputes") return handleDisputes(request, method, segments, deps);
 
   const id = segments[3];
   if (method !== "POST" || segments.length !== 4 || segments[2] !== "entries" || !id) {
@@ -116,6 +127,69 @@ export async function handleOperator(
     // Released but not delivered. Repeating the release retries the commit.
     return json(502, { status: "released", entryId: id, error: err.message }, headers);
   }
+}
+
+async function handleDisputes(
+  request: Request,
+  method: string,
+  segments: string[],
+  deps: OperatorDeps,
+): Promise<Response> {
+  const headers = { "cache-control": "no-store" };
+  const { memory } = deps;
+  if (!memory) return json(404, { error: "memory_disabled" }, headers);
+
+  if (method === "GET" && segments.length === 3) {
+    const disputes = await memory.getDisputes();
+    return json(200, { disputes: disputes.map(disputeView) }, headers);
+  }
+  const id = segments[3];
+  if (method !== "POST" || segments.length !== 4 || !id) return json(404, { error: "not_found" });
+  let input: { label?: unknown; note?: unknown; category?: unknown };
+  try {
+    input = (await request.json()) as typeof input;
+  } catch {
+    return json(400, { error: "body must be JSON" });
+  }
+  if (input.label !== "attack" && input.label !== "benign") {
+    return json(400, { error: 'label must be "attack" or "benign"' });
+  }
+  const named = request.headers.get("x-lazaret-operator") ?? "";
+  const operator = SAFE_NAME.test(named) ? named : "operator";
+  const note = typeof input.note === "string" ? input.note.slice(0, 400) : "";
+  const attack = input.label === "attack";
+  const category = attack
+    ? typeof input.category === "string" && SAFE_CATEGORY.test(input.category)
+      ? input.category
+      : "attack"
+    : "benign";
+  // Awaited, unlike queue labels: the label is the whole point of this call, and the
+  // caller wants to see which rules it moved.
+  const result = await memory.labelArchived(
+    id,
+    attack ? "drop" : "allow",
+    category,
+    `Operator ${operator} labelled a disputed write ${input.label}.${note ? ` ${note}` : ""}`,
+  );
+  if (!result) return json(404, { error: "not_found" }, headers);
+  console.log(
+    JSON.stringify({ lazaret: "operator", action: "label_dispute", entryId: id, operator }),
+  );
+  return json(200, { entryId: id, label: input.label, transitions: result.transitions }, headers);
+}
+
+/** Same rule as queueView: the body is attacker-controlled text, render it as text. */
+function disputeView(d: DisputedWrite) {
+  return {
+    entryId: d.entryId,
+    route: d.route,
+    at: d.at,
+    reviewedBy: d.source,
+    rationale: d.rationale,
+    // The canonical (decoded) request a rule sees, so the human judges what the rule judged.
+    request: { ...d.request, body: d.request.body.slice(0, MAX_BODY_PREVIEW) },
+    rules: d.rules,
+  };
 }
 
 async function authorised(header: string | null, secret: string): Promise<boolean> {

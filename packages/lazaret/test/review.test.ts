@@ -40,6 +40,36 @@ describe("reviewer prompt", () => {
     expect(encodeUntrusted({ a: "<&>" })).not.toMatch(/[<&>]/);
   });
 
+  // M7.1: the reviewer sees what the gate (and learned rules) see, next to the raw body.
+  it("adds the gate's decoded view when a field was encoded, and only then", () => {
+    const request = {
+      ...entry().request,
+      query: "q=%3Cb%3E",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subject: "Hi", body: "&lt;img src=x onerror=alert(1)&gt;" }),
+    };
+    const [view] = promptEntries(buildBatchPrompt([held("e1", { request })], []));
+    expect((view as unknown as { decoded: unknown }).decoded).toMatchInlineSnapshot(`
+      {
+        "body": "{"subject":"Hi","body":"<img src=x onerror=alert(1)>"}",
+        "query": "q=<b>",
+      }
+    `);
+    const [plain] = promptEntries(buildBatchPrompt([held("e2")], []));
+    expect(plain).not.toHaveProperty("decoded");
+  });
+
+  it("keeps the static system prompt stable (changes need a reviewer eval run)", () => {
+    expect(
+      SYSTEM_PROMPT.slice(
+        SYSTEM_PROMPT.indexOf("When a field was encoded"),
+        SYSTEM_PROMPT.indexOf("The gate pattern-matches"),
+      ),
+    ).toMatchInlineSnapshot(
+      `"When a field was encoded (URL encoding, HTML entities, look-alike Unicode, comment padding), the entry also has a "decoded" object with the same field after the gate undid those encodings. Judge the decoded form: it is what a browser, database, or AI reading the stored text would ultimately act on, and encoding is a common way to slip a payload past review. "`,
+    );
+  });
+
   it("hides learned-rule hits from the reviewer so its verdicts stay independent labels", () => {
     const signals = [
       { source: "signature" as const, id: "xss.script_tag", category: "xss", weight: 0.85 },

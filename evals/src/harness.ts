@@ -172,6 +172,8 @@ export interface HarnessOptions {
   mode: Mode;
   /** Required in live mode. */
   liveReviewer?: Reviewer;
+  /** Fake mode only: a different scripted reviewer (the campaign's decoded-view A/B). */
+  fakeReviewer?: Reviewer;
   ledger: DurableObjectNamespace<LazaretLedger>;
   shard: string;
   maxUsd?: number;
@@ -203,7 +205,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
     options.mode === "live"
       ? options.liveReviewer
       : options.mode === "fake"
-        ? scriptedReviewer
+        ? (options.fakeReviewer ?? scriptedReviewer)
         : allowAll;
   if (!inner) throw new Error("live mode needs a reviewer");
   const { reviewer, calls, escalated, started, inlineVerdicts } = instrument(
@@ -259,6 +261,14 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
     ...(options.memory ? { EVAL_MEMORY: options.memory.namespace } : {}),
   };
   const ledger = options.ledger.get(options.ledger.idFromName(options.shard));
+  // The gateway hands background work (archiving inline verdicts to the Memory) to
+  // waitUntil. Collected and awaited before scoring, so a learning run never races
+  // its own archive (M7.1: the campaign reads the Memory right after each window).
+  const background: Promise<unknown>[] = [];
+  const ctx = {
+    waitUntil: (p: Promise<unknown>) => void background.push(p),
+    passThroughOnException: () => undefined,
+  } as unknown as ExecutionContext;
 
   // The gateway's structured gate log is the only place it reports risk and signals
   // for requests it doesn't escrow (blocks, inline, pass). Tap it for the report.
@@ -281,6 +291,8 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
     requestId: string | null;
     receipt: string | null;
     inline: boolean;
+    /** Never sent: an earlier step it depends on was stopped at the edge. */
+    cut?: boolean;
   };
   const targets: Target[] = [];
   try {
@@ -289,10 +301,31 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
       const steps = c.requests.flatMap(expand);
       for (const [i, step] of steps.entries()) {
         const inlineBefore = started.inline ?? 0;
-        const path = step.path.replace(
-          /\{receipt:(\d+)\}/g,
-          (_, n) => receipts[Number(n)] ?? "missing",
-        );
+        let unresolved = false;
+        const path = step.path.replace(/\{receipt:(\d+)\}/g, (_, n) => {
+          const r = receipts[Number(n)];
+          if (!r) unresolved = true;
+          return r ?? "missing";
+        });
+        // The step builds on an earlier write that was stopped at the edge, so it has
+        // nothing to point at (a reply to a ticket that was never created). The chain
+        // was cut at its first link; sending it anyway let the stub origin, which
+        // accepts any path, score it "delivered" (M7.1, found when a learned block
+        // rule stopped taint-01's parent ticket).
+        if (unresolved) {
+          receipts.push(null);
+          if (i === steps.length - 1) {
+            targets.push({
+              c,
+              status: 0,
+              requestId: null,
+              receipt: null,
+              inline: false,
+              cut: true,
+            });
+          }
+          continue;
+        }
         const res = await gateway.fetch(
           new Request(`https://support.tidewater.test${path}`, {
             method: step.method,
@@ -308,6 +341,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
             body: step.bodyText ?? null,
           }),
           env,
+          ctx,
         );
         const json = (await res.json().catch(() => null)) as { receipt?: string } | null;
         receipts.push(res.status === 202 ? (json?.receipt ?? null) : null);
@@ -349,6 +383,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
         batch.id,
       );
     }
+    await Promise.allSettled(background);
   } finally {
     console.log = originalLog;
   }
@@ -365,7 +400,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
     lastError: b.lastError ?? null,
     outcome: outcomes[b.id] ?? null,
   }));
-  const results: CaseResult[] = targets.map(({ c, status, requestId, receipt, inline }) => {
+  const results: CaseResult[] = targets.map(({ c, status, requestId, receipt, inline, cut }) => {
     const entry = receipt ? entries[receipt] : undefined;
     const gate = requestId ? gateLog.get(requestId) : undefined;
     let stage: Stage;
@@ -380,6 +415,8 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
           : escalated.has(entry.id)
             ? "escalation"
             : "review";
+    } else if (cut) {
+      stage = "parent_stopped";
     } else {
       if (inline && requestId) verdict = inlineVerdicts.get(requestId) ?? null;
       if (requestId && reached.has(requestId)) stage = "delivered";
@@ -390,6 +427,8 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
       id: c.id,
       label: c.label,
       class: c.class,
+      // The Ledger entry id (escrowed) or request id (inline), as the Memory archives it.
+      entryId: receipt ?? requestId,
       route: entry?.route ?? gate?.route ?? null,
       status,
       stopped: stage !== "delivered",

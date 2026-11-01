@@ -47,12 +47,15 @@ export type Stage =
   | "review" // dropped or quarantined by batch review
   | "escalation" // decided by the second-opinion reviewer
   | "taint" // dropped because it depended on a dropped write
+  | "parent_stopped" // never sent: the write it builds on was stopped at the edge (M7.1)
   | "delivered"; // reached origin
 
 export interface CaseResult {
   id: string;
   label: EvalCase["label"];
   class: string;
+  /** Escrowed: the Ledger entry id. Inline: the gateway request id. Null if neither. */
+  entryId?: string | null;
   route: string | null;
   status: number;
   stopped: boolean;

@@ -64,7 +64,7 @@ export interface MemoryEvalOptions {
 }
 
 /** The held-out arms see the Memory through this: fixed rules, no writes. */
-function frozenNamespace(rules: ActiveRuleSpec[]): DurableObjectNamespace<LazaretMemory> {
+export function frozenNamespace(rules: ActiveRuleSpec[]): DurableObjectNamespace<LazaretMemory> {
   const stub = {
     getActiveRules: async () => rules,
     archive: async () => ({ archived: 0, transitions: [] }),
@@ -75,7 +75,7 @@ function frozenNamespace(rules: ActiveRuleSpec[]): DurableObjectNamespace<Lazare
   } as unknown as DurableObjectNamespace<LazaretMemory>;
 }
 
-function frozenPort(context: (routes: string[]) => Promise<MemoryHint[]>): MemoryPort {
+export function frozenPort(context: (routes: string[]) => Promise<MemoryHint[]>): MemoryPort {
   return {
     archive: () => ({ archived: 0, transitions: [] }),
     getReviewerContext: context,

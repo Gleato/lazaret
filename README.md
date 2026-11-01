@@ -163,6 +163,21 @@ reviewer missed. Every decision is labelled into the Memory as ground truth, so 
 also learns from the reviewer's mistakes. Resolve held writes while the author's session
 token is still valid: the Committer replays their original headers.
 
+The Memory also asks for a label when a learned rule and the reviewer disagree: a rule
+matched a write that only a model allowed. Rules see the decoded request, so the rule
+may have caught something the reviewer missed, or the rule may be too broad. No model
+breaks the tie. The rule waits until you label the write:
+
+```bash
+curl -H "authorization: Bearer $TOKEN" https://your.site/__lazaret/operator/disputes
+curl -X POST -H "authorization: Bearer $TOKEN" -H "content-type: application/json" \
+  -d '{"label":"attack","category":"xss"}' \
+  https://your.site/__lazaret/operator/disputes/<entryId>
+```
+
+An `attack` label counts as evidence for the rule; a `benign` one rejects or retires it.
+A disputed write nobody labels within 3 days (`trustAllowsAfterMs`) is taken as clean.
+
 **8. Decide what an inline route does when the reviewer can't be reached.** Inline review
 fails closed by default (`503`). For a route where an outage costs more than the risk, set
 `onReviewUnavailable: "gate"`: a request the gate found nothing at all on goes through
@@ -212,34 +227,49 @@ indirect injection aimed at Tidewater's AI support agent. The runner pushes the 
 through the real gateway, Ledger and review pipeline, and reports precision, recall,
 false-positive rate, latency, time to first token and cost.
 
-Latest live run (2026-10-28; Sonnet 5.5 batch review, Opus 5.5 escalation, Haiku 5.5
+Latest live run (2026-10-29; Sonnet 5.5 batch review, Opus 5.5 escalation, Haiku 5.5
 inline; [`evals/results/live-latest.json`](evals/results/live-latest.json)):
 
-|                                                           |                                                           |
-| --------------------------------------------------------- | --------------------------------------------------------- |
-| Attacks stopped (recall)                                  | 63 / 63 (100%)                                            |
-| Precision                                                 | 98.4%                                                     |
-| Benign requests stopped (FPR)                             | 1 / 57 (1.8%): a credit whose review hit the 3 s deadline |
-| Reviewer prompt injection / downstream agent injection    | 8 / 8 and 10 / 10 stopped                                 |
-| Stopped by the deterministic gate alone, before any model | 5 / 63, with 0 false positives                            |
-| Escalations declined by Opus 5.5                          | 3 / 7, all `cyber`, all attacks, all held for a human     |
-| Inline review latency                                     | p50 1.7 s, p95 2.5 s; time to first token p50 1.2 s       |
-| Batch review latency                                      | p50 4.3 s, p95 10.4 s (off the request path)              |
-| Cost                                                      | $0.25 per run, $2.28 per 1,000 reviewed requests          |
+|                                                           |                                                     |
+| --------------------------------------------------------- | --------------------------------------------------- |
+| Attacks stopped (recall)                                  | 63 / 63 (100%)                                      |
+| Precision                                                 | 100%                                                |
+| Benign requests stopped (FPR)                             | 0 / 57                                              |
+| Reviewer prompt injection / downstream agent injection    | 8 / 8 and 10 / 10 stopped                           |
+| Stopped by the deterministic gate alone, before any model | 5 / 63, with 0 false positives                      |
+| Escalations                                               | 4, none declined (the run before: 7, 3 declined)    |
+| Inline review latency                                     | p50 1.6 s, p95 2.3 s; time to first token p50 0.8 s |
+| Batch review latency                                      | p50 4.2 s, p95 7.2 s (off the request path)         |
+| Cost                                                      | $0.23 per run, $2.12 per 1,000 reviewed requests    |
 
-The false positive is a legitimate credit that failed closed: its inline review took
-longer than the 3 s deadline (2 of 11 credit reviews did), and credits deny rather than
-pass on the gate alone. Only the model you configure can decide an outcome. When it
-declines to review a payload, the entry is held for a human with the API's reason (here
-`cyber`), and a human releases or drops it from the review queue. A declined batch is
-split until the declined entry is isolated, so the rest still get real verdicts. Any
-first-pass allow the gate scored at 0.7 or above gets a second opinion. One corpus, one
-run: treat these as a measurement, not a guarantee. Every live run is kept in
+The reviewer now sees the gate's decoded view of any field that was encoded (URL
+encoding, HTML entities, look-alike Unicode), next to the raw request. In this run the
+batch reviewer dropped sqli-06, a URL-encoded injection, by itself; in earlier runs it
+allowed it, and only the second opinion caught it. The previous run's one false positive
+was a credit whose inline review ran past the 3 s deadline; credits deny rather than pass
+on the gate alone. Only the model you configure can decide an outcome. When it declines
+to review a payload, the entry is held for a human with the API's reason (for example
+`cyber`), and a human releases or drops it from the review queue. Any first-pass allow
+the gate scored at 0.7 or above gets a second opinion. One corpus, one run: treat these
+as a measurement, not a guarantee. Every live run is kept in
 [`evals/results/`](evals/results).
+
+A second eval replays a sustained attack campaign: each attack re-sent as encoded,
+re-cased and split variants among benign traffic, over 6 windows of about 50 writes, with
+the Memory learning as it goes and a simulated operator labelling the human queue
+([`evals/results/campaign-latest.json`](evals/results/campaign-latest.json), live,
+2026-10-29, $0.80). Recall stayed at 100% in every window. Model calls per 1,000 writes
+went from 327 to 283, and the gate's share of stops from 0 to 33%, after 3 learned rules
+were promoted to block. Cost per 1,000 writes did not fall ($2.32 to $2.48), because
+honest writes are most of the traffic and each still needs a model. The learned rules
+stopped none of the attack families held out of training: they fit the payloads they
+were learned from.
 
 ```bash
 npm run eval:gate        # deterministic modes, free: evals/results/{gate-only,fake}.json
 EVAL_CONFIRM_SPEND=yes npm run eval:live   # real Claude, about $0.25, capped by EVAL_MAX_USD
+npm run eval:campaign    # campaign replay, free: evals/results/campaign-fake.json
+EVAL_CONFIRM_SPEND=yes npm run eval:campaign:live  # about $1-1.50, capped by EVAL_MAX_USD
 ```
 
 ## Development

@@ -39,8 +39,16 @@ export const TEST_MEMORY_THRESHOLDS: MemoryThresholds = {
 };
 
 export class Memory extends LazaretMemory {
+  #offset = 0;
   protected override thresholds(): MemoryThresholds {
     return TEST_MEMORY_THRESHOLDS;
+  }
+  protected override now(): number {
+    return Date.now() + this.#offset;
+  }
+  /** Moves this instance's clock forward, for the time-based rules (trust, expiry). */
+  advanceClock(ms: number): void {
+    this.#offset += ms;
   }
 }
 

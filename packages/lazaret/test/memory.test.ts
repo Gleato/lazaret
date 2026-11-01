@@ -44,11 +44,11 @@ const acctRule: RuleProposal = {
   when: { field: "body", op: "contains", value: "acct-" },
 };
 
-const clean = () => [
-  record("allow", "printer on fire"),
-  record("allow", "cannot log in"),
-  record("allow", "thanks!"),
-];
+const DAY = 24 * 60 * 60 * 1000;
+// Allows committed long enough ago (past trustAllowsAfterMs, 3 days) to count as trusted
+// clean traffic in backtests (M7.1). A fresh model allow is only the reviewer's opinion.
+const trusted = (body: string) => record("allow", body, { at: Date.now() - 4 * DAY + ids });
+const clean = () => [trusted("printer on fire"), trusted("cannot log in"), trusted("thanks!")];
 const attacks = () => [record("drop", "refund to acct-1"), record("drop", "refund to acct-2")];
 
 describe("Memory", () => {
@@ -88,14 +88,14 @@ describe("Memory", () => {
     expect(created.map((r) => [r.status, r.reason])).toEqual([
       ["shadow", "matched 2 drops and 0 of 3 clean requests"],
       ["shadow", expect.any(String)],
-      ["rejected", "matched 1 dropped request(s); needs 2"],
+      ["pending", "matched 1 dropped request(s); waiting for 2"],
       ["rejected", expect.stringMatching(/unsafe or invalid rule: .*nested quantifiers/)],
     ]);
   });
 
   it("rejects a rule that would hit legitimate traffic", async () => {
     const m = memory();
-    await m.archive([...clean(), record("allow", "move refund to acct-9 please"), ...attacks()]);
+    await m.archive([...clean(), trusted("move refund to acct-9 please"), ...attacks()]);
     const [rule] = await m.submitCandidates([acctRule], []);
     expect(rule).toMatchObject({
       status: "rejected",
@@ -105,13 +105,105 @@ describe("Memory", () => {
 
   it("parks a rule as pending until enough clean traffic exists, then promotes it to shadow", async () => {
     const m = memory();
-    await m.archive([record("allow", "hi"), ...attacks()]);
+    await m.archive([trusted("hi"), ...attacks()]);
     const [rule] = await m.submitCandidates([acctRule], []);
     expect(rule?.status).toBe("pending");
-    const { transitions } = await m.archive([record("allow", "hello"), record("allow", "hey")]);
+    const { transitions } = await m.archive([trusted("hello"), trusted("hey")]);
     expect(transitions).toEqual([
       expect.objectContaining({ ruleId: rule?.id, from: "pending", to: "shadow" }),
     ]);
+  });
+
+  // M7.1 A: thin evidence is "not yet", not "no".
+  it("keeps a rule with one matching drop waiting, and promotes it when a second arrives", async () => {
+    const m = memory();
+    await m.archive([...clean(), record("drop", "refund to acct-1")]);
+    const [rule] = await m.submitCandidates([acctRule], []);
+    expect(rule).toMatchObject({ status: "pending", support: 1 });
+    // The same rule proposed again is still the same rule, not a new one.
+    expect(await m.submitCandidates([acctRule], [])).toEqual([]);
+    const { transitions } = await m.archive([record("drop", "refund to acct-2")]);
+    expect(transitions).toEqual([
+      expect.objectContaining({ ruleId: rule?.id, from: "pending", to: "shadow" }),
+    ]);
+  });
+
+  it("expires a pending rule after the staleness window, which frees its fingerprint", async () => {
+    const m = memory();
+    await m.archive([...clean(), record("drop", "refund to acct-1")]);
+    const [rule] = await m.submitCandidates([acctRule], []);
+    await m.advanceClock(31 * DAY);
+    const { transitions } = await m.archive([
+      record("allow", "fresh", { at: Date.now() + 31 * DAY }),
+    ]);
+    expect(transitions).toEqual([
+      expect.objectContaining({ ruleId: rule?.id, from: "pending", to: "retired" }),
+    ]);
+    const [again] = await m.submitCandidates([acctRule], []);
+    expect(again?.id).not.toBe(rule?.id);
+  });
+
+  // M7.1 B: a rule that disagrees with the reviewer is a question for a human.
+  describe("disputes", () => {
+    async function disputed() {
+      const m = memory();
+      const missed = record("allow", "refund to acct-7 &lt;script&gt;"); // a reviewer allow
+      await m.archive([...clean(), ...attacks(), missed]);
+      const [rule] = await m.submitCandidates([acctRule], []);
+      return { m, rule, missed };
+    }
+
+    it("parks a rule that matches a model's allow as disputed, and lists the write", async () => {
+      const { m, rule, missed } = await disputed();
+      expect(rule).toMatchObject({ status: "pending", reason: expect.stringMatching(/^disputed/) });
+      expect(await m.getDisputes()).toEqual([
+        expect.objectContaining({
+          entryId: missed.entryId,
+          rules: [expect.objectContaining({ id: rule?.id })],
+        }),
+      ]);
+    });
+
+    it("never promotes a disputed rule on more evidence alone", async () => {
+      const { m, rule } = await disputed();
+      const { transitions } = await m.archive([
+        record("drop", "refund to acct-3"),
+        record("drop", "refund to acct-4"),
+        ...clean(),
+      ]);
+      expect(transitions).toEqual([]);
+      expect((await m.listRules()).find((r) => r.id === rule?.id)?.status).toBe("pending");
+    });
+
+    it("promotes it when a human labels the write an attack", async () => {
+      const { m, rule, missed } = await disputed();
+      const result = await m.labelArchived(missed.entryId, "drop", "xss", "encoded payload");
+      expect(result?.transitions).toEqual([
+        expect.objectContaining({ ruleId: rule?.id, from: "pending", to: "shadow" }),
+      ]);
+      expect(await m.getDisputes()).toEqual([]);
+    });
+
+    it("rejects it when a human labels the write benign", async () => {
+      const { m, rule, missed } = await disputed();
+      const result = await m.labelArchived(missed.entryId, "allow", "benign", "real customer");
+      expect(result?.transitions).toEqual([
+        expect.objectContaining({ ruleId: rule?.id, from: "pending", to: "rejected" }),
+      ]);
+    });
+
+    it("rejects it once the allow is old enough to trust and was never reported", async () => {
+      const { m, rule } = await disputed();
+      await m.advanceClock(4 * DAY);
+      const { transitions } = await m.archive([]);
+      expect(transitions).toEqual([
+        expect.objectContaining({ ruleId: rule?.id, from: "pending", to: "rejected" }),
+      ]);
+    });
+
+    it("reports a label for a write that has aged out of the archive", async () => {
+      expect(await memory().labelArchived("gone", "drop", "xss", "")).toBeNull();
+    });
   });
 
   it("promotes on live hits the reviewer confirms, and turns into a block rule", async () => {
@@ -133,17 +225,59 @@ describe("Memory", () => {
     expect((await m.getRuleEvents()).map((e) => e.to)).toEqual(["shadow", "flag", "block"]);
   });
 
-  it("retires a rule the moment the reviewer allows something it matched", async () => {
-    const m = memory();
-    await m.archive([...clean(), ...attacks()]);
-    const [rule] = await m.submitCandidates([acctRule], []);
-    const { transitions } = await m.archive([
-      record("allow", "acct-ok", { memoryHits: [rule?.id ?? ""] }),
-    ]);
-    expect(transitions).toEqual([
-      expect.objectContaining({ to: "retired", reason: "matched a request the reviewer allowed" }),
-    ]);
-    expect(await m.getActiveRules()).toEqual([]);
+  // M7.1: a live hit on a model's allow is a dispute, not a false positive.
+  describe("live disputes", () => {
+    async function shadowRule() {
+      const m = memory();
+      await m.archive([...clean(), ...attacks()]);
+      const [rule] = await m.submitCandidates([acctRule], []);
+      const id = rule?.id ?? "";
+      const allowed = record("allow", "acct-ok", { memoryHits: [id] });
+      const { transitions } = await m.archive([allowed]);
+      return { m, id, allowed, transitions };
+    }
+    const hit = (id: string) => record("drop", "refund to acct-x", { memoryHits: [id] });
+
+    it("holds the rule where it is, lists the write, and blocks promotion", async () => {
+      const { m, id, allowed, transitions } = await shadowRule();
+      expect(transitions).toEqual([]);
+      expect(await m.getDisputes()).toEqual([
+        expect.objectContaining({
+          entryId: allowed.entryId,
+          rules: [expect.objectContaining({ id })],
+        }),
+      ]);
+      // Two confirmed hits would normally promote to flag (test thresholds); not while disputed.
+      const { transitions: held } = await m.archive([hit(id), hit(id)]);
+      expect(held).toEqual([]);
+    });
+
+    it("retires the rule at once when a human says the write was benign", async () => {
+      const { m, id, allowed } = await shadowRule();
+      const result = await m.labelArchived(allowed.entryId, "allow", "benign", "real customer");
+      expect(result?.transitions).toEqual([
+        expect.objectContaining({
+          ruleId: id,
+          to: "retired",
+          reason: "matched a request the reviewer allowed",
+        }),
+      ]);
+    });
+
+    it("counts the hit as confirmed when a human says it was an attack, and promotes", async () => {
+      const { m, id, allowed } = await shadowRule();
+      await m.archive([hit(id)]);
+      const result = await m.labelArchived(allowed.entryId, "drop", "fraud", "reviewer missed it");
+      expect(result?.transitions).toEqual([expect.objectContaining({ ruleId: id, to: "flag" })]);
+      expect(await m.getDisputes()).toEqual([]);
+    });
+
+    it("becomes a false positive, and retires the rule, once nobody reports it in time", async () => {
+      const { m, id } = await shadowRule();
+      await m.advanceClock(4 * DAY);
+      const { transitions } = await m.archive([]);
+      expect(transitions).toEqual([expect.objectContaining({ ruleId: id, to: "retired" })]);
+    });
   });
 
   it("feeds the distiller only unexplained, non-tainted, undistilled drops, plus clean counter-examples", async () => {

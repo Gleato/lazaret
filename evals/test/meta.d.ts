@@ -7,5 +7,7 @@ declare module "vitest" {
     evalResult?: unknown;
     /** The two-phase Memory eval (test/memory.test.ts), written as memory-<mode>.json. */
     memoryResult?: unknown;
+    /** The campaign replay (test/campaign.test.ts, M7.1), written as campaign-<mode>.json. */
+    campaignResult?: unknown;
   }
 }

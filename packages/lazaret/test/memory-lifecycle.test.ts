@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   backtest,
   compileRule,
+  pendingExpired,
   type RuleSample,
   statusAfterBacktest,
   statusAfterLiveEvidence,
@@ -31,17 +32,37 @@ describe("memory lifecycle", () => {
     ).toEqual({
       support: 2,
       falsePositives: 0,
+      disputed: 0,
       cleanSamples: 1,
     });
   });
 
+  it("counts a match on an untrusted allow as a dispute, not a false positive", () => {
+    expect(backtest(rule, [], [sample("hello")], [sample("acct-9"), sample("hi")])).toEqual({
+      support: 0,
+      falsePositives: 0,
+      disputed: 1,
+      cleanSamples: 3,
+    });
+  });
+
+  // M7.1: only a false positive on trusted traffic is final; thin evidence waits.
   it.each([
-    [{ support: 5, falsePositives: 1, cleanSamples: 100 }, "rejected"],
-    [{ support: 1, falsePositives: 0, cleanSamples: 100 }, "rejected"],
-    [{ support: 5, falsePositives: 0, cleanSamples: 3 }, "pending"],
-    [{ support: 5, falsePositives: 0, cleanSamples: 100 }, "shadow"],
+    [{ support: 5, falsePositives: 1, disputed: 0, cleanSamples: 100 }, "rejected"],
+    [{ support: 5, falsePositives: 1, disputed: 3, cleanSamples: 100 }, "rejected"],
+    [{ support: 5, falsePositives: 0, disputed: 1, cleanSamples: 100 }, "pending"],
+    [{ support: 1, falsePositives: 0, disputed: 0, cleanSamples: 100 }, "pending"],
+    [{ support: 0, falsePositives: 0, disputed: 0, cleanSamples: 100 }, "pending"],
+    [{ support: 5, falsePositives: 0, disputed: 0, cleanSamples: 3 }, "pending"],
+    [{ support: 5, falsePositives: 0, disputed: 0, cleanSamples: 100 }, "shadow"],
   ] as const)("judges backtest %o as %s", (result, status) => {
     expect(statusAfterBacktest(result, T).status).toBe(status);
+  });
+
+  it("expires a pending rule after the staleness window, and only pending ones", () => {
+    expect(pendingExpired({ status: "pending", createdAt: 0 }, T, T.staleAfterMs)).toBe(false);
+    expect(pendingExpired({ status: "pending", createdAt: 0 }, T, T.staleAfterMs + 1)).toBe(true);
+    expect(pendingExpired({ status: "shadow", createdAt: 0 }, T, T.staleAfterMs + 1)).toBe(false);
   });
 
   const live = { liveTruePositives: 0, liveFalsePositives: 0, lastHitAt: 1_000, updatedAt: 1_000 };
@@ -70,6 +91,15 @@ describe("memory lifecycle", () => {
         2_000,
       )?.status,
     ).toBe("retired");
+  });
+
+  it("holds promotion while a live hit is disputed, but still retires on a false positive", () => {
+    const shadow = { ...live, status: "shadow" as const, liveTruePositives: 5 };
+    expect(statusAfterLiveEvidence(shadow, T, 2_000, 1)).toBeNull();
+    expect(statusAfterLiveEvidence(shadow, T, 2_000, 0)?.status).toBe("flag");
+    expect(statusAfterLiveEvidence({ ...shadow, liveFalsePositives: 1 }, T, 2_000, 1)?.status).toBe(
+      "retired",
+    );
   });
 
   it("retires stale rules and ignores inactive ones", () => {
