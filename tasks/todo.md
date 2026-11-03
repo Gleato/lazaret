@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M8 done (2026-11-01): demo live at demo.gleator.com, `@gleator/lazaret@0.1.0` on npm. M9 (the folder redesign of gleator.com) built, approved and **live at gleator.com since 2026-11-02**; resume updated. gleator.com is on the resume and the live PDF. Next: a site CSP.**
+Status: **M0–M8 done (2026-11-01): demo live at demo.gleator.com, `@gleator/lazaret@0.1.0` on npm. M9 (the folder redesign of gleator.com) built, approved and **live at gleator.com since 2026-11-02**; resume updated. gleator.com is on the resume and the live PDF. Site CSP live. Next: redeploy demo-lazaret (its M8 analytics CSP fix).**
 
 ---
 
@@ -1705,4 +1705,34 @@ River 2017, GEL 2019), the resume follows after approval; the long page stays at
   `my-resume.html`. The line is kept on one line (9.4pt, `nowrap`), since it first wrapped
   mid phone number; still one page. Mirrored in `data/career.ts` and the site's PDF.
   Deployed: the live PDF is byte-identical to the local one; no localhost in the live HTML.
+- **Site CSP (2026-11-02, live):**
+  - `apps/site/csp.ts` holds the whole policy. Astro's `security.csp` hashes every script
+    and style it emits into each page's `<meta>`:
+    - `connect-src` is the site plus the demo origin and its WebSocket;
+    - `script-src` is self, Turnstile and the hashes;
+    - `frame-src` is Turnstile; `object-src 'none'`; `base-uri` and `form-action` are self;
+    - inline style attributes are allowed (`style-src-attr 'unsafe-inline'`), CSS only.
+      Network text only ever goes in through textContent.
+  - The edge worker adds what a `<meta>` can't: `frame-ancestors 'none'`, `X-Frame-Options`,
+    `nosniff`, `Referrer-Policy` and `Permissions-Policy`.
+  - Found while testing, and fixed:
+    - the long page's `define:vars` script wasn't hashed, which broke its bot check. The key
+      now rides on a data attribute.
+    - Astro doesn't hash `is:inline`, so the folder's pre-paint script moved to
+      `folder-preopen.js`. The page inlines it verbatim and the config hashes the same file.
+  - Verified on the built site (astro preview) against the local stack, recording
+    `securitypolicyviolation`: every home flow and the long page's bot check and exhibit ran
+    with **0 violations**; the deep links open pre-paint. 6 new tests (site 45).
+  - **Found on the live site and fixed:**
+    - Cloudflare Web Analytics injects its beacon only in production, so the policy now
+      allows `static.cloudflareinsights.com` (script) and `cloudflareinsights.com` (connect).
+    - **A pre-existing M8 bug:** the long page's bot check never worked in production.
+      `<div id="turnstile">` made `window.turnstile` that div, so the loader skipped
+      Cloudflare's script and failed on `render`. It was masked locally by the test key's
+      offline fallback. Fixed with `turnstileApi()` (checks for `render`, tested) and the
+      container renamed to `turnstile-box`.
+  - Verified live, recording `securitypolicyviolation`: home (deep link, tabs, strip,
+    timeline, demo status), the long page (live socket, bot check) and the 404 show **0
+    violations**. The edge headers are present, and the long page now renders Turnstile's
+    challenge frame (left untouched in headless).
 

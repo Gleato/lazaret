@@ -12,7 +12,14 @@ const turnstileSiteKey =
   (import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string | undefined) ?? "1x00000000000000000000AA";
 ---
 
-<section class="section demo" id="demo" aria-labelledby="demo-title">
+<!-- The Turnstile key rides on a data attribute: an inline define:vars script would
+     need its own CSP hash, which Astro doesn't add for it (csp.ts, M9 launch). -->
+<section
+  class="section demo"
+  id="demo"
+  aria-labelledby="demo-title"
+  data-site-key={turnstileSiteKey}
+>
   <div class="wrap">
     <header>
       <h2 id="demo-title">Fire an attack at a real helpdesk</h2>
@@ -39,7 +46,7 @@ const turnstileSiteKey =
         </p>
         <div id="check" class="check">
           <button class="btn primary" id="start" type="button">Start sending</button>
-          <div id="turnstile"></div>
+          <div id="turnstile-box"></div>
           <p id="check-msg" class="sans small" role="alert"></p>
         </div>
         <ul class="exhibits" id="exhibits"></ul>
@@ -107,9 +114,6 @@ const turnstileSiteKey =
 </section>
 
 <script type="application/json" id="exhibits-data" set:html={exhibitsJson} />
-<script define:vars={{ turnstileSiteKey }}>
-  window.__TURNSTILE_SITE_KEY__ = turnstileSiteKey;
-</script>
 <script>
   import { startDemo } from "../../../lib/demo";
   startDemo();

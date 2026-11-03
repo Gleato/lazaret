@@ -13,6 +13,7 @@
 // State and keyboard rules: src/lib/folder.ts (unit-tested). Motion is WAAPI so it
 // can be skipped outright under prefers-reduced-motion.
 import type { TabId } from "../lib/folder";
+import PREOPEN from "./folder-preopen.js?raw";
 
 interface Props {
   pages: Record<TabId, number>;
@@ -100,19 +101,9 @@ const SCORES = 6;
   </div>
 </div>
 
-<script is:inline>
-  // Before first paint: a deep link (#projects) shows the folder already open, so it
-  // doesn't flash shut while the module below loads. folder-ui.ts takes over from here.
-  (() => {
-    const f = document.currentScript?.previousElementSibling;
-    const tab = location.hash.slice(1).toLowerCase();
-    if (!f || !["profile", "projects", "experience"].includes(tab)) return;
-    f.dataset.state = "open";
-    f.dataset.active = tab;
-    for (const s of f.querySelectorAll("[data-sheet]")) s.hidden = s.dataset.sheet !== tab;
-    for (const t of f.querySelectorAll("[data-tab]")) t.setAttribute("aria-selected", String(t.dataset.tab === tab));
-  })();
-</script>
+<!-- Pre-paint deep-link opener (folder-preopen.js), inlined verbatim; its CSP hash
+     is computed from the same file in astro.config.mjs. -->
+<script is:inline set:html={PREOPEN} />
 
 <script>
   import { initFolder } from "./folder-ui";

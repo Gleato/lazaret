@@ -131,18 +131,34 @@ export function connectLive(
   };
 }
 
+type Turnstile = { render(el: HTMLElement, opts: Record<string, unknown>): void };
+
+/**
+ * Cloudflare's Turnstile API on `win`, or null if it isn't loaded. Checks for `render`,
+ * not just a truthy `window.turnstile`: browsers expose every element id as a global, so
+ * a `<div id="turnstile">` makes `window.turnstile` that div. That once made the long
+ * page skip loading Turnstile and fail in production (found at the M9 launch).
+ */
+export function turnstileApi(win: unknown): Turnstile | null {
+  const t = (win as { turnstile?: unknown }).turnstile;
+  return typeof (t as Turnstile | undefined)?.render === "function" ? (t as Turnstile) : null;
+}
+
 /** Render Turnstile on demand and resolve with its token. Rejects if it can't load. */
 export function turnstileToken(siteKey: string, container: HTMLElement): Promise<string> {
-  type Turnstile = { render(el: HTMLElement, opts: Record<string, unknown>): void };
-  const w = window as unknown as { turnstile?: Turnstile };
+  const loaded = turnstileApi(window);
   const load = (): Promise<Turnstile> =>
-    w.turnstile
-      ? Promise.resolve(w.turnstile)
+    loaded
+      ? Promise.resolve(loaded)
       : new Promise((resolve, reject) => {
           const s = document.createElement("script");
           s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
           s.async = true;
-          s.onload = () => (w.turnstile ? resolve(w.turnstile) : reject(new Error("no turnstile")));
+          s.onload = () => {
+            const api = turnstileApi(window);
+            if (api) resolve(api);
+            else reject(new Error("no turnstile"));
+          };
           s.onerror = () => reject(new Error("turnstile failed to load"));
           setTimeout(() => reject(new Error("turnstile timed out")), 8_000);
           document.head.append(s);

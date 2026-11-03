@@ -44,3 +44,14 @@
   `wrangler deploy`. After every deploy, grep the live HTML for `localhost` and for the
   production demo origin before calling it done.
 
+## Test the production paths that local fallbacks hide (2026-11-02, M9 launch)
+- **What happened:** the long page's bot check had been broken in production since M8. A
+  `<div id="turnstile">` shadowed `window.turnstile`, so the loader never fetched
+  Cloudflare's script. Locally the always-pass test key falls back to an offline token,
+  so every local run "passed". Cloudflare's analytics beacon is the same kind of thing: it
+  is injected only in production, so only the live CSP check caught it.
+- **Rule:** when a code path has a local fallback (test keys, offline tokens, mocks), the
+  launch check must exercise the production path on the live site: render the real widget,
+  and record CSP/console errors in a real browser. Never name an element id after a global
+  that the code checks for.
+

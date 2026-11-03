@@ -49,7 +49,7 @@ export function startDemo(): void {
     start: $<HTMLButtonElement>("start"),
     check: $("check"),
     checkMsg: $("check-msg"),
-    turnstile: $("turnstile"),
+    turnstile: $("turnstile-box"),
     exhibits: $("exhibits"),
     log: $("log"),
     ledger: $("ledger"),
@@ -401,8 +401,7 @@ export function startDemo(): void {
   async function verifyHuman(): Promise<void> {
     ui.start.disabled = true;
     ui.checkMsg.textContent = "";
-    const siteKey = (window as unknown as { __TURNSTILE_SITE_KEY__: string })
-      .__TURNSTILE_SITE_KEY__;
+    const siteKey = $("demo").dataset.siteKey ?? TURNSTILE_TEST_KEY;
     let token: string;
     try {
       token = await turnstileToken(siteKey, ui.turnstile);
