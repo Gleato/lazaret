@@ -24,6 +24,7 @@ export const RESUME = {
     { label: "ridgeygleat@gmail.com", href: "mailto:ridgeygleat@gmail.com" },
     { label: "linkedin.com/in/gleator", href: "https://www.linkedin.com/in/gleator/" },
     { label: "github.com/Gleato", href: "https://github.com/Gleato" },
+    { label: "gleator.com", href: "https://gleator.com" },
   ],
   summary:
     "Software developer with 3+ years at Booz Allen Hamilton on the VA’s Veterans Benefits Management System (VBMS). Specializes in Python-driven production data analysis, Kafka event pipelines, and full-stack services on Kubernetes. Daily practitioner of agentic, AI-assisted development with Claude Code, Codex, and Copilot, applying it to legacy modernization at work and to Lazaret, an open-source AI security gateway.",
