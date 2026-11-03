@@ -1,0 +1,75 @@
+---
+// The not-found page. wrangler.jsonc serves it for any unknown path
+// (not_found_handling: "404-page"); without it a bad link got a blank response.
+// Drawn as a sheet missing from the folder, in the home page's own materials.
+import "../home/home.css";
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Not in the folder"
+  description="This page isn't in Ridge Gleaton's folder."
+  footer={false}
+  bodyClass="home"
+  themeColor={{ light: "#ffffff", dark: "#1b1a19" }}
+  noindex
+>
+  <main class="lost">
+    <a class="mark on-desk" href="/">Gleator</a>
+    <div class="paper sheet">
+      <p class="code">404</p>
+      <h1>This page isn’t in the folder.</h1>
+      <p>It may have been moved, or the link has a typo.</p>
+      <p class="links">
+        <a href="/">Open the folder</a>
+        <a href="/projects/lazaret">Lazaret’s full write-up</a>
+      </p>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .lost {
+    width: min(100% - 32px, 620px);
+    margin: 0 auto;
+    padding: clamp(28px, 6vw, 64px) 0;
+  }
+  .mark {
+    display: inline-block;
+    margin-bottom: 28px;
+    font: 800 2.4rem / 1 var(--figtree);
+    letter-spacing: -0.035em;
+    text-decoration: none;
+  }
+  .sheet {
+    transform: rotate(-0.8deg);
+  }
+  .code {
+    margin: 0;
+    font-weight: 900;
+    font-size: 0.9rem;
+    color: var(--stamp);
+    font-variant-numeric: tabular-nums;
+  }
+  h1 {
+    margin: 6px 0 10px;
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    font-weight: 800;
+    letter-spacing: -0.015em;
+  }
+  p {
+    margin: 0;
+    color: var(--ink-2);
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    margin-top: 18px;
+  }
+  .links a {
+    font-weight: 700;
+    color: var(--ink);
+    text-underline-offset: 3px;
+  }
+</style>

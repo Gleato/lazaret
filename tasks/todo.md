@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M8 done (2026-11-01): demo live at demo.gleator.com, `@gleator/lazaret@0.1.0` on npm. M9 (the folder redesign of gleator.com) built and approved 2026-11-02, resume updated; next: commit, then launch gleator.com.**
+Status: **M0–M8 done (2026-11-01): demo live at demo.gleator.com, `@gleator/lazaret@0.1.0` on npm. M9 (the folder redesign of gleator.com) built, approved and **live at gleator.com since 2026-11-02**; resume updated. Next: gleator.com on the resume, and a site CSP.**
 
 ---
 
@@ -1682,3 +1682,23 @@ River 2017, GEL 2019), the resume follows after approval; the long page stays at
   scripted).
 - **Resume (after approval):** SRS 2017 – 2019 and GEL 2019 – 2022 in `my-resume.html`, re-rendered to
   one page, and served as the site's PDF (checked: 200, application/pdf, new dates in the text).
+- **Launch (2026-11-02, your go-ahead):** `npm run deploy -w @gleator/site` to the
+  `gleator-site` Worker, on the custom domains gleator.com and www.gleator.com (www → apex 301).
+  - Found at launch and fixed:
+    - there was no 404 page although wrangler serves one (`src/pages/404.astro`, noindex);
+    - `/projects/lazaret` 307'd to a trailing slash: pages now build as files
+      (`build.format: "file"`), and the canonical URL strips `.html`.
+  - **Slip:** one redeploy used a plain `astro build`, so for about 20 s the live page pointed
+    the demo at localhost:8787. It was redeployed with `npm run deploy`, and the live HTML
+    was checked for no localhost (see lessons.md).
+  - Verified live:
+    - `/`, `/projects/lazaret` (200, no redirect), the 404, the PDF and fonts;
+    - www → apex (from this Mac it needed `--resolve`: the local DNS cache still held the
+      pre-launch miss, while public DNS already resolved);
+    - demo CORS allows the apex. In a browser, the clock and both demo views show the demo
+      live.
+  - The Turnstile check on gleator.com got a challenge in headless Chrome. It wasn't
+    touched, and no domain error came back. One real Send from a normal browser will prove
+    it end to end.
+  - Not done: the CSP (`_headers`) and the demo-lazaret CSP redeploy from M8.
+

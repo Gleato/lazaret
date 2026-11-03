@@ -35,3 +35,12 @@
 - **Rule:** once a tab is for secrets, don't read it. Ask the user what it shows, or
   check the outcome by other means (`wrangler secret list`, `npm whoami`). When one
   comes into view anyway, say so at once and offer to rotate it.
+
+## Deploy only through the deploy script (2026-11-02, M9 launch)
+- **What happened:** after a config fix I ran `npx astro build && npx wrangler deploy` by
+  hand. The plain build has no `PUBLIC_DEMO_ORIGIN`, so for about 20 s the live gleator.com
+  pointed its demo at localhost:8787. Caught it by grepping the live HTML, then redeployed.
+- **Rule:** deploy with `npm run deploy` (it runs `build:prod`), never a bare build plus
+  `wrangler deploy`. After every deploy, grep the live HTML for `localhost` and for the
+  production demo origin before calling it done.
+

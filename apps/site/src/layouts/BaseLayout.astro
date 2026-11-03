@@ -12,6 +12,8 @@ interface Props {
   bodyClass?: string;
   /** Browser chrome colour; the folder home sits on a white desk, the project page on lagoon paper. */
   themeColor?: { light: string; dark: string };
+  /** Pages search engines shouldn't index (the 404): no canonical, robots noindex. */
+  noindex?: boolean;
 }
 const {
   title,
@@ -19,8 +21,11 @@ const {
   footer = true,
   bodyClass,
   themeColor = { light: "#eceee6", dark: "#0f1b1f" },
+  noindex = false,
 } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site);
+// Pages build as files (astro.config: build.format "file"), so the path can end in
+// ".html"; the canonical URL is the clean one the site actually serves.
+const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ""), Astro.site);
 ---
 
 <!doctype html>
@@ -30,7 +35,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content={themeColor.light} media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content={themeColor.dark} media="(prefers-color-scheme: dark)" />
