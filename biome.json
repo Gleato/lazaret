@@ -8,7 +8,8 @@
       "!**/dist",
       "!tasks",
       "!evals/results",
-      "!**/.astro"
+      "!**/.astro",
+      "!apps/site/src/assets/logos"
     ]
   },
   "formatter": {

@@ -7,8 +7,19 @@ import "../styles/global.css";
 interface Props {
   title: string;
   description: string;
+  /** The folder home draws its own contact card inside the folder, so it opts out (M9). */
+  footer?: boolean;
+  bodyClass?: string;
+  /** Browser chrome colour; the folder home sits on a white desk, the project page on lagoon paper. */
+  themeColor?: { light: string; dark: string };
 }
-const { title, description } = Astro.props;
+const {
+  title,
+  description,
+  footer = true,
+  bodyClass,
+  themeColor = { light: "#eceee6", dark: "#0f1b1f" },
+} = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 
@@ -21,19 +32,17 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#eceee6" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f1b1f" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content={themeColor.light} media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content={themeColor.dark} media="(prefers-color-scheme: dark)" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400..800;1,400..800&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-    />
+    <!-- Figtree is self-hosted (styles/global.css); preload the two weights above the fold. -->
+    <link rel="preload" href="/fonts/figtree-regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/figtree-extrabold.woff2" as="font" type="font/woff2" crossorigin />
   </head>
-  <body>
+  <body class={bodyClass}>
     <slot />
+    {footer && (
     <footer class="site-footer">
       <div class="wrap">
         <p>
@@ -42,6 +51,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
         </p>
       </div>
     </footer>
+    )}
   </body>
 </html>
 

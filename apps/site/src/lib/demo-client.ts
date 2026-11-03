@@ -28,6 +28,12 @@ export interface DemoResponse {
   ms: number;
 }
 
+/** The seeded demo accounts' published password, and who the console sends as. */
+export const PASSWORD = "tidewater-demo";
+export const PERSONAS = { theo: "theo@tidewater.test", sam: "sam@tidewater.test" } as const;
+/** Cloudflare's always-pass Turnstile key, used in local dev. */
+export const TURNSTILE_TEST_KEY = "1x00000000000000000000AA";
+
 let pass: string | null = null;
 export const hasPass = () => pass !== null;
 
@@ -123,4 +129,32 @@ export function connectLive(
     clearTimeout(timer);
     socket?.close();
   };
+}
+
+/** Render Turnstile on demand and resolve with its token. Rejects if it can't load. */
+export function turnstileToken(siteKey: string, container: HTMLElement): Promise<string> {
+  type Turnstile = { render(el: HTMLElement, opts: Record<string, unknown>): void };
+  const w = window as unknown as { turnstile?: Turnstile };
+  const load = (): Promise<Turnstile> =>
+    w.turnstile
+      ? Promise.resolve(w.turnstile)
+      : new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+          s.async = true;
+          s.onload = () => (w.turnstile ? resolve(w.turnstile) : reject(new Error("no turnstile")));
+          s.onerror = () => reject(new Error("turnstile failed to load"));
+          setTimeout(() => reject(new Error("turnstile timed out")), 8_000);
+          document.head.append(s);
+        });
+  return load().then(
+    (t) =>
+      new Promise<string>((resolve, reject) => {
+        t.render(container, {
+          sitekey: siteKey,
+          callback: (token: string) => resolve(token),
+          "error-callback": () => reject(new Error("turnstile error")),
+        });
+      }),
+  );
 }

@@ -1,0 +1,33 @@
+---
+// A steel paperclip (boards 2 and 3), drawn as one wire: a lit stroke over a darker
+// one gives it the round, metallic edge. The half that sits behind the paper is drawn
+// a touch darker, so it reads as clipped over the top edge rather than lying on it.
+interface Props {
+  class?: string;
+}
+const { class: cls } = Astro.props;
+const id = `clip-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<svg class:list={["clip", cls]} viewBox="0 0 34 104" width="34" height="104" aria-hidden="true">
+  <defs>
+    <linearGradient id={`${id}-steel`} x1="0" x2="1">
+      <stop offset="0" stop-color="#8d9297"></stop>
+      <stop offset="0.45" stop-color="#e9ecee"></stop>
+      <stop offset="1" stop-color="#9aa0a5"></stop>
+    </linearGradient>
+  </defs>
+  <!-- shadow on the paper -->
+  <path d="M10 30 V84 a9 9 0 0 0 18 0 V18 a13 13 0 0 0 -26 0 V78" fill="none" stroke="rgb(60 45 20 / 22%)" stroke-width="3.4" stroke-linecap="round" transform="translate(2.2 2.6)"></path>
+  <!-- wire -->
+  <path d="M10 30 V84 a9 9 0 0 0 18 0 V18 a13 13 0 0 0 -26 0 V78" fill="none" stroke="#7d8287" stroke-width="3.6" stroke-linecap="round"></path>
+  <path d="M10 30 V84 a9 9 0 0 0 18 0 V18 a13 13 0 0 0 -26 0 V78" fill="none" stroke={`url(#${id}-steel)`} stroke-width="2.4" stroke-linecap="round"></path>
+</svg>
+
+<style>
+  .clip {
+    position: absolute;
+    pointer-events: none;
+    z-index: 3;
+  }
+</style>

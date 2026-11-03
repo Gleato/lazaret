@@ -1,0 +1,106 @@
+---
+// The bottom of board 3: a play on the "used by" logo walls on product pages, for the
+// places Ridge has worked and studied and the tools he builds with. Every logo is the
+// organisation's own file, supplied by the user; none is redrawn or recoloured beyond
+// Booz Allen's one-colour black variant. Rows follow the board's arrangement.
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import boozAllen from "../../assets/logos/booz-allen.svg";
+import clemson from "../../assets/logos/clemson.jpg";
+import gel from "../../assets/logos/gel-group.svg";
+import jenkins from "../../assets/logos/jenkins.png";
+import kafka from "../../assets/logos/kafka.webp";
+import opensearch from "../../assets/logos/opensearch.png";
+import python from "../../assets/logos/python.png";
+import react from "../../assets/logos/react.webp";
+import srs from "../../assets/logos/srs.webp";
+import wgu from "../../assets/logos/wgu.png";
+
+interface Logo {
+  src: ImageMetadata;
+  name: string;
+  /** Rendered height in px, tuned per mark so they read at one optical size. */
+  h: number;
+}
+
+const rows: Logo[][] = [
+  [{ src: boozAllen, name: "Booz Allen Hamilton", h: 44 }],
+  [
+    { src: wgu, name: "Western Governors University", h: 80 },
+    { src: clemson, name: "Clemson University", h: 104 },
+    { src: react, name: "React", h: 92 },
+  ],
+  [
+    { src: srs, name: "Savannah River Site", h: 46 },
+    { src: gel, name: "The GEL Group", h: 44 },
+  ],
+  [
+    { src: kafka, name: "Apache Kafka", h: 54 },
+    { src: python, name: "Python", h: 46 },
+    { src: jenkins, name: "Jenkins", h: 62 },
+  ],
+  [{ src: opensearch, name: "OpenSearch", h: 32 }],
+];
+---
+
+<section class="wall" aria-labelledby="wall-title">
+  <h3 id="wall-title" class="wall-title">Where I’ve worked, studied, and what I build with</h3>
+  <ul class="rows">
+    {
+      rows.map((row) => (
+        <li class="row">
+          <ul class="logos">
+            {row.map((l) => (
+              <li>
+                <Image src={l.src} alt={l.name} height={l.h * 2} style={`height: ${l.h}px`} class="logo" loading="lazy" />
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .wall {
+    margin-top: clamp(56px, 8vw, 84px);
+    text-align: center;
+  }
+  .wall-title {
+    margin: 0 0 clamp(22px, 3.4vw, 34px);
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+  .rows,
+  .logos {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .rows {
+    display: grid;
+    gap: clamp(18px, 3vw, 30px);
+  }
+  .logos {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: clamp(16px, 4.5vw, 56px);
+  }
+  .logo {
+    display: block;
+    width: auto;
+    max-width: min(100%, 360px);
+    object-fit: contain;
+    /* Multiply drops the white boxes some of the supplied files carry onto the paper. */
+    mix-blend-mode: multiply;
+  }
+  @media (max-width: 520px) {
+    .logo {
+      max-height: 54px;
+      max-width: 44vw;
+    }
+  }
+</style>

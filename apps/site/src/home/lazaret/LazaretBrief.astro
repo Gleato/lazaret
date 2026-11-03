@@ -1,0 +1,335 @@
+---
+// Lazaret's page in the Projects stack, in board 2's order: links, the impact
+// statement with a comparison, high/low-level architecture, Tidewater in brief, the
+// demo, and how it compares with similar products. Numbers come from the published
+// live eval (evals/results/live-latest.json) at build time, never typed in.
+import { Image } from "astro:assets";
+import github from "../../assets/logos/github-lockup.svg";
+import npm from "../../assets/logos/npm.png";
+import { evals } from "../../projects/lazaret/data/evals";
+import { GITHUB_URL, NPM_URL } from "../data/links";
+import Comparison from "./Comparison.astro";
+import Levels from "./Levels.astro";
+import MiniDemo from "./MiniDemo.astro";
+
+const attacks = evals.run.attacks;
+const honest = evals.run.benign;
+const lazaretStopped = evals.overall.tp;
+const rulesStopped = evals.gateOnly.tp;
+const pct = (n: number) => Math.round((n / attacks) * 100);
+const runDate = new Date(evals.run.startedAt).toLocaleDateString("en-US", {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const bars = [
+  {
+    name: "Pattern rules alone",
+    note: "Lazaret’s own gate with the AI review switched off: signatures and behaviour rules, the way a WAF works.",
+    stopped: rulesStopped,
+    tone: "base",
+  },
+  {
+    name: "Lazaret",
+    note: "The full pipeline: gate, inline and batch review by Claude, taint.",
+    stopped: lazaretStopped,
+    tone: "lz",
+  },
+];
+---
+
+<div class="brief">
+  <nav class="brief-links" aria-label="Lazaret links">
+    <a href={NPM_URL} aria-label="@gleator/lazaret on npm"><Image src={npm} alt="" height={16} class="l-npm" /></a>
+    <a href={GITHUB_URL} aria-label="Lazaret on GitHub"><Image src={github} alt="" height={22} class="l-gh" /></a>
+  </nav>
+
+  <section class="impact" aria-labelledby="lz-impact">
+    <h3 id="lz-impact" class="headline">
+      Lazaret holds every write to your API until an independent AI reviewer clears it.
+    </h3>
+    <p class="lede">
+      Firewalls judge one request at a time, in milliseconds, by pattern. Lazaret quarantines
+      each write at the edge, has Claude read it alongside the writes around it, and only then
+      lets it into your database. That catches what patterns can’t: a support ticket carrying
+      orders for your own AI agent, or a refund that is only fraud in context.
+    </p>
+
+    <figure class="bars">
+      <figcaption>
+        Attacks stopped in the latest live run: {attacks} attacks and {honest} honest requests, all
+        labelled, {runDate}.
+      </figcaption>
+      <ul>
+        {
+          bars.map((b) => (
+            <li class={`bar-row ${b.tone}`} title={b.note}>
+              <span class="bar-name">{b.name}</span>
+              <span class="bar-track">
+                <span class="bar-fill" style={`--w: ${Math.max(1.5, pct(b.stopped))}%`} />
+              </span>
+              <span class="bar-value">
+                <strong>{b.stopped} of {attacks}</strong> <span>{pct(b.stopped)}%</span>
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+      <dl class="facts">
+        <div>
+          <dt>Honest writes blocked</dt>
+          <dd>{evals.overall.fp} of {honest}</dd>
+        </div>
+        <div>
+          <dt>Review cost</dt>
+          <dd>${evals.cost.perThousandReviewedEntries.toFixed(2)} per 1,000 writes</dd>
+        </div>
+        <div>
+          <dt>Inline review, p50</dt>
+          <dd>{(evals.latency.inline.p50 / 1000).toFixed(1)} s</dd>
+        </div>
+      </dl>
+      <p class="fine">
+        “Pattern rules alone” is Lazaret’s gate run by itself: signatures and behaviour
+        rules, the way a WAF works. One run, so read it as evidence, not a benchmark.
+      </p>
+    </figure>
+  </section>
+
+  <Levels />
+
+  <section class="tidewater" aria-labelledby="lz-tidewater">
+    <h3 id="lz-tidewater" class="sub">Try it on Tidewater</h3>
+    <p>
+      Tidewater Support is a small helpdesk built for this demo. Its own AI agent reads tickets
+      and can issue refunds, so it is exactly the kind of system a planted instruction would
+      hijack. It runs behind a real Lazaret deployment at demo.gleator.com.
+    </p>
+    <ol class="steps">
+      <li>Pick a request: honest, or one of the attacks from the eval corpus.</li>
+      <li>Press Send. The first time, a quick bot check runs, since a paid model reviews every write.</li>
+      <li>Watch where it ends up: held, sealed into a batch, reviewed, then delivered or dropped.</li>
+    </ol>
+  </section>
+
+  <MiniDemo />
+
+  <Comparison />
+
+  <p class="more">
+    <a href="/projects/lazaret">Read the full write-up</a>: every eval, the self-learning Memory,
+    and the complete attack console with the live ledger.
+  </p>
+</div>
+
+<style>
+  .brief {
+    max-width: 680px;
+    margin-inline: auto;
+    text-align: center;
+  }
+  .brief-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 34px;
+    margin: clamp(22px, 3vw, 30px) 0 clamp(30px, 4.6vw, 48px);
+  }
+  .brief-links a {
+    display: inline-flex;
+    padding: 4px;
+    border-radius: 4px;
+    transition: opacity 0.15s;
+  }
+  .brief-links a:hover {
+    opacity: 0.6;
+  }
+  .brief-links :global(.l-npm) {
+    height: 15px;
+    width: auto;
+  }
+  .brief-links :global(.l-gh) {
+    height: 21px;
+    width: auto;
+  }
+
+  .headline {
+    margin: 0 auto 14px;
+    max-width: 22ch;
+    font-size: clamp(1.45rem, 3.2vw, 2rem);
+    font-weight: 800;
+    line-height: 1.16;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  .lede {
+    margin: 0 auto;
+    max-width: 56ch;
+    font-size: 1.04rem;
+    line-height: 1.6;
+    color: var(--ink-2);
+    text-wrap: pretty;
+  }
+
+  .bars {
+    margin: clamp(26px, 4vw, 36px) 0 0;
+    padding: 20px clamp(14px, 3vw, 24px) 16px;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    background: #fff;
+    text-align: left;
+  }
+  .bars figcaption {
+    margin-bottom: 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .bars ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 9.5em minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.92rem;
+  }
+  .bar-name {
+    font-weight: 700;
+  }
+  .bar-track {
+    height: 18px;
+  }
+  /* Thin data mark, rounded only at its data end, anchored to the baseline. */
+  .bar-fill {
+    display: block;
+    height: 100%;
+    width: var(--w);
+    border-radius: 0 4px 4px 0;
+    /* Neutral is the baseline on purpose: the comparison, not a series. Validated
+       pair (dataviz validator): ΔE 21.9 normal, 16.3 protan; labels carry identity. */
+    background: #a39d94;
+  }
+  .lz .bar-fill {
+    background: #1f7a43;
+  }
+  .bar-value {
+    min-width: 7.4em;
+    white-space: nowrap;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .bar-value span {
+    color: var(--ink-3);
+    margin-left: 4px;
+  }
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 18px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+  }
+  .facts dt {
+    font-size: 0.76rem;
+    color: var(--ink-3);
+  }
+  .facts dd {
+    margin: 2px 0 0;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .fine {
+    margin: 12px 0 0;
+    font-size: 0.76rem;
+    color: var(--ink-3);
+    line-height: 1.45;
+  }
+
+  .sub {
+    margin: 0 0 10px;
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+  .tidewater {
+    margin-top: clamp(44px, 6vw, 64px);
+  }
+  .tidewater p {
+    margin: 0 auto 16px;
+    max-width: 56ch;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  /* A real sequence, so it is numbered. */
+  .steps {
+    display: grid;
+    gap: 8px;
+    max-width: 50ch;
+    margin: 0 auto;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+    text-align: left;
+  }
+  .steps li {
+    position: relative;
+    padding-left: 34px;
+    line-height: 1.5;
+    counter-increment: step;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 1px;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--green);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .more {
+    margin: clamp(36px, 5vw, 52px) 0 0;
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+  .more a {
+    font-weight: 700;
+    color: var(--green);
+    text-underline-offset: 3px;
+  }
+
+  @media (max-width: 640px) {
+    .bar-row {
+      grid-template-columns: 1fr auto;
+      grid-template-areas:
+        "name value"
+        "track track";
+      row-gap: 4px;
+    }
+    .bar-name {
+      grid-area: name;
+    }
+    .bar-value {
+      grid-area: value;
+    }
+    .bar-track {
+      grid-area: track;
+    }
+    .facts {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>

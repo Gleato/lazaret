@@ -1,0 +1,139 @@
+/*
+  The folder home (M9). Palette lifted from the user's boards (portfolioDesign/1–3.png):
+  a white desk, a charcoal-outlined manila folder, off-white paper, and one colour
+  per divider tab (blue Profile, green Projects, red Edu x Exp). Figtree for all text.
+  The folder is the one loud thing; everything on the paper stays quiet and printed.
+  Scoped to body.home so the long Lazaret page keeps its own tokens.
+*/
+
+body.home {
+  --desk: #ffffff;
+  --ink: #1c1a19;
+  --ink-2: #4d4845;
+  --ink-3: #7a736d;
+  --line: #3a3435;
+  --manila: #fdf3df;
+  --manila-2: #f6e6c2;
+  --manila-3: #e8d2a2;
+  --paper: #fffcf9;
+  --paper-edge: #e9e1d6;
+  --blue: #2a4aa3;
+  --blue-soft: #cfd9fd;
+  --green: #0f5129;
+  --green-soft: #c9eedb;
+  --red: #a3141c;
+  --red-soft: #fde4de;
+  --arrow-off: #c6cfd8;
+  --stamp: #b3261e;
+  --focus: #2a4aa3;
+  --rule: #ddd4c8;
+  --lagoon: #2a4aa3;
+
+  background: var(--desk);
+  color: var(--ink);
+  font: 400 1rem / 1.55 var(--figtree);
+  font-variant-numeric: proportional-nums;
+  /* The site root is 112.5% for the long page's 18px text; the folder sets 16px type. */
+  font-size: 0.889rem;
+}
+
+/* Night: the desk lamp goes off, the folder stays a physical object (its colours
+   don't invert), only a touch dimmer so it doesn't glare. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body.home {
+    --desk: #1b1a19;
+    --focus: #9fb4ff;
+  }
+  :root:not([data-theme="light"]) body.home .folder {
+    filter: brightness(0.94);
+  }
+  :root:not([data-theme="light"]) body.home .on-desk {
+    color: #f2ede6;
+  }
+}
+:root[data-theme="dark"] body.home {
+  --desk: #1b1a19;
+  --focus: #9fb4ff;
+}
+:root[data-theme="dark"] body.home .on-desk {
+  color: #f2ede6;
+}
+
+body.home p {
+  max-width: none;
+}
+body.home a {
+  color: inherit;
+}
+body.home :focus-visible {
+  outline: 2.5px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.home-main {
+  width: min(100% - 32px, 1120px);
+  margin-inline: auto;
+  padding-bottom: clamp(48px, 8vw, 96px);
+}
+
+body.home .skip {
+  position: absolute;
+  left: 16px;
+  top: -60px;
+  z-index: 50;
+  padding: 0.5em 0.9em;
+  background: var(--ink);
+  color: var(--desk);
+  border-radius: 6px;
+  font-weight: 600;
+}
+body.home .skip:focus {
+  top: 12px;
+}
+
+/* ── Paper ─────────────────────────────────────────────────────────────────────
+   Every sheet in the folder is one of these: off-white stock with a hairline edge, a
+   soft shadow where it lifts off the manila, and a grain you only notice up close. */
+.paper {
+  position: relative;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35  0 0 0 0 .28  0 0 0 0 .18  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    var(--paper);
+  border-radius: 2px;
+  padding: clamp(26px, 5vw, 60px) clamp(18px, 5.4vw, 64px) clamp(30px, 5vw, 60px);
+  box-shadow:
+    0 0 0 1px rgb(90 70 30 / 10%),
+    0 1px 1px rgb(90 70 30 / 8%),
+    0 12px 26px -16px rgb(90 60 10 / 40%);
+  --pad-x: clamp(18px, 5.4vw, 64px);
+}
+@media (max-width: 640px) {
+  .paper {
+    --pad-x: 16px;
+    padding-inline: var(--pad-x);
+  }
+}
+/* More pages under this one: their edges show at the bottom right, offset like a stack. */
+.paper[data-under="1"],
+.paper[data-under="2"] {
+  box-shadow:
+    0 0 0 1px rgb(90 70 30 / 10%),
+    4px 4px 0 -1px var(--paper),
+    4px 4px 0 0 rgb(90 70 30 / 14%),
+    0 12px 26px -16px rgb(90 60 10 / 40%);
+}
+.paper[data-under="2"] {
+  box-shadow:
+    0 0 0 1px rgb(90 70 30 / 10%),
+    4px 4px 0 -1px var(--paper),
+    4px 4px 0 0 rgb(90 70 30 / 14%),
+    8px 8px 0 -1px var(--paper),
+    8px 8px 0 0 rgb(90 70 30 / 12%),
+    0 12px 26px -16px rgb(90 60 10 / 40%);
+}
+
+.paper h2,
+.paper h3 {
+  font-family: var(--figtree);
+  color: var(--ink);
+}

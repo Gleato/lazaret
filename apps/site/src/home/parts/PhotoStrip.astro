@@ -1,0 +1,180 @@
+---
+// The Profile sheet's photos (board 1): a strip that runs off the edge of the page and
+// scrolls sideways, each photo with a book-style caption in small print under it.
+// Thumb: native scroll-snap. Mouse: drag, or the arrows. Keyboard: focus the strip and
+// use ← →. Behaviour in src/lib/photo-strip.ts.
+import { Image } from "astro:assets";
+import type { Photo } from "../data/profile";
+
+interface Props {
+  photos: Photo[];
+}
+const { photos } = Astro.props;
+---
+
+<div class="strip" data-strip>
+  <div class="strip-bar">
+    <h3 class="strip-title">Photos</h3>
+    <span class="count" data-strip-count aria-live="polite">1 of {photos.length}</span>
+    <div class="arrows">
+      <button type="button" class="arrow" data-strip-prev aria-label="Previous photo" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"></path></svg>
+      </button>
+      <button type="button" class="arrow" data-strip-next aria-label="Next photo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg>
+      </button>
+    </div>
+  </div>
+  <ul class="track" data-strip-track tabindex="0" aria-label="Photos. Scroll sideways, or use the arrow keys.">
+    {
+      photos.map((p, i) => (
+        <li class="item">
+          <figure>
+            <Image
+              src={p.src}
+              alt={p.alt}
+              width={720}
+              widths={[320, 480, 720]}
+              quality={68}
+              sizes="(max-width: 640px) 76vw, 340px"
+              loading={i < 3 ? "eager" : "lazy"}
+              decoding="async"
+              style={p.focus ? `object-position: ${p.focus}` : undefined}
+              draggable="false"
+            />
+            <figcaption>
+              <span class="n">Image {i + 1}:</span> {p.caption}
+            </figcaption>
+          </figure>
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<script>
+  import { initPhotoStrip } from "../../lib/photo-strip";
+  for (const el of document.querySelectorAll<HTMLElement>("[data-strip]")) initPhotoStrip(el);
+</script>
+
+<style>
+  .strip {
+    margin-top: clamp(28px, 4vw, 44px);
+  }
+  .strip-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .strip-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+  }
+  .count {
+    color: var(--ink-3);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .arrows {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+  }
+  .arrow {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 2px solid var(--line);
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      color 0.15s;
+  }
+  .arrow:hover:not([disabled]) {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .arrow[disabled] {
+    border-color: var(--arrow-off);
+    color: var(--arrow-off);
+    cursor: default;
+  }
+  .arrow svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* The strip bleeds to the paper's edges, so the next photo is cut off by the page. */
+  .track {
+    --gap: clamp(16px, 3vw, 36px);
+    display: flex;
+    gap: var(--gap);
+    margin: 0 calc(-1 * var(--pad-x));
+    padding: 4px var(--pad-x) 10px;
+    list-style: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--pad-x);
+    scrollbar-width: none;
+    cursor: grab;
+  }
+  .track::-webkit-scrollbar {
+    display: none;
+  }
+  .track[data-dragging] {
+    scroll-snap-type: none;
+    cursor: grabbing;
+    user-select: none;
+  }
+  .track:focus-visible {
+    outline-offset: -2px;
+  }
+  .item {
+    flex: 0 0 clamp(220px, 41%, 340px);
+    scroll-snap-align: start;
+  }
+  figure {
+    margin: 0;
+  }
+  figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    background: #eee8df;
+    -webkit-user-drag: none;
+  }
+  figcaption {
+    margin-top: 9px;
+    padding-inline: 2px;
+    max-width: 34ch;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--ink-2);
+    text-wrap: pretty;
+  }
+  .n {
+    font-weight: 700;
+    color: var(--ink);
+  }
+  @media (max-width: 640px) {
+    .item {
+      flex-basis: 76%;
+    }
+  }
+</style>

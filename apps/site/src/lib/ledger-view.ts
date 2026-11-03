@@ -9,7 +9,7 @@ import type {
 
 // The visualiser's model: a fold over the Ledger's public frames (the same idea as the
 // Ledger's own projection, principle 3, on the viewer's side). Pure and DOM-free, so
-// it is unit-tested in Node and drives both the live socket and the recorded replay.
+// it is unit-tested in Node and drives the live socket on both demo views.
 //
 // Frames arrive in order with no gaps (the Ledger guarantees that per connection), and
 // a reconnect resumes from `head`, so a frame at or below `head` is a duplicate and

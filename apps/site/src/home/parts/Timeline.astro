@@ -1,0 +1,265 @@
+---
+// High school graduation to now (board 3). Each dot is a button; pressing it opens a
+// short note above the line for that period, pointing down at its dot. One note is
+// open at a time; Escape closes it. Notes only restate facts from the resume.
+import { TIMELINE } from "../data/career";
+---
+
+<section class="timeline" data-timeline aria-labelledby="tl-title">
+  <h3 id="tl-title" class="tl-title">The journey so far</h3>
+  <p class="tl-hint">Select a year to read about it.</p>
+
+  <div class="stage">
+    <div class="notes">
+      {
+        TIMELINE.map((m, i) => (
+          <div class="note" id={`tl-note-${i}`} data-note={i} role="region" aria-label={`${m.year}, ${m.title}`} hidden>
+            <p class="note-head">
+              <span class="note-year">{m.year}</span> {m.title}
+            </p>
+            <p class="note-text">{m.note}</p>
+          </div>
+        ))
+      }
+    </div>
+    <ol class="line" style={`--n: ${TIMELINE.length}`}>
+      {
+        TIMELINE.map((m, i) => (
+          <li class={`stop ${m.kind}`}>
+            <button type="button" class="dot" data-stop={i} aria-expanded="false" aria-controls={`tl-note-${i}`}>
+              <span class="visually-hidden">{m.year}: </span>
+              <span class="visually-hidden">{m.title}</span>
+            </button>
+            <span class="year" aria-hidden="true">{m.year}</span>
+            <span class="what" aria-hidden="true">{m.title}</span>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>("[data-timeline]")) {
+    const dots = [...root.querySelectorAll<HTMLButtonElement>("[data-stop]")];
+    const notes = [...root.querySelectorAll<HTMLElement>("[data-note]")];
+    const box = root.querySelector<HTMLElement>(".notes");
+    const n = dots.length;
+    let openAt: number | null = null;
+
+    // Room above the line for the tallest note, so opening one never shifts the page.
+    const reserve = () => {
+      let tallest = 0;
+      const shown = notes.map((note) => note.hidden);
+      // One at a time, alone in the box, so each is measured at the width it shows at.
+      for (const note of notes) {
+        for (const other of notes) other.hidden = other !== note;
+        tallest = Math.max(tallest, note.offsetHeight);
+      }
+      notes.forEach((note, i) => {
+        note.hidden = shown[i] ?? true;
+      });
+      if (box) box.style.minHeight = `${tallest + 18}px`;
+      if (openAt !== null) place(openAt);
+    };
+
+    // Put the note over its dot, kept inside the line's width, with the caret on the dot.
+    const place = (i: number) => {
+      const note = notes[i];
+      const dot = dots[i];
+      if (!note || !dot || !box) return;
+      const b = box.getBoundingClientRect();
+      const d = dot.getBoundingClientRect();
+      const x = d.left + d.width / 2 - b.left;
+      const w = note.offsetWidth;
+      const left = Math.min(Math.max(0, x - w / 2), b.width - w);
+      note.style.marginLeft = `${left}px`;
+      note.style.setProperty("--caret", `${x - left - 7}px`);
+    };
+
+    const show = (i: number | null) => {
+      openAt = i;
+      dots.forEach((d, j) => {
+        d.setAttribute("aria-expanded", String(j === i));
+      });
+      notes.forEach((note, j) => {
+        note.hidden = j !== i;
+      });
+      if (i !== null) place(i);
+    };
+    new ResizeObserver(reserve).observe(root);
+    // Open on the latest stop, so the first thing a reader sees is how it works.
+    show(n - 1);
+    dots.forEach((d, i) =>
+      d.addEventListener("click", () => show(d.getAttribute("aria-expanded") === "true" ? null : i)),
+    );
+    root.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const open = dots.findIndex((d) => d.getAttribute("aria-expanded") === "true");
+      if (open < 0) return;
+      show(null);
+      dots[open]?.focus();
+    });
+  }
+</script>
+
+<style>
+  .timeline {
+    max-width: 760px;
+    margin: clamp(52px, 7vw, 76px) auto 0;
+    text-align: center;
+  }
+  .tl-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+  .tl-hint {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: var(--ink-3);
+  }
+  .stage {
+    margin-top: 18px;
+  }
+  /* The note sits just above the line, in a box tall enough for the longest note (set
+     by the script), so opening a different year never moves the line. */
+  .notes {
+    display: flex;
+    align-items: flex-end;
+    min-height: 140px;
+    padding-bottom: 16px;
+  }
+  .note {
+    position: relative;
+    width: min(100%, 440px);
+    padding: 12px 16px;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    text-align: left;
+    box-shadow: 0 10px 20px -14px rgb(40 30 10 / 50%);
+    animation: rise 0.28s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  .note::after {
+    content: "";
+    position: absolute;
+    bottom: -9px;
+    /* Set by the script so the caret points at the dot that opened this note. */
+    left: clamp(12px, var(--caret, 50%), calc(100% - 26px));
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-right: 2px solid var(--line);
+    border-bottom: 2px solid var(--line);
+    transform: rotate(45deg);
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  .note-head {
+    margin: 0 0 4px;
+    font-weight: 800;
+  }
+  .note-year {
+    color: var(--red);
+    margin-right: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .note-text {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+
+  .line {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .line::before {
+    content: "";
+    position: absolute;
+    top: 11px;
+    left: calc(50% / var(--n));
+    right: calc(50% / var(--n));
+    height: 3px;
+    border-radius: 2px;
+    background: var(--line);
+  }
+  .stop {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+  }
+  .dot {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 3px solid var(--line);
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    transition:
+      transform 0.18s,
+      background-color 0.18s;
+  }
+  /* A bigger, invisible hit area than the dot itself. */
+  .dot::before {
+    content: "";
+    position: absolute;
+    inset: -12px;
+  }
+  .dot:hover {
+    transform: scale(1.15);
+  }
+  .dot[aria-expanded="true"] {
+    background: var(--red);
+    transform: scale(1.2);
+  }
+  .work .dot {
+    border-color: var(--red);
+  }
+  .school .dot {
+    border-color: var(--blue);
+  }
+  .build .dot {
+    border-color: var(--green);
+  }
+  .school .dot[aria-expanded="true"] {
+    background: var(--blue);
+  }
+  .build .dot[aria-expanded="true"] {
+    background: var(--green);
+  }
+  .year {
+    margin-top: 6px;
+    font-weight: 800;
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .what {
+    font-size: 0.76rem;
+    line-height: 1.25;
+    color: var(--ink-2);
+    max-width: 10ch;
+  }
+  /* Phones: six stops in 340px leave no room for names under the years; the open
+     note names the stop instead. */
+  @media (max-width: 520px) {
+    .what {
+      display: none;
+    }
+    .year {
+      font-size: 0.8rem;
+    }
+  }
+</style>

@@ -1,0 +1,297 @@
+---
+// The Edu x Exp divider (board 3): the resume laid out as the real document on the
+// page, a working PDF download, a clickable timeline from 2015 to now, and a "worked
+// with" wall of the logos the user supplied (each the organisation's own file).
+import { RESUME, RESUME_PDF } from "../data/career";
+import LogoWall from "../parts/LogoWall.astro";
+import PageCurl from "../parts/PageCurl.astro";
+import Paperclip from "../parts/Paperclip.astro";
+import Timeline from "../parts/Timeline.astro";
+
+const r = RESUME;
+---
+
+<div class="paper exp">
+  <Paperclip class="sheet-clip" />
+  <PageCurl />
+
+  <div class="toolbar">
+    <a class="download" href={RESUME_PDF} download="Ridge-Gleaton-Resume.pdf">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 15.5h12"></path></svg>
+      Download PDF
+    </a>
+  </div>
+
+  <article class="resume" aria-labelledby="cv-name">
+    <header class="cv-head">
+      <h2 id="cv-name" class="cv-name">{r.name}</h2>
+      <p class="cv-headline">{r.headline}</p>
+      <ul class="cv-contact">
+        {r.contact.map((c) => <li>{c.href ? <a href={c.href}>{c.label}</a> : c.label}</li>)}
+      </ul>
+    </header>
+
+    <p class="cv-summary">{r.summary}</p>
+
+    <section class="cv-sec" aria-labelledby="cv-exp">
+      <h3 id="cv-exp">Experience</h3>
+      {
+        r.experience.map((j) => (
+          <div class="job">
+            <div class="row">
+              <p>
+                <span class="org">{j.org}</span> <span class="ctx">{j.context}</span>
+              </p>
+              <p class="meta">{j.where}</p>
+            </div>
+            <div class="row">
+              <p class="role">{j.role}</p>
+              <p class="meta">{j.when}</p>
+            </div>
+            {j.bullets.length > 0 && (
+              <ul class="bullets">
+                {j.bullets.map((b) => (
+                  <li>{b}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))
+      }
+    </section>
+
+    <section class="cv-sec" aria-labelledby="cv-proj">
+      <h3 id="cv-proj">Projects</h3>
+      <div class="job">
+        <div class="row">
+          <p>
+            <span class="org">{r.project.name}</span> <span class="ctx">{r.project.context}</span>
+          </p>
+          <p class="meta links">
+            {r.project.links.map((l) => <a href={l.href}>{l.label}</a>)}
+          </p>
+        </div>
+        <div class="row">
+          <p class="role">{r.project.stack}</p>
+          <p class="meta">{r.project.when}</p>
+        </div>
+        <ul class="bullets">
+          {r.project.bullets.map((b) => <li>{b}</li>)}
+        </ul>
+      </div>
+    </section>
+
+    <section class="cv-sec" aria-labelledby="cv-skills">
+      <h3 id="cv-skills">Technical skills</h3>
+      <dl class="skills">
+        {
+          r.skills.map(([k, v]) => (
+            <>
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </>
+          ))
+        }
+      </dl>
+    </section>
+
+    <section class="cv-sec" aria-labelledby="cv-edu">
+      <h3 id="cv-edu">Education</h3>
+      {
+        r.education.map((e) => (
+          <div class="row">
+            <p>
+              <span class="org">{e.org}</span> <span class="ctx">{e.detail}</span>
+            </p>
+            <p class="meta">{e.when}</p>
+          </div>
+        ))
+      }
+    </section>
+  </article>
+
+  <Timeline />
+  <LogoWall />
+</div>
+
+<style>
+  .exp {
+    border: 1px solid #cfc8bd;
+  }
+  .exp :global(.sheet-clip) {
+    top: -22px;
+    left: clamp(18px, 4vw, 40px);
+    width: clamp(24px, 3vw, 30px);
+    height: auto;
+  }
+  .toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: -6px clamp(34px, 6vw, 60px) 18px 0;
+  }
+  .download {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px 9px 13px;
+    border: 2px solid var(--line);
+    border-radius: 999px;
+    background: #fff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition:
+      background-color 0.15s,
+      color 0.15s;
+  }
+  .download:hover {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+  }
+  .download svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* The document: set like the PDF, a single column with ruled section heads. */
+  .resume {
+    max-width: 700px;
+    margin: 0 auto;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+  .resume p {
+    margin: 0;
+  }
+  .cv-head {
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .cv-name {
+    margin: 0;
+    font-size: clamp(1.7rem, 3.4vw, 2.1rem);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.05;
+  }
+  .cv-headline {
+    margin-top: 4px !important;
+    color: var(--ink-2);
+  }
+  .cv-contact {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px 0;
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.82rem;
+    color: var(--ink-2);
+  }
+  .cv-contact li + li::before {
+    content: "•";
+    margin: 0 8px;
+    color: var(--ink-3);
+  }
+  .cv-contact a,
+  .links a {
+    text-decoration: none;
+    border-bottom: 1px solid #c9c1b5;
+  }
+  .cv-contact a:hover,
+  .links a:hover {
+    border-bottom-color: currentColor;
+  }
+  .cv-summary {
+    margin-bottom: 4px !important;
+  }
+  .cv-sec {
+    margin-top: 14px;
+  }
+  .cv-sec h3 {
+    margin: 0 0 7px;
+    padding-bottom: 3px;
+    border-bottom: 1.2px solid var(--ink);
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .job + .job {
+    margin-top: 8px;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px 14px;
+    flex-wrap: wrap;
+  }
+  .org {
+    font-weight: 700;
+  }
+  .ctx {
+    color: var(--ink-2);
+    font-style: italic;
+  }
+  .ctx::before {
+    content: "— ";
+  }
+  .role {
+    font-style: italic;
+  }
+  .meta {
+    font-size: 0.84rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .links {
+    display: flex;
+    gap: 10px;
+    white-space: normal;
+  }
+  .bullets {
+    margin: 4px 0 0;
+    padding-left: 18px;
+  }
+  .bullets li {
+    margin-bottom: 3px;
+    padding-left: 2px;
+  }
+  .skills {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px 10px;
+    margin: 0;
+  }
+  .skills dt {
+    font-weight: 700;
+  }
+  .skills dd {
+    margin: 0;
+  }
+  @media (max-width: 640px) {
+    .toolbar {
+      justify-content: center;
+      margin-right: 0;
+      margin-top: 8px;
+    }
+    .skills {
+      grid-template-columns: 1fr;
+    }
+    .skills dd {
+      margin-bottom: 6px;
+    }
+    .meta {
+      white-space: normal;
+    }
+  }
+</style>

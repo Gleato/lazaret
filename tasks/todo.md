@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M8 done (2026-11-01): demo live at demo.gleator.com, `@gleator/lazaret@0.1.0` on npm. Next: gleator.com redesign + launch (see M8 review)**
+Status: **M0–M8 done (2026-11-01): demo live at demo.gleator.com, `@gleator/lazaret@0.1.0` on npm. M9 (the folder redesign of gleator.com) built and approved 2026-11-02, resume updated; next: commit, then launch gleator.com.**
 
 ---
 
@@ -859,6 +859,62 @@ Anthropic console as a backstop.
 **Needs you:** see the check-in questions. They cover the Workers Paid plan, the zone, the
 `@gleator` npm scope, the CLI decision and the footer name.
 
+### M9 — gleator.com redesign: the folder (2026-11-02, built and approved)
+
+Source: the three boards in `~/Downloads/portfolioDesign` (1 Profile, 2 Projects, 3 Edu x Exp),
+the user's notes, logos/photos in `~/Downloads`, Figtree TTFs, and `~/dev/resume/my-resume.html`.
+Follow the boards closely; the folder mechanics are ours to design.
+
+**Page shell**
+- [x] `/` becomes the folder home. The long Lazaret page moves to `/projects/lazaret`
+      (already structured for it) and the Projects sheet links to it.
+- [x] Figtree self-hosted (woff2 subset, 400–800 + italics) for all text, site-wide.
+- [x] Header: "Gleator" wordmark left, flip clock centre (board 2/3), official npm and GitHub
+      lockups right, linking to the package and the repo.
+
+**The folder**
+- [x] Closed at first: the manila front cover lies over the sheet, tabs showing above it.
+      Hint: the cover's corner lifts a few px on a slow loop, plus a small label. A click on
+      the cover or any tab opens it. Once open it stays open for the visit.
+- [x] Opening: the cover swings down on a bottom hinge (3D) and lies flat under the back panel,
+      showing its inside (routing slip with contact links). The hinge crease follows the active
+      sheet's bottom; one expansion score line per page in that tab, like a real folder's
+      capacity scores.
+- [x] Tabs: Profile (blue), Projects (green), Edu x Exp (red), positioned and overlapped as on
+      the boards. Selecting one lifts its tab, saturates its colour, brings it to the front;
+      the others settle back. Sheet swaps with a short lift/settle. ARIA tabs, arrow keys,
+      `#profile` / `#projects` / `#experience` deep links, `prefers-reduced-motion`.
+
+**Profile sheet** (board 1, plus a made-up journalist's profile in clean humour)
+- [x] Masthead/byline, pull quote, a clipped photo, a "verified human" stamp, margin notes.
+- [x] Intro paragraph as on the board.
+- [x] Photo strip: native scroll-snap (thumb swipe), mouse drag + arrow buttons, book-style
+      captions ("Image 1: …"), the 10 captions from the board (typos fixed).
+- [x] Photos through `astro:assets` (EXIF-rotated, AVIF/WebP, responsive, lazy).
+
+**Projects sheet** (board 2)
+- [x] Paperclip, page curl top-right, prev/next arrows (dark only when a page exists),
+      "Page 1 of N". Pages data-driven, so adding a project is one entry.
+- [x] Lazaret page: logo, npm/GitHub links, impact statement with a visual comparison,
+      High level / Low level architecture tabs, Tidewater in brief, compact live demo
+      (nothing auto-starts, no recorded replay), comparison table vs similar products.
+
+**Edu x Exp sheet** (board 3)
+- [x] Resume laid out as a real document on the sheet; working PDF download.
+- [x] Timeline 2015 → 2026; each dot is a button that opens a short note above it.
+- [x] Logo wall of employers, schools and tools, from the official files supplied.
+
+**Decisions you made at check-in (2026-11-02):** the clock is the demo's uptime (from the
+first production E2E pass, 2026-11-01 21:20Z); timeline dates follow the board (Savannah
+River 2017, GEL 2019), the resume follows after approval; the long page stays at
+`/projects/lazaret`; image 7 says "Martin acoustic".
+
+**Verify**
+- [x] Unit tests for the pure logic (folder state, pager, timeline, clock).
+- [x] Browser pane at 1440 / 768 / 375 px, light; keyboard-only pass; reduced motion.
+- [x] `npm test`, `npm run typecheck`, `npx biome check .` clean.
+- [x] **After approval (approved 2026-11-02):** update the resume (gleator.com link, any date fixes) and re-render. Done: lab dates corrected in `~/dev/resume/my-resume.html`, re-rendered (one page), and published as `apps/site/public/ridge-gleaton-resume.pdf`. No gleator.com link yet; it goes on the resume once the site is live.
+
 ---
 
 ## 10. Open questions
@@ -1580,3 +1636,49 @@ Anthropic console as a backstop.
   - a site CSP (`_headers`) when the redesign lands, since Astro's inline scripts need
     hashes.
 
+### M9 (2026-11-02)
+- **Shape.** `/` is the folder home (`src/home/`); the long page moved to
+  `/projects/lazaret` unchanged apart from fonts and the replay. Pure rules live in
+  `src/lib/{folder,flip-clock,pager,photo-strip,write-progress}.ts` (unit-tested); the
+  DOM halves sit next to their components.
+- **The folder.** Closed on first visit, body `inert` under the cover. The cover nods open
+  every 6 s and lifts on hover, with "Click to open" / "Tap to open". Opening is a 950 ms
+  WAAPI swing on a bottom hinge (rotateX to -180°, lighting on both faces). The cover lands
+  inside up under a crease with one expansion score per page in the open tab, then the
+  body grows to fit. Tab switches cross-fade the sheets, animate the height, and lift the
+  chosen tab. Deep links (`#projects`) open before first paint (an inline script). All
+  motion is skipped under reduced motion.
+- **Profile.** "The Manila Folder Review" profile by Marjorie Inkwell: masthead, ink-textured
+  VERIFIED HUMAN stamp (SVG turbulence), a clipped polaroid ("with his editor, Ovie"),
+  margin notes in ballpoint blue. The photo strip uses native scroll-snap, mouse drag and
+  arrow buttons/keys, with "Image n:" captions from the board.
+- **Projects.** Paperclip, page curl, prev/next arrows (grey at the ends), "Page 1 of 1",
+  data-driven (`data/projects.ts`). Impact bars come from `live-latest.json` (rules alone
+  5/63, Lazaret 63/63, 0/57 honest blocked); the colours passed the dataviz validator.
+  High/Low level tabs; Tidewater in brief.
+  - Compact demo: six cases, one Send, one write followed Held → Sealed → Reviewed → outcome.
+    The agent case shows the with/without refund. No network until the demo is on screen,
+    and no replay.
+  - Comparison vs Cloudflare (WAF + Firewall for AI), Lakera Guard and NeMo Guardrails.
+    Each cell carries its reason and the vendor docs are linked. The footnote says where
+    they win.
+- **Edu x Exp.** The resume set as a document (from `data/career.ts`), a working PDF
+  download, a timeline whose notes sit over their dots (Escape closes), and the logo wall
+  from your files (multiply-blended; Booz Allen in its black one-colour variant).
+- **Removed:** the recorded replay (`public/recording.json`, `scripts/record.ts`, the `record`
+  script). The long page now says "budget spent" or "can't be reached" and waits.
+- **Assets:** photos rotated upright and stripped of EXIF/GPS before they entered the repo.
+  Responsive WebP; the largest variant is 189 kB, 1.9 MB across all variants. Figtree is
+  subset to Latin woff2 (~17 kB a weight). It has no Greek, so "Χανιά" falls back to the
+  system face.
+- **Verified:**
+  - 454 tests (site 39, 24 new), typecheck and Biome clean;
+  - Playwright against the local scripted stack: keyboard open, arrow-key swap with focus
+    and hash, pager, Low level tab, XSS dropped, honest ticket delivered, agent $5,000 vs
+    $0, credential burst refused at the edge, timeline and Escape, PDF 200, strip next and
+    drag;
+  - no horizontal scroll at 375 / 768 / 1440; dark mode; reduced motion; production build.
+- **Not verified:** a Send against live models (it would spend money; the local reviewer is
+  scripted).
+- **Resume (after approval):** SRS 2017 – 2019 and GEL 2019 – 2022 in `my-resume.html`, re-rendered to
+  one page, and served as the site's PDF (checked: 200, application/pdf, new dates in the text).

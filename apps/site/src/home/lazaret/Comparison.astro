@@ -1,0 +1,200 @@
+---
+// Lazaret next to the nearest alternatives (board 2: "a checkmark box/table/column
+// setup showing the advantage this has over other similar things"). Rows and sources
+// are in src/home/data/comparison.ts, with why each cell says what it says.
+import { FOOTNOTE, type Mark, PRODUCTS, ROWS } from "../data/comparison";
+
+const WORD: Record<Mark, string> = { yes: "Yes", no: "No", partial: "Partly" };
+---
+
+<section class="compare" aria-labelledby="lz-compare">
+  <h3 id="lz-compare" class="sub">Next to what’s out there</h3>
+  <div class="scroll" tabindex="0" role="region" aria-labelledby="lz-compare">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col"><span class="visually-hidden">Capability</span></th>
+          <th scope="col" class="lz">Lazaret</th>
+          {
+            PRODUCTS.map((p) => (
+              <th scope="col">
+                <a href={p.source} title={p.name}>{p.short}</a>
+              </th>
+            ))
+          }
+        </tr>
+      </thead>
+      <tbody>
+        {
+          ROWS.map((r) => (
+            <tr>
+              <th scope="row">{r.label}</th>
+              {[r.lazaret, ...r.others].map((c, i) => (
+                <td class:list={[c.mark, { lz: i === 0 }]} title={c.why}>
+                  <span class="mark" aria-hidden="true">
+                    {c.mark === "yes" && (
+                      <svg viewBox="0 0 16 16">
+                        <path d="M3 8.5 6.5 12 13 4.5" />
+                      </svg>
+                    )}
+                    {c.mark === "no" && (
+                      <svg viewBox="0 0 16 16">
+                        <path d="M4.5 8h7" />
+                      </svg>
+                    )}
+                    {c.mark === "partial" && (
+                      <svg viewBox="0 0 16 16">
+                        <path d="M8 2.5a5.5 5.5 0 0 1 0 11z" class="half" />
+                        <circle cx="8" cy="8" r="5.5" />
+                      </svg>
+                    )}
+                  </span>
+                  <span class="visually-hidden">
+                    {WORD[c.mark]}. {c.why}
+                  </span>
+                </td>
+              ))}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <p class="legend" aria-hidden="true">
+    <span><span class="key yes">✓</span> Yes</span>
+    <span><span class="key partial">◐</span> Partly</span>
+    <span><span class="key no">–</span> No</span>
+    <span class="hover-hint">Hover a mark for the reason.</span>
+  </p>
+  <p class="foot">{FOOTNOTE}</p>
+</section>
+
+<style>
+  .compare {
+    margin-top: clamp(48px, 7vw, 68px);
+  }
+  .sub {
+    margin: 0 0 14px;
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+  .scroll {
+    /* Positioned, so the visually-hidden cell text stays inside the scroll box
+       instead of widening the whole page on a phone. */
+    position: relative;
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    background: #fff;
+  }
+  table {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  th,
+  td {
+    padding: 11px 10px;
+    border-bottom: 1px solid #efe9e0;
+  }
+  tbody tr:last-child th,
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  thead th {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ink-2);
+    vertical-align: bottom;
+    white-space: nowrap;
+  }
+  thead a {
+    text-decoration: none;
+    border-bottom: 1px dotted var(--ink-3);
+  }
+  tbody th {
+    text-align: left;
+    font-weight: 600;
+    line-height: 1.35;
+    width: 40%;
+  }
+  td {
+    text-align: center;
+  }
+  /* Lazaret's column is the one being argued for: a light green band, top to bottom. */
+  .lz {
+    background: #eef8f1;
+  }
+  thead .lz {
+    color: var(--green);
+    font-weight: 800;
+    border-radius: 8px 8px 0 0;
+  }
+  .mark {
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+  }
+  .mark svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .yes .mark {
+    background: #1f7a43;
+    color: #fff;
+  }
+  .no .mark {
+    color: #a39d94;
+  }
+  .partial .mark {
+    color: #8a6a1f;
+  }
+  .partial svg {
+    stroke-width: 1.6;
+  }
+  .partial .half {
+    fill: currentColor;
+    stroke: none;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 10px 2px 0;
+    font-size: 0.78rem;
+    color: var(--ink-3);
+  }
+  .key {
+    font-weight: 800;
+    margin-right: 3px;
+  }
+  .key.yes {
+    color: #1f7a43;
+  }
+  .key.partial {
+    color: #8a6a1f;
+  }
+  .hover-hint {
+    margin-left: auto;
+  }
+  @media (hover: none) {
+    .hover-hint {
+      display: none;
+    }
+  }
+  .foot {
+    margin: 8px auto 0;
+    max-width: 60ch;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--ink-3);
+  }
+</style>

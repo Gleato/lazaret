@@ -2,7 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["vite/client", "node"],
+    // astro/client (which includes vite/client) types image imports as ImageMetadata,
+    // which the folder home's data files use (M9).
+    "types": ["astro/client", "node"],
     "resolveJsonModule": true
   },
   "include": ["src/**/*.ts", "test", "scripts", "edge"]

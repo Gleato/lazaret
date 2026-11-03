@@ -6,9 +6,76 @@
     they mean: Q (yellow) "quarantine" for held writes, B (red) "dangerous cargo" for
     drops, C (blue/white) "affirmative" for writes that were admitted. The yellow Q
     is the one loud thing on the page; everything else stays quiet.
-  - Type: Alegreya (a Renaissance-rooted text face, right for 1423 Venice) and its
-    sans for the interface. Monospace only where the content really is a log.
+  - Type: Figtree for all text (M9, the user's call): self-hosted from public/fonts,
+    subset to Latin. It replaced Alegreya / Alegreya Sans / IBM Plex Mono, so the
+    --serif/--sans/--mono tokens all resolve to Figtree; logs use tabular figures
+    instead of a monospace face.
 */
+
+/* Figtree, SIL OFL 1.1 (public/fonts/OFL.txt). woff2 subsets built from the user's TTFs. */
+@font-face {
+  font-family: "Figtree";
+  src: url("/fonts/figtree-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("/fonts/figtree-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("/fonts/figtree-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("/fonts/figtree-semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("/fonts/figtree-semibolditalic.woff2") format("woff2");
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("/fonts/figtree-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("/fonts/figtree-bolditalic.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("/fonts/figtree-extrabold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("/fonts/figtree-black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --paper: #eceee6;
@@ -35,9 +102,10 @@
   --chart: #2f5bb5;
   --chart-grid: #d3d8cc;
 
-  --serif: "Alegreya", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --sans: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --figtree: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: var(--figtree);
+  --sans: var(--figtree);
+  --mono: var(--figtree);
 
   /* A 1.25 (major third) scale on an 18px text size. */
   --t-1: 0.8rem;
@@ -110,7 +178,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   font: 400 var(--t0) / 1.55 var(--serif);
-  font-variant-numeric: oldstyle-nums proportional-nums;
+  font-variant-numeric: proportional-nums;
   overflow-x: hidden;
 }
 
@@ -155,8 +223,8 @@ code,
 kbd,
 .mono {
   font-family: var(--mono);
-  font-size: 0.86em;
-  font-variant-numeric: normal;
+  font-size: 0.92em;
+  font-variant-numeric: tabular-nums slashed-zero;
 }
 
 .wrap {

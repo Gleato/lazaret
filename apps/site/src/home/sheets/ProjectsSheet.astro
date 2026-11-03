@@ -1,0 +1,158 @@
+---
+import { pagerView } from "../../lib/pager";
+// The Projects divider (board 2): a paper-clipped stack, one project per page. The
+// arrows either side of the project's logo turn the page and are dark only when there
+// is a page to turn to; the curled corner turns to the next one too. With one project
+// today, both arrows sit grey and it reads "Page 1 of 1", exactly as on the board.
+import { PROJECTS } from "../data/projects";
+import LazaretBrief from "../lazaret/LazaretBrief.astro";
+import LazaretLogo from "../lazaret/LazaretLogo.astro";
+import PageCurl from "../parts/PageCurl.astro";
+import Paperclip from "../parts/Paperclip.astro";
+
+const first = pagerView(0, PROJECTS.length);
+const under = Math.min(2, PROJECTS.length - 1);
+---
+
+<div class="paper pager" data-pager data-count={PROJECTS.length} data-under={under}>
+  <Paperclip class="sheet-clip" />
+  <PageCurl interactive={first.canNext} />
+
+  <div class="pager-head">
+    <button type="button" class="turn" data-pager-prev aria-label="Previous project" disabled={!first.canPrev}>
+      <svg viewBox="0 0 48 32" aria-hidden="true"><path d="M2 16 18 3v8h28v10H18v8z"></path></svg>
+    </button>
+    <div class="logos">
+      {PROJECTS.map((p, i) => <div data-pager-logo={i} hidden={i !== 0}>{p.id === "lazaret" && <LazaretLogo />}</div>)}
+    </div>
+    <button type="button" class="turn" data-pager-next aria-label="Next project" disabled={!first.canNext}>
+      <svg viewBox="0 0 48 32" aria-hidden="true"><path d="M46 16 30 3v8H2v10h28v8z"></path></svg>
+    </button>
+  </div>
+  <p class="page-label" data-pager-label aria-live="polite">{first.label}</p>
+
+  {
+    PROJECTS.map((p, i) => (
+      <div class="page" data-pager-page={i} hidden={i !== 0}>
+        {p.id === "lazaret" && <LazaretBrief />}
+      </div>
+    ))
+  }
+</div>
+
+<script>
+  import { pagerView, turn } from "../../lib/pager";
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-pager]")) {
+    const count = Number(root.dataset.count) || 1;
+    const prev = root.querySelector<HTMLButtonElement>("[data-pager-prev]");
+    const next = root.querySelector<HTMLButtonElement>("[data-pager-next]");
+    const curl = root.querySelector<HTMLButtonElement>("[data-pager-curl]");
+    const label = root.querySelector<HTMLElement>("[data-pager-label]");
+    const pages = [...root.querySelectorAll<HTMLElement>("[data-pager-page]")];
+    const logos = [...root.querySelectorAll<HTMLElement>("[data-pager-logo]")];
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+    let index = 0;
+
+    const go = (step: number) => {
+      const to = turn(index, count, step);
+      if (to === index) return;
+      const from = index;
+      index = to;
+      const v = pagerView(index, count);
+      if (prev) prev.disabled = !v.canPrev;
+      if (next) next.disabled = !v.canNext;
+      if (curl) curl.disabled = !v.canNext;
+      if (label) label.textContent = v.label;
+      root.dataset.under = String(Math.min(2, count - 1 - index));
+      logos.forEach((l, i) => {
+        l.hidden = i !== index;
+      });
+      pages.forEach((p, i) => {
+        p.hidden = i !== index;
+      });
+      // The new page slides in from the side it was turned from, like paper.
+      if (!reduce.matches) {
+        const dx = to > from ? 28 : -28;
+        pages[index]?.animate(
+          [
+            { opacity: 0, transform: `translateX(${dx}px)` },
+            { opacity: 1, transform: "none" },
+          ],
+          { duration: 320, easing: "cubic-bezier(0.25, 0.8, 0.25, 1)" },
+        );
+      }
+    };
+    prev?.addEventListener("click", () => go(-1));
+    next?.addEventListener("click", () => go(1));
+    curl?.addEventListener("click", () => go(1));
+  }
+</script>
+
+<style>
+  .pager :global(.sheet-clip) {
+    top: -22px;
+    left: clamp(18px, 4vw, 40px);
+    width: clamp(24px, 3vw, 30px);
+    height: auto;
+  }
+  .pager-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 460px) auto;
+    justify-content: center;
+    align-items: center;
+    gap: clamp(14px, 4vw, 48px);
+    margin-top: clamp(16px, 3vw, 36px);
+  }
+  .turn {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 44px;
+    padding: 6px;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+    transition:
+      color 0.2s,
+      transform 0.2s;
+  }
+  .turn svg {
+    width: 40px;
+    height: 27px;
+    fill: currentColor;
+  }
+  .turn:hover:not([disabled]) {
+    transform: translateX(var(--nudge, 0));
+  }
+  [data-pager-prev] {
+    --nudge: -3px;
+  }
+  [data-pager-next] {
+    --nudge: 3px;
+  }
+  .turn[disabled] {
+    color: var(--arrow-off);
+    cursor: default;
+  }
+  .page-label {
+    margin: 10px 0 0;
+    text-align: center;
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+  }
+  @media (max-width: 640px) {
+    .turn {
+      width: 36px;
+      padding: 2px;
+    }
+    .turn svg {
+      width: 30px;
+      height: 20px;
+    }
+  }
+</style>

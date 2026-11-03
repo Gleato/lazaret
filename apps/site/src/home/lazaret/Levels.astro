@@ -1,0 +1,415 @@
+---
+// How Lazaret works, at two levels of detail behind two tabs (board 2: "High Level /
+// Low Level"). High level is the idea in one picture; low level is every stage a
+// write passes, with the exact models, deadlines and guarantees, for engineers.
+// Drawn in HTML rather than SVG so it reflows to a single column on a phone.
+const REPO = "https://github.com/Gleato/lazaret/blob/main/packages/lazaret/src";
+
+const stages = [
+  {
+    name: "Gateway and gate",
+    tech: "Cloudflare Worker",
+    text: "Normalises the route and scores the request with no model call, in under 5 ms: attack signatures, mass-assignment fields, per-session and per-route behaviour, and rules the Memory has learned.",
+    exits: ["Reads pass straight to origin", "Blocked routes: 403"],
+    code: `${REPO}/gateway/gateway.ts`,
+  },
+  {
+    name: "Inline review",
+    tech: "Claude Haiku 5.5, 3 s deadline",
+    text: "Only for writes that can’t wait for a batch: logins, API keys, credits. Past the deadline it fails closed.",
+    exits: ["Allow: to origin", "Deny: 403"],
+    code: `${REPO}/review/inline.ts`,
+  },
+  {
+    name: "Ledger",
+    tech: "Durable Object, SQLite event log",
+    text: "Holds the write and answers 202 with a receipt. State is a replay of an append-only log, so nothing acknowledged is lost in a crash. A batch seals on a 30 s timer, when full, or at once on a risk spike.",
+    exits: ["Author sees their own pending write"],
+    code: `${REPO}/ledger/durable-object.ts`,
+  },
+  {
+    name: "Batch review",
+    tech: "Claude Sonnet 5.5, Opus 5.5 on escalation",
+    text: "Judges the sealed batch together. Sandboxed: no tools, no network, JSON verdicts only, and payloads are encoded as data, so text that addresses the reviewer is just more evidence. A risky allow goes to Opus for a second look.",
+    exits: ["Declined or unsure: human queue"],
+    code: `${REPO}/review/pipeline.ts`,
+  },
+  {
+    name: "Commit",
+    tech: "Cloudflare Workflow, HMAC",
+    text: "Replays approved writes to origin exactly as sent, HMAC-signed with an idempotency key, in checkpointed steps: a retry never commits twice. A drop spreads to every write that depended on it (taint).",
+    exits: ["Approved: delivered", "Dropped: never reaches origin"],
+    code: `${REPO}/commit/committer.ts`,
+  },
+  {
+    name: "Memory",
+    tech: "Distil, backtest, shadow, promote",
+    text: "Every verdict is archived. Rules proposed from confirmed drops are backtested on past traffic, shadowed on live traffic, and promoted into the gate only while they stay clean.",
+    exits: ["Feeds the gate"],
+    code: `${REPO}/memory/store.ts`,
+  },
+];
+---
+
+<section class="levels" data-levels aria-labelledby="lz-levels">
+  <h3 id="lz-levels" class="visually-hidden">How Lazaret works</h3>
+  <div class="switch" role="tablist" aria-label="Level of detail">
+    <button type="button" role="tab" id="lv-tab-high" aria-controls="lv-high" aria-selected="true" tabindex="0">High level</button>
+    <button type="button" role="tab" id="lv-tab-low" aria-controls="lv-low" aria-selected="false" tabindex="-1">Low level</button>
+    <span class="switch-thumb" aria-hidden="true"></span>
+  </div>
+
+  <div class="panel" role="tabpanel" id="lv-high" aria-labelledby="lv-tab-high">
+    <div class="flow">
+      <div class="node ends">
+        <span class="node-name">Client or AI agent</span>
+        <span class="node-note">POST, PUT, PATCH, DELETE</span>
+      </div>
+      <span class="link" aria-hidden="true"><span>write</span></span>
+      <div class="node core">
+        <span class="node-name">Lazaret, at the edge</span>
+        <ol class="mini">
+          <li>Hold</li>
+          <li>Review</li>
+          <li>Commit</li>
+        </ol>
+      </div>
+      <span class="link" aria-hidden="true"><span>approved</span></span>
+      <div class="node ends">
+        <span class="node-name">Your API and database</span>
+        <span class="node-note">sees clean writes</span>
+      </div>
+    </div>
+    <div class="branch" aria-hidden="true">
+      <span class="drop">Dropped: never reaches you</span>
+      <span class="held">Unsure: held for a human</span>
+    </div>
+    <p class="caption">
+      Every write is held at the edge and answered with a receipt. An independent Claude model
+      reviews it in the context of the writes around it, and only approved writes are replayed to
+      your origin. Reads pass straight through, untouched.
+    </p>
+  </div>
+
+  <div class="panel" role="tabpanel" id="lv-low" aria-labelledby="lv-tab-low" hidden>
+    <ol class="spine">
+      {
+        stages.map((s) => (
+          <li class="stage">
+            <div class="stage-head">
+              <span class="stage-name">{s.name}</span>
+              <span class="stage-tech">{s.tech}</span>
+            </div>
+            <p class="stage-text">{s.text}</p>
+            <div class="stage-foot">
+              <ul class="exits">
+                {s.exits.map((e) => (
+                  <li>{e}</li>
+                ))}
+              </ul>
+              <a class="code" href={s.code}>
+                Code
+              </a>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<script>
+  // WAI-ARIA tabs, two of them: click, or ←/→ to switch.
+  for (const root of document.querySelectorAll<HTMLElement>("[data-levels]")) {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const select = (tab: HTMLButtonElement) => {
+      tabs.forEach((t, i) => {
+        const on = t === tab;
+        t.setAttribute("aria-selected", String(on));
+        t.tabIndex = on ? 0 : -1;
+        const panel = document.getElementById(t.getAttribute("aria-controls") ?? "");
+        if (panel) panel.hidden = !on;
+        if (on) root.dataset.level = String(i);
+      });
+    };
+    tabs.forEach((tab, i) => {
+      tab.addEventListener("click", () => select(tab));
+      tab.addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        const next = tabs[(i + 1) % tabs.length];
+        if (next) {
+          select(next);
+          next.focus();
+        }
+      });
+    });
+  }
+</script>
+
+<style>
+  .levels {
+    margin-top: clamp(48px, 7vw, 72px);
+  }
+  /* A two-way switch, as on the board: two words, the chosen one on a sliding thumb. */
+  .switch {
+    position: relative;
+    display: inline-grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 4px;
+    border: 2px solid var(--line);
+    border-radius: 999px;
+    background: #fff;
+  }
+  .switch button {
+    position: relative;
+    z-index: 1;
+    min-width: 7.5em;
+    padding: 9px 16px;
+    border: 0;
+    background: none;
+    color: var(--ink-2);
+    font: 700 1.05rem / 1 var(--figtree);
+    cursor: pointer;
+    transition: color 0.25s;
+  }
+  .switch button[aria-selected="true"] {
+    color: #fff;
+  }
+  .switch-thumb {
+    position: absolute;
+    inset: 4px auto 4px 4px;
+    width: calc(50% - 4px);
+    border-radius: 999px;
+    background: var(--green);
+    transition: transform 0.32s cubic-bezier(0.3, 0.7, 0.2, 1);
+  }
+  [data-level="1"] .switch-thumb {
+    transform: translateX(100%);
+  }
+  .panel {
+    margin-top: 22px;
+  }
+
+  /* High level */
+  .flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1.25fr auto 1fr;
+    align-items: center;
+    gap: 6px;
+  }
+  .node {
+    display: grid;
+    gap: 4px;
+    justify-items: center;
+    padding: 14px 10px;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+  }
+  .node-name {
+    font-weight: 800;
+    font-size: 0.95rem;
+    line-height: 1.2;
+  }
+  .node-note {
+    font-size: 0.8rem;
+    color: var(--ink-3);
+  }
+  .core {
+    background: #121e22;
+    border-color: #121e22;
+    color: #e3e5da;
+  }
+  .mini {
+    display: flex;
+    gap: 4px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .mini li {
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgb(240 190 42 / 18%);
+    color: #f0be2a;
+  }
+  .link {
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 2px;
+    background: var(--line);
+  }
+  .link::after {
+    content: "";
+    position: absolute;
+    right: -2px;
+    top: -4px;
+    border: 5px solid transparent;
+    border-left: 7px solid var(--line);
+    border-right: 0;
+  }
+  .link span {
+    position: absolute;
+    bottom: 7px;
+    width: 6em;
+    font-size: 0.68rem;
+    line-height: 1.2;
+    color: var(--ink-3);
+  }
+  .branch {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .branch span {
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1.5px dashed currentColor;
+  }
+  .drop {
+    color: var(--red);
+  }
+  .held {
+    color: #8a5a00;
+  }
+  .caption {
+    margin: 18px auto 0;
+    max-width: 56ch;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+
+  /* Low level: a spine, one stage per stop, in the order a write meets them. */
+  .spine {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+    counter-reset: stage;
+  }
+  .spine::before {
+    content: "";
+    position: absolute;
+    left: 13px;
+    top: 14px;
+    bottom: 14px;
+    width: 2px;
+    background: var(--rule);
+  }
+  .stage {
+    position: relative;
+    padding: 0 0 18px 44px;
+    counter-increment: stage;
+  }
+  .stage::before {
+    content: counter(stage);
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #121e22;
+    color: #e3e5da;
+    font-size: 0.8rem;
+    font-weight: 800;
+    box-shadow: 0 0 0 4px var(--paper);
+  }
+  .stage-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 10px;
+    padding-top: 3px;
+  }
+  .stage-name {
+    font-weight: 800;
+  }
+  .stage-tech {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--green);
+  }
+  .stage-text {
+    margin: 4px 0 8px;
+    font-size: 0.93rem;
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+  .stage-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 12px;
+  }
+  .exits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .exits li {
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #f1ece4;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .code {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--green);
+    text-underline-offset: 3px;
+  }
+
+  @media (max-width: 640px) {
+    .flow {
+      grid-template-columns: 1fr;
+      justify-items: stretch;
+    }
+    .link {
+      width: 2px;
+      height: 34px;
+      justify-self: center;
+    }
+    .link::after {
+      right: -4px;
+      top: auto;
+      bottom: -2px;
+      border: 5px solid transparent;
+      border-top: 7px solid var(--line);
+      border-bottom: 0;
+    }
+    .link span {
+      bottom: auto;
+      left: 12px;
+      width: auto;
+      white-space: nowrap;
+      text-align: left;
+    }
+    .switch button {
+      min-width: 0;
+      padding-inline: 18px;
+    }
+    .branch {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+</style>

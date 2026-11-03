@@ -10,7 +10,6 @@
     "preview": "astro preview --port 4321",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "record": "node --experimental-strip-types scripts/record.ts",
     "build:prod": "PUBLIC_DEMO_ORIGIN=https://demo.gleator.com PUBLIC_TURNSTILE_SITE_KEY=0x4AAAAAAFvvMgNi15gwPGyt astro build",
     "deploy": "npm run build:prod && wrangler deploy"
   },

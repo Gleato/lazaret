@@ -8,6 +8,10 @@ import {
   getJson,
   getPass,
   hasPass,
+  PASSWORD,
+  PERSONAS,
+  TURNSTILE_TEST_KEY,
+  turnstileToken,
 } from "./demo-client";
 import { FLAG_MEANING, type FlagKind, flag, h } from "./dom";
 import {
@@ -23,23 +27,16 @@ import {
 
 // The live demo island (sections/Demo.astro). Four parts share one ledger view:
 //   - the console sends canned corpus cases through the real gateway;
-//   - the ledger draws the Ledger's public event stream (or a recording of one);
+//   - the ledger draws the Ledger's public event stream;
 //   - the edge rail shows inline verdicts and gate blocks;
 //   - the queue shows what waits for a human.
 // Every string from the network is set with textContent (see dom.ts).
+// M9: the recorded replay is gone (the user's call: no fake runs). When the budget is
+// spent or the demo is unreachable, the page says so plainly and the console waits.
 
-const PASSWORD = "tidewater-demo"; // the seeded demo accounts' published password
-const PERSONAS = { theo: "theo@tidewater.test", sam: "sam@tidewater.test" } as const;
 const STATUS_EVERY_MS = 15_000;
-const TURNSTILE_TEST_KEY = "1x00000000000000000000AA";
 
 type Tone = "ok" | "warn" | "bad";
-
-interface Recording {
-  recordedAt: string;
-  source: string;
-  frames: { t: number; frames: LiveFrame[] }[];
-}
 
 export function startDemo(): void {
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -68,7 +65,8 @@ export function startDemo(): void {
   /** Receipts this page sent, so their rows are marked and their log lines updated. */
   const mine = new Map<string, HTMLElement>();
   let live: "connecting" | "open" | "closed" = "connecting";
-  let replaying = false;
+  /** The demo can't take writes right now (budget spent, or unreachable). */
+  let paused = false;
   let lastStatus: DemoStatus | null = null;
   let failures = 0;
 
@@ -110,7 +108,7 @@ export function startDemo(): void {
         queueChanged = true;
     }
     if (changed) render();
-    if (queueChanged && !replaying) void refreshQueue();
+    if (queueChanged) void refreshQueue();
   };
 
   function drawLedger(): void {
@@ -297,15 +295,26 @@ export function startDemo(): void {
     ui.statusText.textContent = text;
     ui.statusExtra.textContent = extra;
     ui.status.dataset.tone = tone;
-    ui.dot.dataset.state = replaying ? "replay" : live;
+    ui.dot.dataset.state = paused ? "closed" : live;
   }
 
   function showStatus(): void {
-    if (replaying) return;
     const s = lastStatus;
     const reset = `The demo starts fresh in ${minutesToHour()} min.`;
+    if (s?.budget.exhausted) {
+      setStatus(
+        "Today's review budget is spent.",
+        "warn",
+        `New writes are accepted again at ${utcMidnight(s.budget.resetsAt)}.`,
+      );
+      return;
+    }
     if (live !== "open" && !s) {
-      setStatus("Connecting to the ledger…", "warn");
+      setStatus(
+        failures >= 2 ? "The live demo can't be reached right now." : "Connecting to the ledger…",
+        failures >= 2 ? "bad" : "warn",
+        failures >= 2 ? "It retries on its own every 15 seconds." : "",
+      );
       return;
     }
     if (!s) {
@@ -335,60 +344,14 @@ export function startDemo(): void {
     try {
       lastStatus = await getJson<DemoStatus>("/__lazaret/status");
       failures = 0;
-      if (lastStatus.budget.exhausted) {
-        void startReplay(
-          `Today's review budget is spent, so this is a recorded run. Live writes wait until ${utcMidnight(lastStatus.budget.resetsAt)}.`,
-        );
-        return;
-      }
-      if (replaying) stopReplay();
     } catch {
       failures += 1;
       lastStatus = null;
-      if (failures >= 2) {
-        void startReplay("The live demo can't be reached right now, so this is a recorded run.");
-        return;
-      }
     }
+    const wasPaused = paused;
+    paused = Boolean(lastStatus?.budget.exhausted) || failures >= 2;
+    if (paused !== wasPaused) setConsoleEnabled(true);
     showStatus();
-  }
-
-  // ── Recorded replay (budget spent, or demo unreachable) ───────────────────────
-  let replayTimers: ReturnType<typeof setTimeout>[] = [];
-  let stopSocket: (() => void) | null = null;
-
-  async function startReplay(reason: string): Promise<void> {
-    if (replaying) return;
-    let rec: Recording;
-    try {
-      const res = await fetch("/recording.json");
-      rec = (await res.json()) as Recording;
-    } catch {
-      setStatus("The live demo is offline and no recording is available.", "bad");
-      return;
-    }
-    replaying = true;
-    stopSocket?.();
-    setConsoleEnabled(false);
-    setStatus(reason, "warn", `Recorded ${rec.recordedAt} (${rec.source}).`);
-    const play = () => {
-      view = emptyView();
-      render();
-      const last = rec.frames.at(-1)?.t ?? 0;
-      replayTimers = rec.frames.map((f) => setTimeout(() => onFrames(f.frames), f.t));
-      replayTimers.push(setTimeout(play, last + 6_000));
-    };
-    play();
-  }
-
-  function stopReplay(): void {
-    for (const t of replayTimers) clearTimeout(t);
-    replayTimers = [];
-    replaying = false;
-    view = emptyView();
-    render();
-    setConsoleEnabled(true);
-    stopSocket = openSocket();
   }
 
   function openSocket() {
@@ -407,8 +370,9 @@ export function startDemo(): void {
   let busy = false;
 
   function setConsoleEnabled(on: boolean): void {
-    for (const b of ui.exhibits.querySelectorAll("button")) b.disabled = !on || busy || !hasPass();
-    ui.start.disabled = !on;
+    const can = on && !paused;
+    for (const b of ui.exhibits.querySelectorAll("button")) b.disabled = !can || busy || !hasPass();
+    ui.start.disabled = !can;
   }
 
   for (const ex of exhibits) {
@@ -529,7 +493,7 @@ export function startDemo(): void {
       log(`! ${(err as Error).message}`, "b");
     } finally {
       busy = false;
-      setConsoleEnabled(!replaying);
+      setConsoleEnabled(true);
     }
   }
 
@@ -609,11 +573,11 @@ export function startDemo(): void {
   // ── Start ─────────────────────────────────────────────────────────────────────
   drawRail();
   void refreshQueue();
-  stopSocket = openSocket();
+  openSocket();
   void pollStatus();
   setInterval(() => {
     void pollStatus();
-    if (!replaying) void refreshQueue();
+    void refreshQueue();
   }, STATUS_EVERY_MS);
 }
 
@@ -689,32 +653,4 @@ function minutesToHour(): number {
 
 function utcMidnight(at: number): string {
   return `${new Date(at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} your time (00:00 UTC)`;
-}
-
-/** Render Turnstile on demand and resolve with its token. Rejects if it can't load. */
-function turnstileToken(siteKey: string, container: HTMLElement): Promise<string> {
-  type Turnstile = { render(el: HTMLElement, opts: Record<string, unknown>): void };
-  const w = window as unknown as { turnstile?: Turnstile };
-  const load = (): Promise<Turnstile> =>
-    w.turnstile
-      ? Promise.resolve(w.turnstile)
-      : new Promise((resolve, reject) => {
-          const s = document.createElement("script");
-          s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-          s.async = true;
-          s.onload = () => (w.turnstile ? resolve(w.turnstile) : reject(new Error("no turnstile")));
-          s.onerror = () => reject(new Error("turnstile failed to load"));
-          setTimeout(() => reject(new Error("turnstile timed out")), 8_000);
-          document.head.append(s);
-        });
-  return load().then(
-    (t) =>
-      new Promise<string>((resolve, reject) => {
-        t.render(container, {
-          sitekey: siteKey,
-          callback: (token: string) => resolve(token),
-          "error-callback": () => reject(new Error("turnstile error")),
-        });
-      }),
-  );
 }

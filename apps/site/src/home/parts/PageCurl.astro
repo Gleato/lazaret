@@ -1,0 +1,65 @@
+---
+// The dog-eared top-right corner on boards 2 and 3: the page is turned back to show
+// there's another sheet under it. When there is a next page, the curl is a button that
+// turns to it (the pager wires it up); otherwise it's only paper.
+interface Props {
+  /** Render as the pager's "next page" control. */
+  interactive?: boolean;
+}
+const { interactive = false } = Astro.props;
+const Tag = interactive ? "button" : "span";
+---
+
+<Tag
+  class="curl"
+  {...interactive ? { type: "button", "data-pager-curl": "", "aria-label": "Turn to the next page" } : { "aria-hidden": "true" }}
+>
+  <span class="under"></span>
+  <span class="fold"></span>
+</Tag>
+
+<style>
+  .curl {
+    --size: clamp(52px, 8vw, 84px);
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: var(--size);
+    height: var(--size);
+    padding: 0;
+    border: 0;
+    background: none;
+    z-index: 4;
+  }
+  button.curl {
+    cursor: pointer;
+  }
+  button.curl[disabled] {
+    cursor: default;
+  }
+  /* The corner of this page is gone: what shows is the manila behind it. */
+  .under {
+    position: absolute;
+    inset: 0;
+    background: var(--manila);
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+  }
+  /* The turned-back flap: the paper's underside, lit along the fold. */
+  .fold {
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(0 0, 0 100%, 100% 100%);
+    background: linear-gradient(225deg, #fdfaf7 0%, #f1ece6 38%, #d9d3cc 50%, #f6f2ee 66%, #ffffff 100%);
+    border-bottom-left-radius: 22% 30%;
+    filter: drop-shadow(-3px 4px 4px rgb(60 40 10 / 28%));
+    transform-origin: 0 100%;
+    transition: transform 0.35s cubic-bezier(0.3, 0.7, 0.2, 1);
+  }
+  button.curl:not([disabled]):hover .fold,
+  button.curl:not([disabled]):focus-visible .fold {
+    transform: scale(1.18);
+  }
+  button.curl:focus-visible {
+    outline-offset: -4px;
+  }
+</style>

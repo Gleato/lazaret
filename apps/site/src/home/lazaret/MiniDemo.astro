@@ -1,0 +1,395 @@
+---
+import { STEPS } from "../../lib/write-progress";
+// The compact live demo on the Projects sheet (board 2: "a singular, page sized
+// section ... ultra simple controls ... do not automatically start the demo or play a
+// fake run"). One choice, one button, one result. Nothing touches the network until
+// the sheet scrolls into view, and nothing is sent until the visitor presses Send.
+// Behaviour: src/lib/demo-brief.ts. The full console stays at /projects/lazaret#demo.
+import { loadExhibits } from "../../projects/lazaret/data/attacks";
+
+// The six cases that tell the story fastest: two honest (one that looks like an
+// attack to a keyword filter), and four attacks a firewall can't judge on its own.
+const PICK = ["ok-ticket-01", "ok-hard-01", "xss-01", "dpi-01", "fraud-01", "cred-01"];
+const all = loadExhibits();
+const exhibits = PICK.flatMap((id) => all.filter((e) => e.id === id));
+const json = JSON.stringify(exhibits).replaceAll("<", "\\u003c");
+const turnstileSiteKey =
+  (import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string | undefined) ?? "1x00000000000000000000AA";
+---
+
+<section class="demo" data-mini-demo data-site-key={turnstileSiteKey} aria-labelledby="lz-demo">
+  <div class="demo-top">
+    <h3 id="lz-demo" class="demo-title">Live demo</h3>
+    <p class="status" role="status" data-status-line>
+      <span class="dot" data-dot data-state="idle"></span>
+      <span data-status>Ready when you are. Nothing runs until you press Send.</span>
+    </p>
+  </div>
+
+  <fieldset class="cases">
+    <legend class="visually-hidden">Choose a request to send</legend>
+    {
+      exhibits.map((ex, i) => (
+        <label class="case">
+          <input type="radio" name="lz-case" value={ex.id} checked={i === 0} />
+          <span class="case-body">
+            <span class={`tag ${ex.kind}`}>{ex.kind === "attack" ? "Attack" : "Honest"}</span>
+            <span class="case-title">{ex.title}</span>
+          </span>
+        </label>
+      ))
+    }
+  </fieldset>
+
+  <p class="watch" data-watch>{exhibits[0]?.watch}</p>
+
+  <div class="actions">
+    <button type="button" class="send" data-send>
+      <span data-send-label>Send it</span>
+    </button>
+    <div class="check" data-turnstile></div>
+    <p class="msg" data-msg role="alert"></p>
+  </div>
+
+  <div class="result" data-result hidden>
+    <ol class="track" data-track aria-label="Where your write is">
+      {
+        STEPS.map((s, i) => (
+          <li data-step={i}>
+            <span class="pip" aria-hidden="true" />
+            <span class="step-name" data-step-name>{s}</span>
+            <span class="step-time" data-step-time />
+          </li>
+        ))
+      }
+    </ol>
+    <p class="verdict" data-verdict aria-live="polite"></p>
+    <div class="agent" data-agent hidden>
+      <div class="side off">
+        <span class="side-label">Without Lazaret</span>
+        <strong data-agent-off></strong>
+        <span class="side-sub">refunded to the attacker</span>
+      </div>
+      <div class="side on">
+        <span class="side-label">With Lazaret</span>
+        <strong data-agent-on></strong>
+        <span class="side-sub">refunded to the attacker</span>
+      </div>
+      <p class="agent-note" data-agent-note></p>
+    </div>
+  </div>
+</section>
+
+<script type="application/json" data-mini-exhibits set:html={json} />
+
+<script>
+  import { initMiniDemo } from "../../lib/demo-brief";
+  for (const root of document.querySelectorAll<HTMLElement>("[data-mini-demo]")) initMiniDemo(root);
+</script>
+
+<style>
+  .demo {
+    margin-top: clamp(26px, 4vw, 36px);
+    padding: clamp(18px, 3vw, 26px);
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    background: #fff;
+    text-align: left;
+  }
+  .demo-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 6px 16px;
+    margin-bottom: 14px;
+  }
+  .demo-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--ink-2);
+  }
+  .dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #b9b2a8;
+  }
+  .dot[data-state="live"] {
+    background: #1f9d55;
+  }
+  .dot[data-state="paused"] {
+    background: #c98a00;
+  }
+  .dot[data-state="down"] {
+    background: var(--red);
+  }
+
+  .cases {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .case {
+    position: relative;
+    cursor: pointer;
+  }
+  .case input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .case-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
+    padding: 11px 12px;
+    border: 1.5px solid var(--rule);
+    border-radius: 10px;
+    background: var(--paper);
+    font-weight: 600;
+    font-size: 0.92rem;
+    line-height: 1.25;
+    transition:
+      border-color 0.15s,
+      background-color 0.15s,
+      box-shadow 0.15s;
+  }
+  .case:hover .case-body {
+    border-color: var(--ink-3);
+  }
+  .case input:checked + .case-body {
+    border-color: var(--green);
+    background: #f1faf4;
+    box-shadow: 0 0 0 1px var(--green);
+  }
+  .case input:focus-visible + .case-body {
+    outline: 2.5px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .case input:disabled + .case-body {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .tag {
+    flex: none;
+    padding: 3px 7px;
+    border-radius: 5px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+  .tag.honest {
+    background: #e6f0fb;
+    color: #1d4f91;
+  }
+  .tag.attack {
+    background: #fbe7e5;
+    color: #9b1c1c;
+  }
+
+  .watch {
+    min-height: 2.9em;
+    margin: 12px 2px 0;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    margin-top: 12px;
+  }
+  .send {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--green);
+    color: #fff;
+    font: 700 1rem / 1 var(--figtree);
+    cursor: pointer;
+    box-shadow: 0 6px 14px -8px rgb(15 81 41 / 70%);
+    transition:
+      transform 0.12s,
+      background-color 0.15s;
+  }
+  .send:hover:not([disabled]) {
+    background: #0b4021;
+  }
+  .send:active:not([disabled]) {
+    transform: translateY(1px);
+  }
+  .send[disabled] {
+    background: #9aa59e;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .check:empty {
+    display: none;
+  }
+  .msg {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--red);
+  }
+  .msg:empty {
+    display: none;
+  }
+
+  .result {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  }
+  .track {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: none;
+  }
+  .track li {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    text-align: center;
+  }
+  /* The rail between pips fills in as the write moves along. */
+  .track li + li::before {
+    content: "";
+    position: absolute;
+    top: 7px;
+    right: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--rule);
+    transition: background-color 0.3s;
+  }
+  .track li[data-reached] + li[data-reached]::before {
+    background: var(--ink-2);
+  }
+  .pip {
+    position: relative;
+    z-index: 1;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--rule);
+    border-radius: 50%;
+    background: #fff;
+    transition:
+      background-color 0.3s,
+      border-color 0.3s;
+  }
+  [data-reached] .pip {
+    border-color: var(--ink-2);
+    background: var(--ink-2);
+  }
+  [data-current] .pip {
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  [data-outcome="delivered"] [data-step="3"] .pip {
+    background: #1f7a43;
+    border-color: #1f7a43;
+  }
+  [data-outcome="dropped"] [data-step="3"] .pip {
+    background: var(--red);
+    border-color: var(--red);
+  }
+  [data-outcome="held"] [data-step="3"] .pip {
+    background: #c98a00;
+    border-color: #c98a00;
+  }
+  @keyframes pulse {
+    50% {
+      box-shadow: 0 0 0 5px rgb(77 72 69 / 14%);
+    }
+  }
+  .step-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .step-time {
+    min-height: 1.2em;
+    font-size: 0.74rem;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .verdict {
+    margin: 14px 0 0;
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+  .verdict:empty {
+    display: none;
+  }
+
+  .agent {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .side {
+    display: grid;
+    gap: 2px;
+    padding: 12px 14px;
+    border-radius: 10px;
+  }
+  .side strong {
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .side-sub {
+    font-size: 0.8rem;
+  }
+  .side-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .off {
+    background: #fbe7e5;
+    color: #7c1515;
+  }
+  .on {
+    background: #e5f4ea;
+    color: #0f5129;
+  }
+  .agent-note {
+    grid-column: 1 / -1;
+    margin: 2px 0 0;
+    font-size: 0.82rem;
+    color: var(--ink-2);
+  }
+
+  @media (max-width: 520px) {
+    .cases {
+      grid-template-columns: 1fr;
+    }
+    .step-name {
+      font-size: 0.72rem;
+    }
+  }
+</style>

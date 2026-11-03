@@ -1,0 +1,203 @@
+---
+// The inside of the folder's front cover, which lies flat under the sheets once the
+// folder is open. It does the footer's job in the folder's own terms: a routing slip
+// (who this file is for) and a business card tucked in the pocket (how to reach Ridge).
+import { EMAIL, GITHUB_PROFILE_URL, LINKEDIN_URL } from "./data/links";
+
+const route = [
+  { who: "Hiring manager", done: false },
+  { who: "Engineering lead", done: false },
+  { who: "You", done: true },
+];
+---
+
+<div class="inside">
+  <div class="slip">
+    <p class="slip-title">Routing slip</p>
+    <ol class="slip-list">
+      {
+        route.map((r) => (
+          <li>
+            <span class="who">{r.who}</span>
+            <span class={`box${r.done ? " done" : ""}`} aria-label={r.done ? "seen" : "not yet"} role="img">
+              {r.done && (
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M3 8.5 6.5 12 13 4" />
+                </svg>
+              )}
+            </span>
+          </li>
+        ))
+      }
+    </ol>
+    <p class="slip-note">Please initial and pass along.</p>
+  </div>
+
+  <div class="pocket-wrap">
+    <div class="card">
+      <p class="card-name">Ridge Gleaton</p>
+      <p class="card-role">Software Engineer</p>
+      <ul class="card-links">
+        <li><a href={`mailto:${EMAIL}`}>{EMAIL}</a></li>
+        <li><a href={LINKEDIN_URL}>linkedin.com/in/gleator</a></li>
+        <li><a href={GITHUB_PROFILE_URL}>github.com/Gleato</a></li>
+      </ul>
+    </div>
+    <div class="pocket" aria-hidden="true"></div>
+  </div>
+
+  <p class="property">
+    Property of Gleator. If found, please return to <a href={`mailto:${EMAIL}`}>{EMAIL}</a>.
+  </p>
+</div>
+
+<style>
+  .inside {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    grid-template-rows: 1fr auto;
+    gap: clamp(20px, 4vw, 48px);
+    min-height: calc(var(--closed-h) - 14px - clamp(36px, 6.8vw, 80px));
+    align-items: start;
+  }
+  .slip {
+    align-self: start;
+    max-width: 260px;
+    padding: 16px 18px 14px;
+    background: #fff7d1;
+    border-radius: 2px;
+    box-shadow:
+      0 0 0 1px rgb(120 100 20 / 14%),
+      0 3px 5px -2px rgb(80 60 0 / 22%);
+    transform: rotate(-1.4deg);
+  }
+  .slip-title {
+    margin: 0 0 10px;
+    font-weight: 800;
+    font-size: 0.95rem;
+  }
+  .slip-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 7px;
+  }
+  .slip-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgb(120 100 20 / 22%);
+    font-size: 0.9rem;
+  }
+  .box {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--ink-2);
+    border-radius: 2px;
+    display: grid;
+    place-items: center;
+  }
+  .box svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: var(--blue);
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transform: rotate(-6deg) translate(1px, -2px) scale(1.25);
+  }
+  .slip-note {
+    margin: 10px 0 0;
+    font-size: 0.78rem;
+    color: var(--ink-3);
+  }
+
+  /* The pocket: a die-cut flap glued to the cover, with the card tucked in behind it. */
+  /* Card, then pocket pulled up over its last few millimetres: it's tucked in, but
+     every line on it stays readable whatever the card's height. */
+  .pocket-wrap {
+    display: grid;
+    justify-items: center;
+    justify-self: end;
+    width: min(100%, 420px);
+    align-self: end;
+  }
+  .card {
+    position: relative;
+    width: min(88%, 340px);
+    padding: 18px 20px;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow:
+      0 0 0 1px rgb(0 0 0 / 7%),
+      0 4px 10px -4px rgb(60 40 0 / 30%);
+    transform: rotate(2.2deg);
+  }
+  .card p {
+    margin: 0;
+  }
+  .card-name {
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+  }
+  .card .card-role {
+    color: var(--ink-2);
+    font-size: 0.88rem;
+    margin-bottom: 10px;
+  }
+  .card-links {
+    list-style: none;
+    margin: 0;
+    padding: 10px 0 0;
+    border-top: 1px solid #ece6dc;
+    display: grid;
+    gap: 3px;
+    font-size: 0.88rem;
+  }
+  .card-links a {
+    text-decoration: none;
+    border-bottom: 1px solid #d8d0c4;
+  }
+  .card-links a:hover {
+    border-bottom-color: currentColor;
+  }
+  .pocket {
+    position: relative;
+    width: 100%;
+    height: 96px;
+    margin-top: -30px;
+    background: linear-gradient(var(--manila-2), color-mix(in srgb, var(--manila-2) 85%, var(--manila-3)));
+    border: 2px solid color-mix(in srgb, var(--line) 55%, transparent);
+    border-radius: 4px 4px 12px 12px;
+    clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 100%);
+    box-shadow: 0 -2px 0 rgb(255 255 255 / 50%) inset;
+    pointer-events: none;
+  }
+  .property {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--ink-3);
+    font-size: 0.8rem;
+  }
+  .property a {
+    text-underline-offset: 2px;
+  }
+
+  @media (max-width: 640px) {
+    .inside {
+      grid-template-columns: 1fr;
+    }
+    .slip {
+      justify-self: start;
+    }
+    .pocket-wrap {
+      justify-self: stretch;
+      width: 100%;
+    }
+  }
+</style>
