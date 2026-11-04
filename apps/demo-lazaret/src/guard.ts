@@ -15,6 +15,7 @@ import {
 //                    sent as a cookie (the Tidewater UI, same origin) or the
 //                    `x-demo-pass` header (the gleator.com console). Reads, the live
 //                    stream and the status endpoints are free and need no pass.
+//                    GET /demo/pass tells the Tidewater page whether it holds one.
 //   Rate limits      Workers Rate Limiting, per IP: writes per minute, passes per minute.
 //   Per-IP budget    $0.25 a day per IP, charged from estimates (escrowed writes are
 //                    reviewed later, in batches, with no IP attached) and, for agent
@@ -156,6 +157,17 @@ export function createGuard(gateway: Gateway, options: GuardOptions) {
             "set-cookie": `${PASS_COOKIE}=${pass}; Path=/; Max-Age=${PASS_TTL_MS / 1000}; HttpOnly; Secure; SameSite=Lax`,
           },
         );
+      }
+
+      // Lets the Tidewater page run its bot check quietly on load instead of sending the
+      // visitor away on their first click. The cookie is HttpOnly, so the page has to ask
+      // whether it already holds a pass. The site key is public (it's in /demo/verify).
+      if (url.pathname === "/demo/pass" && method === "GET") {
+        const held = readPass(request);
+        const valid = Boolean(
+          held && (await checkPass(env.LAZARET_SIGNING_SECRET, held, now()).catch(() => false)),
+        );
+        return reply(200, { valid, siteKey: env.TURNSTILE_SITE_KEY ?? null });
       }
 
       if (url.pathname === "/demo/verify" && method === "GET") {

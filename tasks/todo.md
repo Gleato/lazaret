@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M8 done (2026-11-01): demo live at demo.gleator.com, `@gleator/lazaret@0.1.0` on npm. M9 (the folder redesign of gleator.com) built, approved and **live at gleator.com since 2026-11-02**; resume updated. gleator.com is on the resume and the live PDF. Site CSP live. Next: redeploy demo-lazaret (its M8 analytics CSP fix).**
+Status: **M0–M8 done (2026-11-01): demo live at demo.gleator.com, `@gleator/lazaret@0.1.0` on npm. M9 (the folder redesign of gleator.com) built, approved and **live at gleator.com since 2026-11-02**; resume updated. gleator.com is on the resume and the live PDF. Site CSP live. Demo redeployed 2026-11-03.**
 
 ---
 
@@ -1700,7 +1700,6 @@ River 2017, GEL 2019), the resume follows after approval; the long page stays at
   - The Turnstile check on gleator.com got a challenge in headless Chrome. It wasn't
     touched, and no domain error came back. One real Send from a normal browser will prove
     it end to end.
-  - Not done: the CSP (`_headers`) and the demo-lazaret CSP redeploy from M8.
 - **Resume link (2026-11-02):** gleator.com added at the end of the contact line in
   `my-resume.html`. The line is kept on one line (9.4pt, `nowrap`), since it first wrapped
   mid phone number; still one page. Mirrored in `data/career.ts` and the site's PDF.
@@ -1735,4 +1734,29 @@ River 2017, GEL 2019), the resume follows after approval; the long page stays at
     timeline, demo status), the long page (live socket, bot check) and the 404 show **0
     violations**. The edge headers are present, and the long page now renders Turnstile's
     challenge frame (left untouched in headless).
+- **Demo redeploy (2026-11-03):** `npm run deploy:demo`, version `9c5feb7b`. The "CSP redeploy"
+  in the M8 review turned out to be stale: the check page's policy was identical before and
+  after, so the analytics fix had already reached production. Verified live: Tidewater and
+  `/demo/verify` load with 0 CSP violations and no page errors; gleator.com still reads the
+  status, the ledger socket opens, and Send is enabled.
+- **Tidewater sign-in feedback (2026-11-03, live):** the wait is the paid inline
+  review of `POST /api/login` (about 1.4 s), which stays as it is: the user chose not to
+  change the library. Local-only changes:
+  - `app.js` shows progress at once (panel, busy buttons, a toast with the time, and an honest
+    message if the reviewer was unavailable). A failed login restores the previous view.
+  - The bot check runs quietly on load (`interaction-only`), using new `GET /demo/pass` in
+    the guard (valid? + public site key). A click during the check waits for it.
+  - The fallback to /demo/verify remembers the persona and finishes the sign-in on return.
+  - Verified on the local stack: first feedback in 31–67 ms, a first click stays on the page
+    with no redirect, a blocked check falls back and resumes with no second click, a failed
+    login recovers, a saved session skips login with no panel flash, no overflow at 375 px.
+    2 new guard tests. Note for testers: PASS_LIMIT (3 per minute) applies locally too.
+  - Live (guard `b9085c11`, origin `7d624bf0`): `GET /demo/pass` answers, page loads in
+    0.4–0.6 s, no page CSP violations, no overflow at 375 px. Turnstile's own iframe logs
+    `data:,` CSP errors; that is its CSP, not ours. Automated browsers and the app's browser
+    pane both get the checkbox, and nobody here ticked it, so the fully quiet first click
+    is NOT yet proven on production: only a person's real browser can show it.
+  - Found live: while Cloudflare wants a tick the sign-in waits with no time limit, and the
+    box sits in the page corner, so the panel now says "Tick the box in the corner to carry
+    on." Watched happen on the live page, without ticking and with no model spend.
 

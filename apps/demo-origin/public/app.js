@@ -23,7 +23,12 @@ const STATUS = {
 };
 const FINAL = new Set(["COMMITTED", "DROPPED", "QUARANTINED"]);
 
+// How long a click waits for the quiet bot check before falling back to the check page.
+const QUIET_CHECK_WAIT_MS = 6_000;
+const TURNSTILE_URL = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+
 const app = document.getElementById("app");
+const welcome = app.firstElementChild;
 const state = { persona: null, token: null, selected: null, tickets: [], timer: null };
 
 // ── Small helpers ───────────────────────────────────────────────────────────
@@ -43,6 +48,7 @@ function h(tag, props = {}, ...children) {
   return el;
 }
 
+const RESUME_KEY = "tw-resume-sign-in";
 const store = {
   get(key, fallback) {
     try {
@@ -87,11 +93,14 @@ async function api(method, path, body) {
     json = await res.json();
   } catch {}
   // On the public demo, writes need a Turnstile pass (apps/demo-lazaret guard.ts).
-  // The guard's check page sets it as a cookie and sends the visitor back here.
+  // The guard's check page sets it as a cookie and sends the visitor back here. Usually
+  // quietBotCheck() already got one; this is the fallback. Who they were signing in as
+  // survives the trip, so their click isn't lost.
   if (res.status === 401 && json?.error === "demo_pass_required") {
+    store.set(RESUME_KEY, state.persona);
     location.assign(`/demo/verify?return=${encodeURIComponent(location.pathname + location.hash)}`);
   }
-  return { status: res.status, json };
+  return { status: res.status, json, headers: res.headers };
 }
 
 function statusBadge(status) {
@@ -130,30 +139,177 @@ async function pollReceipts() {
 
 // ── Sign-in ─────────────────────────────────────────────────────────────────
 
+let signingIn = false;
+
+function markPersonas(persona, busy) {
+  document.querySelector(".personas").toggleAttribute("data-busy", busy);
+  for (const b of document.querySelectorAll("[data-persona]")) {
+    const on = b.dataset.persona === persona;
+    b.setAttribute("aria-pressed", String(on));
+    b.toggleAttribute("aria-busy", busy && on);
+  }
+}
+
+// What the visitor sees while a sign-in runs. Lazaret reviewing the login takes a second
+// or two, and that wait is the product working, so the page says what's happening.
+function signingPanel(name) {
+  const detail = h("p", {});
+  const panel = h(
+    "section",
+    { class: "signing", role: "status" },
+    h("h1", {}, `Signing in as ${name}`),
+    detail,
+    h("span", { class: "tide-bar", "aria-hidden": "true" }),
+  );
+  return {
+    show: () => app.replaceChildren(panel),
+    say: (text) => {
+      detail.textContent = text;
+    },
+  };
+}
+
 async function signIn(persona) {
+  if (signingIn) return;
+  signingIn = true;
+  const before = { persona: state.persona, token: state.token, selected: state.selected };
+  const { name } = PERSONAS[persona];
+  clearInterval(state.timer);
   state.persona = persona;
   state.selected = null;
   state.token = store.get(`tw-token-${persona}`, null);
-  for (const b of document.querySelectorAll("[data-persona]"))
-    b.setAttribute("aria-pressed", String(b.dataset.persona === persona));
+  markPersonas(persona, true);
 
-  if (!state.token || (await api("GET", "/api/me")).status !== 200) {
-    state.token = null;
-    const { status, json } = await api("POST", "/api/login", {
-      email: PERSONAS[persona].email,
-      password: PASSWORD,
-    });
-    if (status !== 200) {
-      toast(`Couldn't sign in (${status}). Try again in a moment.`);
-      return;
+  const panel = signingPanel(name);
+  // A saved session takes no review and is back in moments: only show the panel if it lags.
+  const lag = state.token ? setTimeout(panel.show, 250) : null;
+  if (!state.token) panel.show();
+  let done = "";
+
+  try {
+    if (!state.token || (await api("GET", "/api/me")).status !== 200) {
+      state.token = null;
+      clearTimeout(lag);
+      panel.show();
+      if (!botCheck.settled) {
+        panel.say("One quick check first. This demo pays for every AI review, so bots stay out.");
+        // The box sits in the page corner, far from this panel, and the wait for it has no
+        // time limit: say where it is, or a visitor just sees a sign-in that never finishes.
+        botCheck.onNeedsPerson = () => panel.say("Tick the box in the corner to carry on.");
+        if (botCheck.needsPerson) botCheck.onNeedsPerson();
+        await botCheckSettled();
+      }
+      panel.say("Claude is reviewing this login before it reaches Tidewater.");
+      const sent = performance.now();
+      const { status, json, headers } = await api("POST", "/api/login", {
+        email: PERSONAS[persona].email,
+        password: PASSWORD,
+      });
+      // api() is already on its way to the check page; signIn picks up again on return.
+      if (status === 401 && json?.error === "demo_pass_required") return;
+      if (status !== 200) throw new Error(`Couldn't sign in (${status}). Try again in a moment.`);
+      state.token = json.token;
+      store.set(`tw-token-${persona}`, json.token);
+      const seconds = ((performance.now() - sent) / 1000).toFixed(1);
+      // Say what actually happened: if the reviewer was unavailable, Claude didn't review it.
+      done =
+        headers.get("x-lazaret-review") === "degraded"
+          ? `Signed in as ${name}. The reviewer was busy, so Lazaret's gate rules cleared it.`
+          : `Signed in as ${name} in ${seconds} s, after a review by Claude.`;
     }
-    state.token = json.token;
-    store.set(`tw-token-${persona}`, json.token);
+    panel.say(`Loading ${name}'s tickets…`);
+    state.timer = setInterval(pollReceipts, 3000);
+    await refresh();
+    app.focus();
+    if (done) toast(done);
+  } catch (err) {
+    clearInterval(state.timer);
+    toast(
+      err instanceof TypeError
+        ? "Couldn't reach Tidewater. Check your connection and try again."
+        : err.message,
+    );
+    // Back to where they were, not stranded on the progress panel.
+    Object.assign(state, before);
+    if (state.persona) {
+      state.timer = setInterval(pollReceipts, 3000);
+      await refresh().catch(() => undefined);
+    } else {
+      app.replaceChildren(welcome);
+    }
+  } finally {
+    clearTimeout(lag);
+    signingIn = false;
+    markPersonas(state.persona, false);
   }
-  clearInterval(state.timer);
-  state.timer = setInterval(pollReceipts, 3000);
-  await refresh();
-  app.focus();
+}
+
+// ── Quiet bot check ─────────────────────────────────────────────────────────
+
+// Runs Cloudflare's check on load, so a first click signs straight in rather than
+// leaving for /demo/verify. Nothing here spends model calls, and it stays invisible
+// unless Cloudflare needs a person. If anything fails it just gives up: the login then
+// gets a 401 and api() falls back to the check page.
+const botCheck = {
+  settled: false,
+  needsPerson: false,
+  onNeedsPerson: null,
+  ready: Promise.resolve(),
+};
+
+function loadTurnstile() {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = TURNSTILE_URL;
+    s.async = true;
+    // Checks for render, not just window.turnstile: see lib/demo-client.ts on the site.
+    s.onload = () => (window.turnstile?.render ? resolve(window.turnstile) : reject(new Error()));
+    s.onerror = () => reject(new Error("turnstile failed to load"));
+    document.head.append(s);
+  });
+}
+
+function quietBotCheck() {
+  botCheck.ready = new Promise((resolve) => {
+    const settle = () => {
+      botCheck.settled = true;
+      resolve();
+    };
+    (async () => {
+      const res = await fetch("/demo/pass", { cache: "no-store" });
+      const { valid, siteKey } = await res.json();
+      if (valid || !siteKey) return settle();
+      const turnstile = await loadTurnstile();
+      turnstile.render("#bot-check", {
+        sitekey: siteKey,
+        appearance: "interaction-only",
+        "before-interactive-callback": () => {
+          botCheck.needsPerson = true;
+          botCheck.onNeedsPerson?.();
+        },
+        callback: (token) =>
+          fetch("/demo/pass", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ token }),
+          }).finally(settle),
+        "error-callback": () => {
+          settle();
+          return true;
+        },
+        "timeout-callback": settle,
+      });
+    })().catch(settle);
+  });
+}
+
+/** Wait for the check, but not forever, unless Cloudflare is waiting on the visitor. */
+async function botCheckSettled() {
+  await Promise.race([
+    botCheck.ready,
+    new Promise((resolve) => setTimeout(resolve, QUIET_CHECK_WAIT_MS)),
+  ]);
+  if (botCheck.needsPerson) await botCheck.ready;
 }
 
 // ── Rendering ───────────────────────────────────────────────────────────────
@@ -615,4 +771,13 @@ async function replay(scenario, out) {
 for (const b of document.querySelectorAll("[data-persona]")) {
   b.setAttribute("aria-pressed", "false");
   b.addEventListener("click", () => signIn(b.dataset.persona));
+}
+
+quietBotCheck();
+
+// Back from the check page: finish the sign-in they clicked.
+const resume = store.get(RESUME_KEY, null);
+if (resume) {
+  store.set(RESUME_KEY, null);
+  if (Object.hasOwn(PERSONAS, resume)) signIn(resume);
 }

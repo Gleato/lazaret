@@ -142,6 +142,14 @@ a {
   opacity: 0.75;
 }
 
+/* While a sign-in runs: the chosen name stays lit and the others wait. */
+.personas[data-busy] button {
+  cursor: progress;
+}
+.personas[data-busy] button:not([aria-busy]) {
+  opacity: 0.55;
+}
+
 .protected {
   margin: 0;
   padding: 8px clamp(16px, 4vw, 40px);
@@ -157,6 +165,7 @@ main {
 }
 
 .welcome h1,
+.signing h1,
 .pane h1 {
   font-size: clamp(2rem, 5vw, 3.25rem);
   line-height: 1.05;
@@ -165,10 +174,54 @@ main {
   margin: 24px 0 8px;
 }
 
-.welcome p {
+.welcome p,
+.signing p {
   max-width: 60ch;
   color: var(--ink-soft);
   font-size: 1.125rem;
+}
+
+.signing p {
+  min-height: 1.6em;
+}
+
+/* The tide coming in over a sandbar: the wait, in the page's own tide-chart language. */
+.tide-bar {
+  display: block;
+  position: relative;
+  width: min(100%, 360px);
+  height: 4px;
+  margin-top: 16px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--shoal-wash);
+}
+
+.tide-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  border-radius: 2px;
+  background: var(--channel);
+  animation: tide 1.4s ease-in-out infinite;
+}
+
+@keyframes tide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tide-bar::after {
+    width: 100%;
+    animation: none;
+    opacity: 0.6;
+  }
 }
 
 .workspace {
@@ -490,6 +543,16 @@ textarea {
   font-size: 0.875rem;
   color: var(--ink-soft);
   max-width: 75ch;
+}
+
+/* ── Bot check ───────────────────────────────────────────────────────── */
+
+/* Empty unless Cloudflare needs a person; then its widget sits clear of the page. */
+#bot-check {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 20;
 }
 
 /* ── Toast ───────────────────────────────────────────────────────────── */

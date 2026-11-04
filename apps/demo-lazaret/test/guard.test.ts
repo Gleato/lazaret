@@ -150,6 +150,31 @@ describe("Turnstile check page", () => {
   });
 });
 
+describe("pass status (GET /demo/pass)", () => {
+  const withCookie = (cookie: string) => ({ headers: { cookie } });
+
+  it("says there's no pass, without minting one", async () => {
+    const { send, seen } = setup();
+    const res = await send("/demo/pass");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.has("set-cookie")).toBe(false);
+    expect(((await res.json()) as { valid: boolean }).valid).toBe(false);
+    expect(seen).toHaveLength(0); // answered by the guard; Lazaret never sees it
+  });
+
+  it("recognises a real pass and rejects a forged one", async () => {
+    const { send, getPass } = setup();
+    const pass = await getPass();
+    const held = await send("/demo/pass", withCookie(`demo_pass=${pass}`));
+    expect(((await held.json()) as { valid: boolean }).valid).toBe(true);
+    const forged = await send("/demo/pass", withCookie("demo_pass=v1.9999999999999.AAAA"));
+    expect(((await forged.json()) as { valid: boolean }).valid).toBe(false);
+    const junk = await send("/demo/pass", withCookie("demo_pass=not-a-pass"));
+    expect(((await junk.json()) as { valid: boolean }).valid).toBe(false);
+  });
+});
+
 describe("writes", () => {
   it("need a pass; reads, the live stream and status don't", async () => {
     const { send, getPass, seen } = setup();
