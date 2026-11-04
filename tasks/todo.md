@@ -1759,4 +1759,11 @@ River 2017, GEL 2019), the resume follows after approval; the long page stays at
   - Found live: while Cloudflare wants a tick the sign-in waits with no time limit, and the
     box sits in the page corner, so the panel now says "Tick the box in the corner to carry
     on." Watched happen on the live page, without ticking and with no model spend.
+- **Replies on held tickets didn't show (2026-11-03, live, origin `f5ea11d5`):** found by
+  the user's manual taint test. A held ticket isn't at origin, so its thread only exists in
+  the browser's outbox, and `heldTicket` never read it: the reply was sent and held, and
+  the page showed nothing. `app.js` now lists those replies with their status, and a
+  QUARANTINED ticket says a person will check it. No library or guard change. Verified
+  locally for dropped, and for quarantined with a mocked receipt. No automated UI test:
+  `e2e/tests/ui.spec.ts` is read-only against production.
 

@@ -503,26 +503,37 @@ async function detail() {
               h("p", { class: "body-text" }, r.body),
             ),
       ),
-      local
-        .filter((i) => !overlaid.has(i.receipt))
-        .map((i) =>
-          h(
-            "li",
-            { class: "held" },
-            h("span", { class: "who" }, "You"),
-            " ",
-            statusBadge(i.status),
-            h("p", { class: "body-text" }, i.body),
-          ),
-        ),
+      local.filter((i) => !overlaid.has(i.receipt)).map(sentReply),
     ),
     replyForm(ticket.id),
   );
 }
 
+function sentReply(item) {
+  return h(
+    "li",
+    { class: "held" },
+    h("span", { class: "who" }, "You"),
+    " ",
+    statusBadge(item.status),
+    h("p", { class: "body-text" }, item.body),
+  );
+}
+
+// A held ticket isn't at origin yet, so GET /api/tickets/:id has no thread to overlay.
+// Its replies are only in this browser's outbox, and they have to be read from there or
+// a reply says "sent" and then shows nowhere.
+const HELD_NOTE = {
+  DROPPED:
+    "Lazaret's reviewer rejected this ticket, so it never reached Tidewater. Anything you added to it was rejected with it.",
+  QUARANTINED:
+    "Lazaret is holding this ticket for a person to check. Anything you add to it is held with it.",
+};
+
 function heldTicket(t, sent) {
   const receipt = t._lazaret?.receipt ?? t.receipt;
   const status = sent?.status ?? "PENDING";
+  const added = outbox().filter((i) => i.ticketId === receipt && i.kind !== "ticket");
   return h(
     "section",
     { class: "pane", "aria-labelledby": "ticket-title" },
@@ -531,11 +542,11 @@ function heldTicket(t, sent) {
     h(
       "p",
       { class: "muted" },
-      status === "DROPPED"
-        ? "Lazaret's reviewer rejected this ticket, so it never reached Tidewater. Anything you added to it was rejected with it."
-        : "Lazaret is holding this ticket until its reviewer checks it. You can already add to it; your replies wait with it.",
+      HELD_NOTE[status] ??
+        "Lazaret is holding this ticket until its reviewer checks it. You can already add to it; your replies wait with it.",
     ),
     h("p", { class: "body-text" }, t.body),
+    added.length ? h("ul", { class: "thread" }, added.map(sentReply)) : null,
     status === "DROPPED" ? null : replyForm(receipt),
   );
 }
