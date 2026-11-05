@@ -135,6 +135,9 @@ import { TIMELINE } from "../data/career";
   }
   .note {
     position: relative;
+    /* No flex-shrink: on a resize the script's old margin-left would squeeze the note,
+       and the script would then measure and keep that squeezed width. */
+    flex: none;
     width: min(100%, 440px);
     padding: 12px 16px;
     border: 2px solid var(--line);
