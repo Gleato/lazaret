@@ -2146,7 +2146,7 @@ the clipboard. **Still unconfirmed:** a real copy and a real share sheet in a no
   mid-open the sheet and hinge have a 0px gap, the height before the handoff equals the settled
   height (984px), and the console is clean. **Not checked:** the motion watched at full speed.
 
-## Rebrand: the G and the yellow flag (2026-11-05)
+## Rebrand: the G and the yellow flag (2026-11-05, live: site `5e8ddbd4`)
 
 - **Site icon:** the user's G, cut from its white ground. `favicon.svg` (the old Q flag) gave
   way to `favicon.ico`, `icon-192.png` and `apple-touch-icon.png`.
