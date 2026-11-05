@@ -2125,5 +2125,11 @@ Never a tier that rejects: a busy honest customer can trip a count.
 - [x] `test/share.test.ts`: six cases.
 
 **Review:** unit tests, typecheck and lint pass. Checked in the local dev server with stubbed
-share and clipboard calls: copy, reset, failure, and the 375px layout. Not tried on a
-real phone, and not deployed.
+share and clipboard calls: copy, reset, failure, and the 375px layout.
+
+**Deploy (2026-11-05):** version e5105374, through `npm run deploy`. Live HTML has no
+`localhost`, has the production demo origin, and has the new button; the inline script's
+hash is in the CSP, with no console errors live. A real click on gleator.com in the app's
+browser pane showed the fallback, because that pane denies clipboard writes on every site
+(same denial on example.com and localhost). The live `Permissions-Policy` doesn't restrict
+the clipboard. **Still unconfirmed:** a real copy and a real share sheet in a normal browser.
