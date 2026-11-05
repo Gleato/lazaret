@@ -2087,3 +2087,13 @@ Never a tier that rejects: a busy honest customer can trip a count.
   Also a "What Lazaret doesn't catch" note in README and in the site's Evals section.
   Deployed; the limit itself is covered by tests, not yet re-run live by a person.
 
+- **Folder corners (2026-11-05, live: site `7b1172b4`):** the user's phone screenshots
+  showed a square top-left corner with a stray notch, and the last tab overhanging the
+  rounded top-right corner on phones (tabs flex-shrank to the full folder width). Fix in
+  `apps/site/src/home/Folder.astro`: all four corners rounded, `.tabs` inset by
+  `--radius` on both sides so tabs stay on the flat run of the top edge, and
+  `.divider-edge` is now a top border on a corner-tall box so the coloured edge follows
+  the curve (a 6px filled bar has its radius shrunk by CSS). Checked in the browser at
+  393px closed and open, at 1024px open, then on gleator.com at 393px and 1024px. No
+  automated test: the site's vitest has no
+  browser and the e2e suite doesn't visit gleator.com.
