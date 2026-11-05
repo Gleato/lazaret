@@ -2097,3 +2097,8 @@ Never a tier that rejects: a busy honest customer can trip a count.
   393px closed and open, at 1024px open, then on gleator.com at 393px and 1024px. No
   automated test: the site's vitest has no
   browser and the e2e suite doesn't visit gleator.com.
+- **Plain Profile sheet (2026-11-05, live: site `8431fb86`):** the user cut the reporter
+  framing and the Ovie polaroid. The sheet is now the name, the rule, the user's intro
+  and the photo strip; `PROFILE` is gone from `data/profile.ts`. Ovie's photo stays in
+  the strip with the user's own caption. This supersedes the magazine-profile items
+  under M9.
