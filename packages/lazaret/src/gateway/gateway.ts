@@ -263,7 +263,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
       const textual = isTextual(contentType);
       const bodyText = bytes && textual ? new TextDecoder().decode(bytes) : null;
       const headers = forwardableHeaders(request.headers);
-      const { sessionId, ip } = await deriveSessionId(request, config);
+      const { sessionId, ip, anonymous } = await deriveSessionId(request, config);
 
       // The same sample object goes under both keys, so setting `status` after the
       // origin responds updates both views in the memory store; a durable store is
@@ -379,7 +379,15 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
         actorKnown = true;
       }
       const links = linkable
-        ? linkKeys(link.by, { sessionId, actorId: actorIdOf(actor), resourceTemplates, resources })
+        ? linkKeys(link.by, {
+            // A write with no session (a login) falls back to IP + user agent, which isn't
+            // a person: everyone behind one address would be one sender, and the first
+            // production smoke of M11 saw repeat logins refused as credential attacks.
+            sessionId: anonymous ? null : sessionId,
+            actorId: actorIdOf(actor),
+            resourceTemplates,
+            resources,
+          })
         : [];
       let linkHistory: LinkedWrite[] = [];
       let heldSender = 0;

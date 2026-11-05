@@ -22,6 +22,9 @@ Learns split fraud: claims that each look honest, spread across requests.
 - An inline route with `onReviewUnavailable: "gate"` no longer treats a count signal as
   evidence, so repeat logins don't fail closed during a reviewer outage.
 - A batch made up only of held writes is now opened for review, so its verdicts record.
+- Writes with no session (a login, say) are no longer linked. They fell back to a session
+  made from IP and user agent, so repeat logins, or everyone behind one address, counted
+  as one sender and could be refused as a credential attack. This was also in 0.2.0.
 
 ### Measured
 

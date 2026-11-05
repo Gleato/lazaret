@@ -161,7 +161,7 @@ describe("Gateway count signals", () => {
         }),
         env,
       );
-    return { stub, post };
+    return { stub, post, gateway };
   }
 
   /** Settle every open batch with an allow, as review would. */
@@ -198,6 +198,32 @@ describe("Gateway count signals", () => {
 
     const off = setup({ link: undefined });
     const res = await off.post("/api/tickets", { body: "hi" });
+    expect(res.headers.get("server-timing") ?? "").not.toMatch(/links/);
+  });
+
+  it("doesn't link writes that have no session, so one address isn't one sender", async () => {
+    origin.mockImplementation(async (req: Request) =>
+      new URL(req.url).pathname.endsWith("/api/me")
+        ? Response.json({ error: "login required" }, { status: 401 })
+        : Response.json({ ok: true }, { status: 201 }),
+    );
+    const { gateway } = setup();
+    const login = () =>
+      gateway.fetch(
+        new Request("https://edge.test/api/login", {
+          method: "POST",
+          body: JSON.stringify({ email: "mara@tidewater.test", password: "x" }),
+          headers: {
+            "content-type": "application/json",
+            "user-agent": "Mozilla/5.0 (test)",
+            "cf-connecting-ip": "203.0.113.9",
+          },
+        }),
+        env,
+      );
+    await login();
+    const res = await login();
+    // No `links` timing: the lookup never ran, so no history or count reached the reviewer.
     expect(res.headers.get("server-timing") ?? "").not.toMatch(/links/);
   });
 

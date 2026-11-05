@@ -233,14 +233,14 @@ function describeKey(key: string): string {
 export function linkKeys(
   by: LinkKind[],
   input: {
-    sessionId: string;
+    sessionId: string | null;
     actorId?: string | null;
     resourceTemplates: string[];
     resources: string[];
   },
 ): string[] {
   const keys: string[] = [];
-  if (by.includes("session")) keys.push(`session:${input.sessionId}`);
+  if (by.includes("session") && input.sessionId) keys.push(`session:${input.sessionId}`);
   if (by.includes("actor") && input.actorId) keys.push(`actor:${input.actorId}`);
   if (by.includes("resource")) {
     input.resources.forEach((r, i) => {

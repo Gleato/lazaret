@@ -7,15 +7,18 @@ import type { ResolvedConfig } from "../config/define.ts";
 export async function deriveSessionId(
   request: Request,
   config: ResolvedConfig,
-): Promise<{ sessionId: string; ip: string }> {
+): Promise<{ sessionId: string; ip: string; anonymous: boolean }> {
   const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
   let material: string | null = null;
   if (config.session.cookie)
     material = readCookie(request.headers.get("cookie"), config.session.cookie);
   if (!material && config.session.header) material = request.headers.get(config.session.header);
+  // `anonymous` marks the fallback below: enough for read-your-writes, but not an
+  // identity, so it must not link writes (see the gateway).
+  const anonymous = !material;
   // Fallback: IP + user agent. Coarse, but stable enough for read-your-writes.
   material ??= `anon|${ip}|${request.headers.get("user-agent") ?? ""}`;
-  return { sessionId: await sha256Hex(material, 32), ip };
+  return { sessionId: await sha256Hex(material, 32), ip, anonymous };
 }
 
 function readCookie(header: string | null, name: string): string | null {

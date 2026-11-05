@@ -38,6 +38,23 @@ async function escrowed(caseId: string): Promise<{ receipts: string[]; finals: F
   return { receipts, finals };
 }
 
+// M10 and M11 passed every local test but had never run on production writes. This
+// proves the Ledger lookup behind linked history runs there, not what a reviewer made
+// of it: that's the pattern eval's job. It costs two batch reviews.
+test("linked history is looked up on production writes @smoke", async () => {
+  const token = await demo.login("theo");
+  const ticket = (subject: string) =>
+    demo.send("POST", "/api/tickets", {
+      token,
+      body: JSON.stringify({ subject, body: "Smoke test: checking the link lookup." }),
+    });
+  const sent = [await ticket("Smoke check one"), await ticket("Smoke check two")];
+  for (const s of sent) {
+    expect(s.status).toBe(202);
+    expect(s.timing ?? "").toContain("links;dur=");
+  }
+});
+
 for (const caseId of ["ok-ticket-01", "ok-hard-01"]) {
   test(`${caseId}: an honest ticket is delivered to Tidewater${caseId === "ok-ticket-01" ? " @smoke" : ""}`, async () => {
     const { receipts, finals } = await escrowed(caseId);

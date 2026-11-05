@@ -26,6 +26,8 @@ export interface Sent {
   requestId: string | null;
   review: string | null;
   error: string | null;
+  /** Server-Timing: `links` appears only when the linked-history lookup ran (M10, M11). */
+  timing: string | null;
 }
 
 export type Final = "COMMITTED" | "DROPPED" | "QUARANTINED";
@@ -50,7 +52,12 @@ export class Demo {
       body: JSON.stringify({ email: PERSONAS[persona], password: DEMO_PASSWORD }),
     });
     const token = (res.json as { token?: string } | null)?.token;
-    if (res.status !== 200 || !token) throw new Error(`login ${persona}: HTTP ${res.status}`);
+    if (res.status !== 200 || !token) {
+      // The error and the review header say which layer refused it.
+      throw new Error(
+        `login ${persona}: HTTP ${res.status} ${res.error ?? ""} review=${res.review ?? ""} json=${JSON.stringify(res.json)}`,
+      );
+    }
     this.#tokens.set(persona, token);
     return token;
   }
@@ -77,6 +84,7 @@ export class Demo {
       requestId: h["x-lazaret-request-id"] ?? null,
       review: h["x-lazaret-review"] ?? null,
       error: (json as { error?: string } | null)?.error ?? null,
+      timing: h["server-timing"] ?? null,
       json,
     };
   }
