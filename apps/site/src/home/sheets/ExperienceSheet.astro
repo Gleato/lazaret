@@ -4,17 +4,12 @@
 // with" wall of the logos the user supplied (each the organisation's own file).
 import { RESUME, RESUME_PDF } from "../data/career";
 import LogoWall from "../parts/LogoWall.astro";
-import PageCurl from "../parts/PageCurl.astro";
-import Paperclip from "../parts/Paperclip.astro";
 import Timeline from "../parts/Timeline.astro";
 
 const r = RESUME;
 ---
 
 <div class="paper exp">
-  <Paperclip class="sheet-clip" />
-  <PageCurl />
-
   <div class="toolbar">
     <a class="download" href={RESUME_PDF} download="Ridge-Gleaton-Resume.pdf">
       <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 15.5h12"></path></svg>
@@ -118,16 +113,10 @@ const r = RESUME;
   .exp {
     border: 1px solid #cfc8bd;
   }
-  .exp :global(.sheet-clip) {
-    top: -22px;
-    left: clamp(18px, 4vw, 40px);
-    width: clamp(24px, 3vw, 30px);
-    height: auto;
-  }
   .toolbar {
     display: flex;
     justify-content: flex-end;
-    margin: -6px clamp(34px, 6vw, 60px) 18px 0;
+    margin: -6px 0 18px;
   }
   .download {
     display: inline-flex;

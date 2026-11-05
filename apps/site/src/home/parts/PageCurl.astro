@@ -1,22 +1,13 @@
 ---
-// The dog-eared top-right corner on boards 2 and 3: the page is turned back to show
-// there's another sheet under it. When there is a next page, the curl is a button that
-// turns to it (the pager wires it up); otherwise it's only paper.
-interface Props {
-  /** Render as the pager's "next page" control. */
-  interactive?: boolean;
-}
-const { interactive = false } = Astro.props;
-const Tag = interactive ? "button" : "span";
+// The dog-eared top-right corner of a multi-page stack: the page is turned back to show
+// there's another sheet under it, and it's a button that turns to it (the pager wires
+// it up). Single sheets don't show one.
 ---
 
-<Tag
-  class="curl"
-  {...interactive ? { type: "button", "data-pager-curl": "", "aria-label": "Turn to the next page" } : { "aria-hidden": "true" }}
->
+<button type="button" class="curl" data-pager-curl aria-label="Turn to the next page">
   <span class="under"></span>
   <span class="fold"></span>
-</Tag>
+</button>
 
 <style>
   .curl {
@@ -31,10 +22,10 @@ const Tag = interactive ? "button" : "span";
     background: none;
     z-index: 4;
   }
-  button.curl {
+  .curl {
     cursor: pointer;
   }
-  button.curl[disabled] {
+  .curl[disabled] {
     cursor: default;
   }
   /* The corner of this page is gone: what shows is the manila behind it. */
@@ -55,11 +46,11 @@ const Tag = interactive ? "button" : "span";
     transform-origin: 0 100%;
     transition: transform 0.35s cubic-bezier(0.3, 0.7, 0.2, 1);
   }
-  button.curl:not([disabled]):hover .fold,
-  button.curl:not([disabled]):focus-visible .fold {
+  .curl:not([disabled]):hover .fold,
+  .curl:not([disabled]):focus-visible .fold {
     transform: scale(1.18);
   }
-  button.curl:focus-visible {
+  .curl:focus-visible {
     outline-offset: -4px;
   }
 </style>

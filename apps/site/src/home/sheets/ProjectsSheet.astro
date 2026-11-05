@@ -1,9 +1,10 @@
 ---
 import { pagerView } from "../../lib/pager";
-// The Projects divider (board 2): a paper-clipped stack, one project per page. The
-// arrows either side of the project's logo turn the page and are dark only when there
-// is a page to turn to; the curled corner turns to the next one too. With one project
-// today, both arrows sit grey and it reads "Page 1 of 1", exactly as on the board.
+// The Projects divider (board 2): one project per page. With a single project it's a
+// plain sheet of paper (the user's call, 2026-11-05). Everything that says "stack" (the
+// clip, the curled corner, the arrows, "Page n of N") renders only once `paged` is true,
+// so adding a second project to data/projects.ts brings it all back. The arrows are
+// dark only when there is a page to turn to; the curl turns to the next one too.
 import { PROJECTS } from "../data/projects";
 import LazaretBrief from "../lazaret/LazaretBrief.astro";
 import LazaretLogo from "../lazaret/LazaretLogo.astro";
@@ -11,25 +12,34 @@ import PageCurl from "../parts/PageCurl.astro";
 import Paperclip from "../parts/Paperclip.astro";
 
 const first = pagerView(0, PROJECTS.length);
+const paged = PROJECTS.length > 1;
 const under = Math.min(2, PROJECTS.length - 1);
 ---
 
 <div class="paper pager" data-pager data-count={PROJECTS.length} data-under={under}>
-  <Paperclip class="sheet-clip" />
-  <PageCurl interactive={first.canNext} />
+  {paged && <Paperclip class="sheet-clip" />}
+  {paged && <PageCurl />}
 
   <div class="pager-head">
-    <button type="button" class="turn" data-pager-prev aria-label="Previous project" disabled={!first.canPrev}>
-      <svg viewBox="0 0 48 32" aria-hidden="true"><path d="M2 16 18 3v8h28v10H18v8z"></path></svg>
-    </button>
+    {
+      paged && (
+        <button type="button" class="turn" data-pager-prev aria-label="Previous project" disabled={!first.canPrev}>
+          <svg viewBox="0 0 48 32" aria-hidden="true"><path d="M2 16 18 3v8h28v10H18v8z"></path></svg>
+        </button>
+      )
+    }
     <div class="logos">
       {PROJECTS.map((p, i) => <div data-pager-logo={i} hidden={i !== 0}>{p.id === "lazaret" && <LazaretLogo />}</div>)}
     </div>
-    <button type="button" class="turn" data-pager-next aria-label="Next project" disabled={!first.canNext}>
-      <svg viewBox="0 0 48 32" aria-hidden="true"><path d="M46 16 30 3v8H2v10h28v8z"></path></svg>
-    </button>
+    {
+      paged && (
+        <button type="button" class="turn" data-pager-next aria-label="Next project" disabled={!first.canNext}>
+          <svg viewBox="0 0 48 32" aria-hidden="true"><path d="M46 16 30 3v8H2v10h28v8z"></path></svg>
+        </button>
+      )
+    }
   </div>
-  <p class="page-label" data-pager-label aria-live="polite">{first.label}</p>
+  {paged && <p class="page-label" data-pager-label aria-live="polite">{first.label}</p>}
 
   {
     PROJECTS.map((p, i) => (
@@ -103,6 +113,10 @@ const under = Math.min(2, PROJECTS.length - 1);
     align-items: center;
     gap: clamp(14px, 4vw, 48px);
     margin-top: clamp(16px, 3vw, 36px);
+  }
+  /* Named column: with no arrows the logo would otherwise fall into the first track. */
+  .logos {
+    grid-column: 2;
   }
   .turn {
     display: grid;
