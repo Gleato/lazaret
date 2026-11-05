@@ -12,7 +12,9 @@
     "eval:memory": "EVAL_WRITE=1 vitest run test/memory.test.ts",
     "eval:memory:live": "EVAL_WRITE=1 EVAL_LIVE=1 vitest run test/memory.test.ts",
     "eval:campaign": "EVAL_WRITE=1 vitest run test/campaign.test.ts",
-    "eval:campaign:live": "EVAL_WRITE=1 EVAL_LIVE=1 vitest run test/campaign.test.ts"
+    "eval:campaign:live": "EVAL_WRITE=1 EVAL_LIVE=1 vitest run test/campaign.test.ts",
+    "eval:pattern": "EVAL_WRITE=1 vitest run test/pattern.test.ts",
+    "eval:pattern:live": "EVAL_WRITE=1 EVAL_LIVE=1 vitest run test/pattern.test.ts"
   },
   "dependencies": {
     "@gleator/lazaret": "*",

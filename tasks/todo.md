@@ -1041,7 +1041,102 @@ writes in a pattern still look honest, and committed writes can't be recalled.
   verified live: linking itself on production writes (needs a paid smoke run).
 - [x] Update "What Lazaret doesn't catch" (README and the site's Evals section) with the
   measured result: what linking catches, what still gets through, and what it costs.
-- [ ] Publish a minor version of `@gleator/lazaret`.
+- [x] Publish a minor version of `@gleator/lazaret`: 0.2.0 on npm (2026-11-05, 135 files),
+  published by the user from a terminal tab after `npm login` (2FA).
+
+### M11 — Learn patterns across writes (2026-11-05, approved)
+
+**Why.** The package has ~330 npm downloads, so this has to be held to the library's
+own bar: opt-in, measured, documented, no behaviour change for anyone who doesn't ask.
+M10 lets the reviewer see split fraud, but only the reviewer: every claim in a pattern
+still costs a model call, the model can waver (two borderline holds in run 2), and the
+Memory can't learn it. Its rules see one request (`json:`, `body`, `signal:`…), so the
+only rule it could write for the heist ("refund claims near $49") would hit honest
+customers, and backtests rightly reject it. Split fraud is also *held*, not dropped,
+and the distiller learns from drops, so nothing would reach it today anyway.
+
+**Goal.** Once a person confirms a split-fraud pattern, the Memory proposes a rule like
+"a third refund claim from the same sender within an hour", backtests it, and promotes
+it to a tier that holds matching writes for a person at the gate, with no model call.
+Never a tier that rejects: a busy honest customer can trip a count.
+
+**Design (check-in decisions recorded inline)**
+1. **Counts become gate signals, not a new rule language.** The gateway already reads
+   linked history for inline writes; it would read it for escrowed writes too, and
+   attach zero-weight signals such as `linked.sender_route_1h` (the sender's writes on
+   this route in the last hour, by session or account) and `linked.resource_route_1h`
+   (allowed writes on the same parameterised resource). `GateSignal` gains an optional
+   `value`; `signal:<id>` reads `value ?? weight`. Zero weight, so risk is unchanged.
+   Why this way: the rule language, the archive samples, the backtest and the
+   distiller's data all carry signals already, so a counting rule is just
+   `signal:linked.sender_route_1h gte 2` and is backtested against real history for
+   free. Considered and rejected: a new `count` condition that queries the Ledger from
+   inside rule evaluation (I/O inside a rule, a second sample format, a bigger blast
+   radius for a library change).
+   Decided at check-in: 1 h only.
+2. **Cost on the request path.** Escrowed writes gain one Ledger read when linking is on
+   (inline already pays it). Measured with `Server-Timing` like the behaviour store;
+   on failure the counts are omitted and the write proceeds (advisory, as today).
+3. **A new `hold` action and tier.** `Rule.action` gains `"hold"`: an escrowed write a
+   hold rule matches is still escrowed but goes straight to the human queue, verdict
+   `quarantine`, category from the rule, with no model call; an inline write fails
+   closed with `403` and the same reason, logged and observed. Memory tiers become
+   `shadow → flag → hold` for any rule that reads a `linked.*` signal, and those rules
+   can never reach `block`. Ordinary rules keep `shadow → flag → block`.
+   Decided at check-in: an inline `hold` denies (fails closed with the rule's reason).
+4. **Learning from holds.** The distiller's positives today are drops. Add confirmed
+   holds: a write the reviewer quarantined that an operator then dropped or reported
+   (both already archived as operator labels). A reviewer quarantine nobody has labelled
+   is never a positive. The distiller prompt learns the `linked.*` signals and is told
+   counting rules must also match the route.
+5. **Live evidence for linked rules.** A shadow hit counts as a true positive only if
+   the write ends confirmed as an attack (operator drop or report, or a reviewer drop);
+   a release or an allow is a false positive and retires the rule, as now.
+6. **Safety rails.** Linked-signal rules need at least 2 confirmed positives and the
+   usual clean-sample backtest; `hold` is capped per sender per hour so a bad rule
+   can't silently swallow a customer's traffic (beyond the cap the write goes to the
+   reviewer instead), and every hold is visible in `/__lazaret/queue` and the live view.
+
+**Evals (before and after, measured live)**
+- [x] A dedicated pattern eval instead of retrofitting the campaign (changed at build
+  time: the campaign's learning curve is published on the site, and its mutator works
+  on single writes). `evals/src/pattern.ts`, `npm run eval:pattern[:live]`,
+  `results/pattern-*.json`. Four waves; each brings fresh actors (new account, amounts,
+  order numbers and wording) running 4 split-fraud plays (heist, heist with a new login
+  per claim, a 3-claim heist, an agent crediting one customer 4 times) and 4 honest
+  look-alikes (refund then bug, a thread, an agent crediting 4 customers, two genuine
+  claims), 2 of each. The campaign's simulated operator (now exported) works each wave's
+  queue from the true labels, then one distillation pass. The harness now reports every
+  step's id, so setup claims get labelled too. Free runs use a scripted reviewer that
+  holds a third same-path write from one sender (plumbing only, not judgement).
+- [x] Free baseline on today's library (2026-11-05, `pattern-fake.json`): every wave
+  8/8 attacks stopped (6 by batch review, 2 inline), 0/8 honest held, 56/56 writes read
+  by a model, 14 held claims dropped by the operator, 0 rules proposed. Nothing is
+  learned and nothing gets cheaper: the gap M11 has to close.
+- Found while building it: operator drops are already archived as drops, so design
+  item 4 is mostly there; the distiller proposes nothing only because no request field
+  shows the pattern. And inline holds (the credit run) never reach the operator queue,
+  so they can't become confirmed positives: the credit-run play is a known limit of
+  learning unless a person reports it.
+- [ ] Report after M11: model reads on split fraud down in later waves, recall
+  unchanged, honest held still 0. Free first; live ~$1.50, quoted before running.
+
+**Build order, testing each step**
+- [ ] `value` on signals and `signal:` reads it; linked count signals in the gateway for
+  escrow and inline (unit + gateway tests, Server-Timing).
+- [ ] `hold` action: rule compile, gate, Ledger append marker, pipeline skips the model
+  and quarantines with the rule's reason; inline deny (tests incl. crash/replay).
+- [ ] Memory: confirmed holds as positives, linked-rule tier path and caps, live
+  evidence rules (lifecycle tests for every transition).
+- [ ] Distiller prompt and schema (fake-proposer tests).
+- [ ] Campaign support and the eval report; free run, then live.
+
+**Ship (with the library's bar)**
+- [ ] `CHANGELOG.md` for the package (0.1.0, 0.2.0 and this), and upgrade notes.
+- [ ] README: the counting rules, the `hold` tier, cost, and limits. Site Memory panel.
+- [ ] A paid production smoke (~$0.01) of M10 linking first, so we build on verified
+  ground; the same after M11.
+- [ ] `@gleator/lazaret` 0.3.0 (new optional fields and an action, nothing removed).
 
 ---
 

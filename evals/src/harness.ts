@@ -301,6 +301,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
     inline: boolean;
     /** Never sent: an earlier step it depends on was stopped at the edge. */
     cut?: boolean;
+    stepIds: (string | null)[];
   };
   const targets: Target[] = [];
   const committer = createCommitter({
@@ -344,6 +345,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
       ...corpus.filter(spaced),
     ]) {
       const receipts: (string | null)[] = [];
+      const stepIds: (string | null)[] = [];
       const steps = c.requests.flatMap(expand);
       for (const [i, step] of steps.entries()) {
         const inlineBefore = started.inline ?? 0;
@@ -360,8 +362,10 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
         // rule stopped taint-01's parent ticket).
         if (unresolved) {
           receipts.push(null);
+          stepIds.push(null);
           if (i === steps.length - 1) {
             targets.push({
+              stepIds,
               c,
               status: 0,
               requestId: null,
@@ -392,8 +396,12 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
         );
         const json = (await res.json().catch(() => null)) as { receipt?: string } | null;
         receipts.push(res.status === 202 ? (json?.receipt ?? null) : null);
+        stepIds.push(
+          res.status === 202 ? (json?.receipt ?? null) : res.headers.get("x-lazaret-request-id"),
+        );
         if (i === steps.length - 1) {
           targets.push({
+            stepIds,
             c,
             status: res.status,
             requestId: res.headers.get("x-lazaret-request-id"),
@@ -422,49 +430,52 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
     lastError: b.lastError ?? null,
     outcome: outcomes[b.id] ?? null,
   }));
-  const results: CaseResult[] = targets.map(({ c, status, requestId, receipt, inline, cut }) => {
-    const entry = receipt ? entries[receipt] : undefined;
-    const gate = requestId ? gateLog.get(requestId) : undefined;
-    let stage: Stage;
-    let verdict: VerdictRecord | null = null;
-    if (entry) {
-      verdict = entry.verdict ?? null;
-      const landed = entry.status === "COMMITTED";
-      stage = landed
-        ? "delivered"
-        : verdict?.category === "tainted"
-          ? "taint"
-          : escalated.has(entry.id)
-            ? "escalation"
-            : "review";
-    } else if (cut) {
-      stage = "parent_stopped";
-    } else {
-      if (inline && requestId) verdict = inlineVerdicts.get(requestId) ?? null;
-      if (requestId && reached.has(requestId)) stage = "delivered";
-      else if (inline) stage = status === 503 ? "inline_unavailable" : "inline";
-      else stage = "gate";
-    }
-    return {
-      id: c.id,
-      label: c.label,
-      class: c.class,
-      // The Ledger entry id (escrowed) or request id (inline), as the Memory archives it.
-      entryId: receipt ?? requestId,
-      route: entry?.route ?? gate?.route ?? null,
-      status,
-      stopped: stage !== "delivered",
-      stage,
-      gateRisk: entry?.riskScore ?? gate?.risk ?? null,
-      signals: entry?.signals.map((s) => s.id) ?? gate?.signals ?? [],
-      verdict: verdict && {
-        verdict: verdict.verdict,
-        category: verdict.category,
-        confidence: verdict.confidence,
-        rationale: verdict.rationale,
-      },
-      ...(entry ? { escalated: escalated.has(entry.id) } : {}),
-    };
-  });
+  const results: CaseResult[] = targets.map(
+    ({ c, status, requestId, receipt, inline, cut, stepIds }) => {
+      const entry = receipt ? entries[receipt] : undefined;
+      const gate = requestId ? gateLog.get(requestId) : undefined;
+      let stage: Stage;
+      let verdict: VerdictRecord | null = null;
+      if (entry) {
+        verdict = entry.verdict ?? null;
+        const landed = entry.status === "COMMITTED";
+        stage = landed
+          ? "delivered"
+          : verdict?.category === "tainted"
+            ? "taint"
+            : escalated.has(entry.id)
+              ? "escalation"
+              : "review";
+      } else if (cut) {
+        stage = "parent_stopped";
+      } else {
+        if (inline && requestId) verdict = inlineVerdicts.get(requestId) ?? null;
+        if (requestId && reached.has(requestId)) stage = "delivered";
+        else if (inline) stage = status === 503 ? "inline_unavailable" : "inline";
+        else stage = "gate";
+      }
+      return {
+        id: c.id,
+        label: c.label,
+        class: c.class,
+        // The Ledger entry id (escrowed) or request id (inline), as the Memory archives it.
+        entryId: receipt ?? requestId,
+        route: entry?.route ?? gate?.route ?? null,
+        status,
+        stopped: stage !== "delivered",
+        stage,
+        gateRisk: entry?.riskScore ?? gate?.risk ?? null,
+        signals: entry?.signals.map((s) => s.id) ?? gate?.signals ?? [],
+        verdict: verdict && {
+          verdict: verdict.verdict,
+          category: verdict.category,
+          confidence: verdict.confidence,
+          rationale: verdict.rationale,
+        },
+        ...(entry ? { escalated: escalated.has(entry.id) } : {}),
+        ...(stepIds.length > 1 ? { stepIds } : {}),
+      };
+    },
+  );
   return { results, calls, batches };
 }

@@ -213,8 +213,8 @@ async function probe(
  * open dispute, through the real operator API, labelling from the corpus. Returns what
  * it did, so the report can say how much ground truth came from "a human".
  */
-async function simulatedOperator(
-  options: CampaignOptions,
+export async function simulatedOperator(
+  options: Pick<CampaignOptions, "ledger" | "memory">,
   shard: string,
   memoryName: string,
   labels: Map<string, EvalCase["label"]>,

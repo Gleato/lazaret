@@ -9,5 +9,6 @@ declare module "vitest" {
     memoryResult?: unknown;
     /** The campaign replay (test/campaign.test.ts, M7.1), written as campaign-<mode>.json. */
     campaignResult?: unknown;
+    patternResult?: unknown;
   }
 }

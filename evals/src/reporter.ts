@@ -15,6 +15,7 @@ export default class EvalResultsReporter implements Reporter {
     const corpus = meta.evalResult as Written | undefined;
     const memory = meta.memoryResult as Written | undefined;
     const campaign = meta.campaignResult as Written | undefined;
+    const pattern = meta.patternResult as Written | undefined;
     // A subset run (EVAL_ONLY) keeps its own history and never replaces live-latest.json,
     // which the site publishes as the full corpus's numbers.
     if (process.env.EVAL_ONLY) {
@@ -26,6 +27,8 @@ export default class EvalResultsReporter implements Reporter {
     if (memory) write(memory, "memory-", "memory-latest.json");
     // The campaign replay (M7.1 C) feeds the site's learning curve: campaign-latest.json.
     if (campaign) write(campaign, "campaign-", "campaign-latest.json");
+    // The pattern eval (M11): can the Memory learn fraud spread across writes?
+    if (pattern) write(pattern, "pattern-", "pattern-latest.json");
   }
 }
 

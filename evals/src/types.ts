@@ -77,6 +77,12 @@ export interface CaseResult {
   verdict: { verdict: string; category: string; confidence: number; rationale: string } | null;
   /** Escrowed targets only: whether the escalation model saw it (the M6.6 invariant). */
   escalated?: boolean;
+  /**
+   * Every step's id, in order: the escrow receipt, or the request id for an inline or
+   * blocked step, null for a step that was never sent. The pattern eval (M11) needs the
+   * setup claims too, so its simulated operator can label everything a case wrote.
+   */
+  stepIds?: (string | null)[];
 }
 
 export interface CallRecord {

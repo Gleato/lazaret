@@ -1,0 +1,147 @@
+{
+  "kind": "pattern",
+  "mode": "fake",
+  "startedAt": "2026-11-05T02:11:00.279Z",
+  "finishedAt": "2026-11-05T02:11:01.861Z",
+  "seed": 2026,
+  "simulated": {
+    "operator": "labels from the generated plays, after each wave",
+    "reviewer": "scripted, holds a third same-path write from one sender"
+  },
+  "waves": [
+    {
+      "wave": 1,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "delivered": 8,
+        "inline": 2,
+        "review": 6
+      },
+      "heldByRule": 0,
+      "honestHeld": [],
+      "honest": 8,
+      "modelReads": 56,
+      "modelReadsPerWrite": 1,
+      "linkedSignalsSeen": [],
+      "operator": {
+        "released": 0,
+        "dropped": 14,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 0,
+        "created": []
+      },
+      "rules": [],
+      "ruleEvents": [],
+      "costUsd": 0
+    },
+    {
+      "wave": 2,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "delivered": 8,
+        "inline": 2,
+        "review": 6
+      },
+      "heldByRule": 0,
+      "honestHeld": [],
+      "honest": 8,
+      "modelReads": 56,
+      "modelReadsPerWrite": 1,
+      "linkedSignalsSeen": [],
+      "operator": {
+        "released": 0,
+        "dropped": 14,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 0,
+        "created": []
+      },
+      "rules": [],
+      "ruleEvents": [],
+      "costUsd": 0
+    },
+    {
+      "wave": 3,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "delivered": 8,
+        "inline": 2,
+        "review": 6
+      },
+      "heldByRule": 0,
+      "honestHeld": [],
+      "honest": 8,
+      "modelReads": 56,
+      "modelReadsPerWrite": 1,
+      "linkedSignalsSeen": [],
+      "operator": {
+        "released": 0,
+        "dropped": 14,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 0,
+        "created": []
+      },
+      "rules": [],
+      "ruleEvents": [],
+      "costUsd": 0
+    },
+    {
+      "wave": 4,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "inline": 2,
+        "delivered": 8,
+        "review": 6
+      },
+      "heldByRule": 0,
+      "honestHeld": [],
+      "honest": 8,
+      "modelReads": 56,
+      "modelReadsPerWrite": 1,
+      "linkedSignalsSeen": [],
+      "operator": {
+        "released": 0,
+        "dropped": 14,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 0,
+        "created": []
+      },
+      "rules": [],
+      "ruleEvents": [],
+      "costUsd": 0
+    }
+  ],
+  "costUsd": 0,
+  "models": "scripted"
+}
