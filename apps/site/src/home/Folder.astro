@@ -200,6 +200,8 @@ const SCORES = 6;
   .tab:hover {
     color: var(--ink);
   }
+  /* The same closed or open: the folder is this tab's colour either way, so the tab always
+     reads as part of it, and nothing jumps when the cover opens. */
   .tab[aria-selected="true"] {
     z-index: 10;
     /* No bottom border, so the open tab and the folder read as one piece of card. */
@@ -208,19 +210,10 @@ const SCORES = 6;
     height: 52px;
     margin-top: -4px;
   }
-  /* Closed, no divider is in front yet: every tab at rest. */
-  .folder[data-state="closed"] .tab[aria-selected="true"] {
-    z-index: var(--z);
-    background: color-mix(in srgb, var(--tab) 94%, var(--desk));
-    font-weight: 600;
-    height: 48px;
-    margin-top: 0;
-  }
   /* The open tab flares into the folder: a concave curve each side, and its 1px edge bends
      with it into the folder's top edge, so the two read as one piece of card. Each corner
      is a circle punched out of the tab's colour, centred up and outside the tab, so whatever
-     is behind (the desk, a back tab) shows through. The half-pixel steps are anti-aliasing.
-     Closed, no tab is in front, so the folder's edge runs unbroken. */
+     is behind (the desk, a back tab) shows through. The half-pixel steps are anti-aliasing. */
   .tab[aria-selected="true"]::after {
     --punch: transparent calc(var(--fillet) - 1.4px), var(--tab-edge) calc(var(--fillet) - 0.9px),
       var(--tab-edge) calc(var(--fillet) - 0.1px), var(--tab) calc(var(--fillet) + 0.4px);
@@ -232,9 +225,6 @@ const SCORES = 6;
       radial-gradient(circle at 0 0, var(--punch)) left bottom / var(--fillet) var(--fillet) no-repeat,
       radial-gradient(circle at 100% 0, var(--punch)) right bottom / var(--fillet) var(--fillet) no-repeat,
       linear-gradient(var(--tab), var(--tab)) center bottom / calc(100% - 2 * var(--fillet)) 100% no-repeat;
-  }
-  .folder[data-state="closed"] .tab[aria-selected="true"]::after {
-    display: none;
   }
   .tab-label {
     display: block;
@@ -368,6 +358,12 @@ const SCORES = 6;
     border: var(--stroke) solid var(--fold-edge);
   }
   .cover-front {
+    /* The shade inside the folder, cast by the cover rather than painted on the back panel:
+       a shadow follows the cover's rounded corners and moves with it when it tilts, which
+       a fixed gradient did neither of. Reach stays under the 14px strip, so it clears the tabs. */
+    box-shadow:
+      0 -1px 3px rgb(0 0 0 / 24%),
+      0 -3px 9px rgb(0 0 0 / 26%);
     position: absolute;
     inset: 0;
     display: block;
@@ -456,7 +452,7 @@ const SCORES = 6;
     padding: 9px 16px 9px 13px;
     border-radius: 999px;
     background: var(--ink);
-    color: var(--fold);
+    color: #fff;
     font-weight: 600;
     font-size: 0.92rem;
     transform: translateX(-50%);
@@ -552,9 +548,6 @@ const SCORES = 6;
     }
     .tab[aria-selected="true"] {
       height: 46px;
-    }
-    .folder[data-state="closed"] .tab[aria-selected="true"] {
-      height: 42px;
     }
   }
 </style>
