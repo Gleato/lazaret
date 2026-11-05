@@ -118,6 +118,8 @@ const SCORES = 6;
     --closed-h: clamp(340px, 56vh, 520px);
     --radius: 20px;
     --stroke: 1px;
+    /* The curve where the open tab flares into the folder. */
+    --fillet: 12px;
     --hinge-h: 22px;
     /* The curve inside the outline: what anything laid against the top edge must follow. */
     --radius-in: calc(var(--radius) - var(--stroke));
@@ -147,8 +149,9 @@ const SCORES = 6;
     /* Tabs sit on the flat run of the top edge, between the two rounded corners. Any
        closer and a tab overhangs the curve: on phones the last tab used to reach the
        right edge and left a gap under it, and the first sat a few px in from a square
-       corner, which read as a stray notch. */
-    padding-inline: var(--radius);
+       corner, which read as a stray notch. The fillet is added so the open tab's curve
+       lands on that flat run too. */
+    padding-inline: calc(var(--radius) + var(--fillet));
     margin-bottom: calc(-1 * var(--stroke));
   }
   .tab {
@@ -157,14 +160,17 @@ const SCORES = 6;
     width: clamp(104px, 21%, 212px);
     height: 48px;
     margin-left: -14px;
-    padding: 4px 14px 0;
-    border: var(--stroke) solid color-mix(in srgb, var(--tab) 50%, #000);
+    /* Slim padding and no wrapping: "Edu x Exp" has to stay on one line at the narrowest
+       tab, or the tab's fixed height clips it. */
+    padding: 4px 8px 0;
+    white-space: nowrap;
+    --tab-edge: color-mix(in srgb, var(--tab) 50%, #000);
+    border: var(--stroke) solid var(--tab-edge);
     border-bottom: 0;
     border-radius: 16px 16px 0 0;
     /* A small step back toward the desk, so the open tab reads as in front. Any more and
        the colours turn muddy (marigold goes mustard). */
     background: color-mix(in srgb, var(--tab) 94%, var(--desk));
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 26%);
     color: var(--ink);
     font: 600 1rem / 1 var(--figtree);
     cursor: pointer;
@@ -210,14 +216,22 @@ const SCORES = 6;
     height: 48px;
     margin-top: 0;
   }
-  /* Carries the open tab's colour over the folder's top highlight, so no line crosses
-     the join. Closed, no tab is in front, so the folder's edge runs unbroken. */
+  /* The open tab flares into the folder: a concave curve each side, and its 1px edge bends
+     with it into the folder's top edge, so the two read as one piece of card. Each corner
+     is a circle punched out of the tab's colour, centred up and outside the tab, so whatever
+     is behind (the desk, a back tab) shows through. The half-pixel steps are anti-aliasing.
+     Closed, no tab is in front, so the folder's edge runs unbroken. */
   .tab[aria-selected="true"]::after {
+    --punch: transparent calc(var(--fillet) - 1.4px), var(--tab-edge) calc(var(--fillet) - 0.9px),
+      var(--tab-edge) calc(var(--fillet) - 0.1px), var(--tab) calc(var(--fillet) + 0.4px);
     content: "";
     position: absolute;
-    inset: auto 0 calc(-1 * var(--stroke) - 1px);
-    height: calc(var(--stroke) + 1px);
-    background: var(--tab);
+    inset: auto calc(-1 * var(--fillet)) 0;
+    height: var(--fillet);
+    background:
+      radial-gradient(circle at 0 0, var(--punch)) left bottom / var(--fillet) var(--fillet) no-repeat,
+      radial-gradient(circle at 100% 0, var(--punch)) right bottom / var(--fillet) var(--fillet) no-repeat,
+      linear-gradient(var(--tab), var(--tab)) center bottom / calc(100% - 2 * var(--fillet)) 100% no-repeat;
   }
   .folder[data-state="closed"] .tab[aria-selected="true"]::after {
     display: none;
@@ -251,9 +265,7 @@ const SCORES = 6;
     padding: clamp(18px, 3.4vw, 40px) clamp(12px, 5.6vw, 64px) clamp(26px, 4vw, 48px);
     /* The second shadow falls upward onto the tabs behind the folder, so they tuck under
        it. The open tab sits above the folder and stays clear of it. */
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 14%) inset,
-      0 -3px 6px -1px rgb(0 0 0 / 24%);
+    box-shadow: 0 -3px 6px -1px rgb(0 0 0 / 24%);
   }
   .folder[data-state="closed"] .body,
   .folder[data-state="opening"] .body {
@@ -368,7 +380,6 @@ const SCORES = 6;
     text-align: left;
     cursor: pointer;
     backface-visibility: hidden;
-    box-shadow: 0 -1px 0 rgb(255 255 255 / 24%) inset;
     font: inherit;
   }
   .cover-inside {
@@ -529,6 +540,7 @@ const SCORES = 6;
     .folder {
       --closed-h: clamp(320px, 62vh, 480px);
       --radius: 14px;
+      --fillet: 8px;
     }
     .tab {
       width: 37%;

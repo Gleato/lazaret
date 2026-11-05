@@ -2200,3 +2200,5 @@ Deployed 2026-11-05: `0e7a051`, worker version 559648c9-dabb-433c-8e99-b01827e56
 gleator.com: network animation present, clock gone, header links correct, folder edge in
 front of the back tabs, no console errors. Not checked live: a demo run (paid, behind the bot
 check) and reduced motion.
+
+Tab joins (2026-11-05, after the deploy): removed the top-only highlights so every edge matches, and added curved joins on the open tab (`--fillet`). The tabs moved in by the fillet, so labels no longer wrap at 640-760px.
