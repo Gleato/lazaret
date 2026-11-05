@@ -2207,7 +2207,7 @@ Deployed 2026-11-05: `6dfb326`, worker version 947daa1c-25ea-422b-acca-25e457d08
 
 Deployed 2026-11-05: `21724f7`, worker version 7b0a2bd4-69d4-4181-9ae0-f91d3256e9e0. Closed folder polish: the front tab matches its open look, the hint is white, and the cover casts the shade inside the folder. Checked on gleator.com, including mid-nudge; no console errors.
 
-## Marker lettering on the folder cover (2026-11-05, not committed or deployed)
+## Marker lettering on the folder cover (2026-11-05, branch `marker-cover`)
 
 The user asked to drop the white paper label and have the name look written fast in Sharpie, then to check the result against the surrounding color.
 
@@ -2219,3 +2219,5 @@ The user asked to drop the white paper label and have the name look written fast
 - [x] Open tab's label sits on the same baseline as the others (was 2px high)
 
 Review: 53 unit tests, typecheck, Biome and the build pass. Lettering clears the hint at 320x568, 360x640, 640x800, 768x1024, 844x390 and 1920x1080 (measured). No console errors at desktop or phone. The e2e suite wasn't run.
+
+Deployed 2026-11-05: `db73f5f`, worker version 5cf868ee-0bd8-4f62-877d-4a708e4df20b. Checked on gleator.com at desktop width: lettering in place, paper label gone, logo colors and srcset live, folder opens, no console errors. Phone layout was checked locally, not on the live site.
