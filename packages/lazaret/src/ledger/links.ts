@@ -125,24 +125,35 @@ export function readLinks(
       options.since,
     )
     .toArray();
-  const byEntry = new Map<string, LinkedWrite>();
+  const byEntry = new Map<string, LinkedWrite & { fromSender: boolean }>();
   for (const row of rows) {
     if (options.exclude?.has(row.entry_id)) continue;
+    const fromSender = !row.link_key.startsWith("resource:");
     const seen = byEntry.get(row.entry_id);
     if (seen) {
       seen.linkedBy.push(describeKey(row.link_key));
+      seen.fromSender ||= fromSender;
       continue;
     }
-    if (byEntry.size >= options.limit) continue;
     const p = JSON.parse(row.payload) as Omit<LinkedWrite, "entryId" | "at" | "linkedBy">;
     byEntry.set(row.entry_id, {
       entryId: row.entry_id,
       at: row.at,
       ...p,
       linkedBy: [describeKey(row.link_key)],
+      fromSender,
     });
   }
-  return [...byEntry.values()];
+  // Someone else's write on the same resource counts only if it was allowed. Their
+  // dropped or held attempts say nothing about this sender, and showing them let an
+  // attacker poison a victim's account: the first full live run (2026-11-05) held four
+  // honest writes, each because other senders had just attacked the same customer
+  // account or ticket. What got through to that resource is still evidence (several
+  // credits paid to one customer), and a sender's own failures still count against it.
+  return [...byEntry.values()]
+    .filter((w) => w.fromSender || w.verdict === "allow")
+    .slice(0, options.limit)
+    .map(({ fromSender: _, ...w }) => w);
 }
 
 /**

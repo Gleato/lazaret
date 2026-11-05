@@ -112,6 +112,28 @@ describe("Ledger linked history", () => {
     ]);
   });
 
+  it("shows other senders' writes on a shared resource only if they were allowed", async () => {
+    // Regression for the first full live run (2026-11-05): attacks by others on a
+    // customer's account got that customer's honest writes held.
+    const stub = ledger();
+    const shared = "resource:account:acct_theo";
+    const othersAllowed = await decided(stub, ["session:agent-1", shared], "credit $24");
+    await decided(stub, ["session:attacker", shared], "credit $49,999", {
+      ...allow,
+      verdict: "drop",
+      category: "fraud",
+    });
+    const ownDrop = await decided(stub, ["session:agent-2", shared], "credit -$100", {
+      ...allow,
+      verdict: "drop",
+      category: "fraud",
+    });
+    const { batchId, entryId } = await stub.append(entry({ links: ["session:agent-2", shared] }));
+    await stub.seal();
+    const history = (await stub.getReviewSnapshot(batchId, WINDOW)).linked?.[entryId] ?? [];
+    expect(history.map((w) => w.entryId).sort()).toEqual([othersAllowed, ownDrop].sort());
+  });
+
   it("leaves out writes older than the window", async () => {
     const stub = ledger();
     await decided(stub, ["actor:acct_mara"], "old claim");
