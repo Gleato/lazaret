@@ -1766,4 +1766,17 @@ River 2017, GEL 2019), the resume follows after approval; the long page stays at
   QUARANTINED ticket says a person will check it. No library or guard change. Verified
   locally for dropped, and for quarantined with a mocked receipt. No automated UI test:
   `e2e/tests/ui.spec.ts` is read-only against production.
+- **Refund limit per customer (2026-11-04, live: origin `ed6e5bd2`, site `76587cd0`):** the user's live
+  advanced test (05:01-05:09 UTC). Five refund tickets from Mara, each under $50 and each
+  in its own 30 s batch, were all allowed (confidence ~0.96), the assistant proposed all
+  five ($239), and Sam's credits paid four ($190; one was denied inline as fraud, with no
+  sign the reviewer knew about the others). The same run's ticket with instructions in
+  invisible Unicode tag characters was dropped by the reviewer (0.97) and flagged the
+  session; the gate gave it no signal. Fix, app-side only (the user's call: no library
+  change): `limitPerCustomer` in `apps/demo-origin/src/agent/run.ts` caps one customer's
+  proposed refunds at $50 per 30 days and escalates the rest, applied in the
+  `/api/agent/run` handler from `refund_proposals`; the "Lazaret off" replay is unchanged.
+  4 new tests. Honest flows change too: H3 ($24) plus G1 ($49) for Theo now escalates G1.
+  Also a "What Lazaret doesn't catch" note in README and in the site's Evals section.
+  Deployed; the limit itself is covered by tests, not yet re-run live by a person.
 

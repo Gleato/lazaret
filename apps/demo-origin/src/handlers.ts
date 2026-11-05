@@ -1,4 +1,11 @@
-import { runAgent, SCENARIOS, type ScenarioId, simulateLazaretOff } from "./agent/run";
+import {
+  CUSTOMER_WINDOW_MS,
+  limitPerCustomer,
+  runAgent,
+  SCENARIOS,
+  type ScenarioId,
+  simulateLazaretOff,
+} from "./agent/run";
 import type { AgentTicket, SupportAgent } from "./agent/types";
 import { type Account, authenticate, getAccount, login, randomToken, sha256Hex } from "./auth";
 import { onceByLazaretId, type WriteResult } from "./dedupe";
@@ -354,7 +361,19 @@ export const routes: Route<Ctx>[] = [
            ORDER BY t.created_at LIMIT 10`,
         )
         .all<AgentTicket>();
-      const run = await runAgent(agent, queue);
+      // Each customer's refunds proposed in the window, so the limit spans tickets and
+      // runs, not just one ticket (limitPerCustomer in agent/run.ts says why).
+      const { results: recent } = await ctx.db
+        .prepare(
+          `SELECT account_id, SUM(amount_cents) AS cents FROM refund_proposals
+           WHERE decision = 'propose_refund' AND created_at >= ? GROUP BY account_id`,
+        )
+        .bind(ctx.now - CUSTOMER_WINDOW_MS)
+        .all<{ account_id: string; cents: number }>();
+      const run = limitPerCustomer(
+        await runAgent(agent, queue),
+        Object.fromEntries(recent.map((r) => [r.account_id, r.cents])),
+      );
       // The run's token usage, for the public demo's spend cap (apps/demo-lazaret
       // guard.ts charges it and strips the header before the response leaves).
       const usage = agent.usage

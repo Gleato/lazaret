@@ -358,6 +358,22 @@ with its own manifest. In the repo, the apps run straight from the TypeScript so
 `npm run smoke:pack -w @gleator/lazaret` installs the packed tarball into an empty
 Worker, typechecks it under both `Bundler` and `NodeNext` resolution, and bundles it.
 
+## What Lazaret doesn't catch
+
+Lazaret judges each write on its own merits. Fraud spread across many believable
+requests gets through, because no single request in it is an attack.
+
+A live test on the demo (2026-11-04) showed this. One customer sent five refund
+tickets, each under $50 and each reviewed in its own batch. All five were allowed,
+Tidewater's AI assistant proposed all five refunds, and four of them, $190 in all, were
+paid. Adding up one customer's claims is the application's job, so Tidewater now caps
+the refunds its assistant proposes per customer, in code (`limitPerCustomer` in
+`apps/demo-origin/src/agent/run.ts`).
+
+The same test hid instructions for the assistant in invisible Unicode tag characters.
+The gate has no rule for those characters, but the reviewer decoded them and dropped
+the ticket.
+
 ## Roadmap
 
 - [x] M1: Ledger core (event log, state machine, seal triggers, crash recovery)

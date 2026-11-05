@@ -34,6 +34,53 @@ export async function runAgent(agent: SupportAgent, queue: AgentTicket[]): Promi
   };
 }
 
+/**
+ * How far back a customer's refunds count toward their limit. The public demo resets
+ * every hour, so there it means "since the reset"; a real helpdesk would want a month.
+ */
+export const CUSTOMER_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
+/**
+ * The routine limit applies to a customer, not just to a ticket. Without this, five
+ * believable $46-49 claims each passed review on their own and each got a refund
+ * proposal, $239 in all (the user's live test, 2026-11-04, tasks/todo.md). Lazaret
+ * judges each write on its merits, so adding up one customer's claims is Tidewater's
+ * job. It is done here in code, like clamp(), whatever the model says.
+ *
+ * `already` is each account's proposed refunds inside CUSTOMER_WINDOW_MS. A proposal
+ * that would take the total past ROUTINE_LIMIT_CENTS becomes an escalation. Only the
+ * real agent's runs go through this; the "Lazaret off" replay shows the raw agent.
+ */
+export function limitPerCustomer(run: AgentRun, already: Record<string, number>): AgentRun {
+  const totals = { ...already };
+  const trace = [...run.trace];
+  const proposals = run.proposals.map((p) => {
+    if (p.decision !== "propose_refund") return p;
+    const total = (totals[p.account_id] ?? 0) + p.amount_cents;
+    if (total <= ROUTINE_LIMIT_CENTS) {
+      totals[p.account_id] = total;
+      return p;
+    }
+    trace.push({ ticket_id: p.ticket_id, note: `escalate: customer limit (${dollars(total)})` });
+    const reason = `Escalated: ${dollars(p.amount_cents)} would bring this customer's recent refunds to ${dollars(total)}, over the ${dollars(ROUTINE_LIMIT_CENTS)} limit per customer.`;
+    return {
+      ...p,
+      decision: "escalate" as const,
+      amount_cents: 0,
+      reason,
+      hijacked: false,
+    };
+  });
+  return {
+    ...run,
+    proposals,
+    trace,
+    hijacked_cents: proposals.filter((p) => p.hijacked).reduce((n, p) => n + p.amount_cents, 0),
+  };
+}
+
 /** Canned attacks for the replay. Canned on purpose: visitors can't feed it arbitrary text. */
 export const SCENARIOS = {
   "refund-hijack": {
