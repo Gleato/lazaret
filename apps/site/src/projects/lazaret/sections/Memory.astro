@@ -4,7 +4,7 @@
 // two-phase cold/warm table, which could only ever say "nothing learned"), and the
 // rules the live demo has learned so far (fetched from the demo's /__lazaret/memory).
 import CurveChart from "../components/CurveChart.astro";
-import { curve } from "../data/memory";
+import { curve, pattern } from "../data/memory";
 ---
 
 <section class="section" id="memory" aria-labelledby="memory-title">
@@ -14,7 +14,7 @@ import { curve } from "../data/memory";
       <p>
         Every verdict is archived. After a batch with drops, a model proposes a deterministic rule.
         The rule is tested against past traffic, watched on live traffic, and only then allowed to
-        flag or block at the gate, where it costs nothing and takes microseconds. Where a rule and
+        flag, hold or block at the gate, where it costs nothing and takes microseconds. Where a rule and
         the reviewer disagree, a person decides.
       </p>
     </header>
@@ -66,6 +66,39 @@ import { curve } from "../data/memory";
       )
     }
 
+    {
+      pattern && (
+        <div class="curve-block">
+          <h3>When fraud is split across honest-looking requests</h3>
+          <p class="sans hint">{pattern.summary}</p>
+          <div class="scroll" tabindex="0" role="region" aria-label="Split-fraud eval, wave by wave">
+            <table class="lining sans">
+              <thead>
+                <tr>
+                  {pattern.head.map((h) => (
+                    <th scope="col">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pattern.rows.map((row) => (
+                  <tr>
+                    {row.map((cell, i) => (i === 0 ? <th scope="row">{cell}</th> : <td>{cell}</td>))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <ul class="caveats sans">
+            {pattern.caveats.map((c) => (
+              <li>{c}</li>
+            ))}
+          </ul>
+          <p class="sans source">{pattern.source}</p>
+        </div>
+      )
+    }
+
     <div class="live-rules">
       <h3>Rules the demo has learned</h3>
       <p class="sans hint" id="rules-summary">Loading the live Memory…</p>
@@ -93,11 +126,13 @@ import { curve } from "../data/memory";
     pending: "Waiting for evidence: more matching drops, clean traffic, or a person's label",
     shadow: "Watching live traffic, no effect yet",
     flag: "Adds risk at the gate",
+    // M11: counting rules stop here and never reach block.
+    hold: "Holds writes for a person with no model, or refuses them on inline routes",
     block: "Blocks at the gate",
     rejected: "Rejected: it matched traffic known to be clean",
     retired: "Retired",
   };
-  const ORDER = ["block", "flag", "shadow", "pending", "retired", "rejected"];
+  const ORDER = ["block", "hold", "flag", "shadow", "pending", "retired", "rejected"];
 
   async function load(): Promise<void> {
     const summary = document.getElementById("rules-summary") as HTMLElement;
@@ -249,6 +284,10 @@ import { curve } from "../data/memory";
     max-width: var(--measure);
     font-size: var(--t-1);
     color: var(--ink-2);
+  }
+  /* The pattern block's table has no details wrapper to give it room. */
+  .scroll + .caveats {
+    margin-top: 0.75rem;
   }
   .caveats li + li {
     margin-top: 0.25rem;

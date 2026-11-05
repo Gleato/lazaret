@@ -177,6 +177,14 @@ reviewer missed. Every decision is labelled into the Memory as ground truth, so 
 also learns from the reviewer's mistakes. Resolve held writes while the author's session
 token is still valid: the Committer replays their original headers.
 
+A rule can also `hold`: a matching write goes to a person with no model call. On an escrow
+route it waits in this queue. An inline route can't queue, so there the write is refused
+with `403 held_for_review`. Holds stop at 5 per sender per hour, and later writes go to the
+reviewer, so a bad rule can't swallow a customer's traffic. With `link` on, rules can read
+how many writes a sender made on a route in the last hour (`linked.sender_route_1h`,
+`linked.resource_route_1h`). Those counting rules are the one kind that climb to `hold` and
+never to block, because a count is a pattern and not proof.
+
 The Memory also asks for a label when a learned rule and the reviewer disagree: a rule
 matched a write that only a model allowed. Rules see the decoded request, so the rule
 may have caught something the reviewer missed, or the rule may be too broad. No model
@@ -334,11 +342,30 @@ honest writes are most of the traffic and each still needs a model. The learned 
 stopped none of the attack families held out of training: they fit the payloads they
 were learned from.
 
+A third eval tests learning on split fraud
+([`evals/results/pattern-latest.json`](evals/results/pattern-latest.json), live,
+2026-11-05, $0.45). Four waves of fresh actors each run 8 attack plays and 8 honest
+look-alikes, with a simulated operator working the queue:
+
+| Wave | Attacks stopped | Claims held by a rule, no model | Model reads | Honest look-alikes stopped |
+| ---- | --------------- | ------------------------------- | ----------- | -------------------------- |
+| 1    | 8 of 8          | 0                               | 56          | 3 of 8                     |
+| 2    | 8 of 8          | 0                               | 56          | 3 of 8                     |
+| 3    | 8 of 8          | 6                               | 42          | 3 of 8                     |
+| 4    | 8 of 8          | 6                               | 42          | 3 of 8                     |
+
+The distiller proposed a counting rule in wave 1 ("two or more earlier tickets from this
+sender in the hour"), and it reached `hold` in wave 2. A counting rule climbs shadow, flag,
+hold and never blocks. It held no honest write. Every honest stop came from the reviewer:
+see [What Lazaret doesn't catch](#what-lazaret-doesnt-catch).
+
 ```bash
 npm run eval:gate        # deterministic modes, free: evals/results/{gate-only,fake}.json
 EVAL_CONFIRM_SPEND=yes npm run eval:live   # real Claude, about $0.25, capped by EVAL_MAX_USD
 npm run eval:campaign    # campaign replay, free: evals/results/campaign-fake.json
 EVAL_CONFIRM_SPEND=yes npm run eval:campaign:live  # about $1-1.50, capped by EVAL_MAX_USD
+npm run eval:pattern     # split-fraud learning, free: evals/results/pattern-fake.json
+EVAL_MAX_USD=1.50 npm run eval:pattern:live  # about $0.45
 ```
 
 ## Development
@@ -388,6 +415,18 @@ across batches (step 11 above). On the eval's four split-fraud cases, the review
 4 of 4 for a person, up from 1 of 4, and held none of the four honest look-alikes (a busy
 customer, a support agent crediting several customers).
 
+What it stops that it shouldn't:
+
+- **Honest writes shaped like fraud.** In the pattern eval the reviewer stopped 3 of 8
+  honest look-alikes in every wave, 12 of 32 in all. 7 were agents crediting several
+  customers. That route is inline, so the credit was refused and no person was asked. 5
+  were customers with two genuine claims, held for a person. Those plays are built to look
+  like fraud, so this isn't a rate for ordinary traffic (the main corpus stopped 2 of 61
+  benign requests). Giving them realistic, varied amounts didn't help: 14 of 32 before, 12
+  of 32 after. The reviewer reacts to the burst itself, the same signal that catches the
+  fraud, so lowering this risks recall. It is unsolved. A route where a false refusal is
+  costly should use escrow, so that a person can release the write.
+
 What still gets through:
 
 - **The first writes in a pattern.** A pattern only shows once a few writes have built up,
@@ -418,6 +457,8 @@ dropped the ticket.
   production E2E suite, and the npm package
 - [x] M9: the gleator.com redesign and launch
 - [x] M10: linked history, so the reviewer sees fraud split across batches
+- [x] M11: count signals, a `hold` action and counting rules, so the Memory learns split
+  fraud
 
 The full spec is in [`tasks/todo.md`](tasks/todo.md).
 

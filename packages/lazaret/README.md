@@ -18,7 +18,9 @@ that fails is dropped, together with the writes that depend on it.
 - **Committer:** replays approved writes to origin, HMAC-signed and idempotent.
 - **Memory:** learns from the reviewer's verdicts and from human labels. It proposes rules
   in a safe DSL, backtests them against clean traffic, and promotes them into the gate,
-  so attacks it has seen before get cheaper to stop.
+  so attacks it has seen before get cheaper to stop. With `link`, it can also learn
+  counting rules, which send repeated claims to a person with no model call. They climb
+  to `hold` and never to block.
 
 Live demo: [demo.gleator.com](https://demo.gleator.com). Full guide, design notes and
 evals: [github.com/Gleato/lazaret](https://github.com/Gleato/lazaret).

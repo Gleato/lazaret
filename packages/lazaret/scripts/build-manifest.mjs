@@ -36,6 +36,7 @@ const published = {
 writeFileSync("dist/package.json", `${JSON.stringify(published, null, 2)}\n`);
 copyFileSync("README.md", "dist/README.md");
 copyFileSync("LICENSE", "dist/LICENSE");
+copyFileSync("CHANGELOG.md", "dist/CHANGELOG.md");
 console.log(
   `dist/package.json: ${pkg.name}@${pkg.version}, ${Object.keys(exports).length} entry points`,
 );

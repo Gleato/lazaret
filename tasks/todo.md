@@ -1199,7 +1199,9 @@ Never a tier that rejects: a busy honest customer can trip a count.
       differ only in being split into a different batch (`thread`, `refund_then_bug`)
       pass, so the reviewer separates "one claim plus something else" from "two refund
       claims", which is the line the attack crosses too.
-    - Open: decide whether to ship with this as a stated limit. Options for the owner:
+    - Decided by the owner (2026-11-05): ship 0.3.0 with this as a stated limit and stop
+      development. The bar's "honest held 0" was not met, so the item stays unticked.
+    - Options weighed: Options for the owner:
       (a) report honestly as is (3 of 8 look-alike plays held or refused; recall 100%
       on these plays); (b) make agent roles
       with ticket+order evidence and repeat-claim humans distinguishable (a real
@@ -1207,8 +1209,10 @@ Never a tier that rejects: a busy honest customer can trip a count.
       is library code and so not done here. No further paid run until decided.
 
 **Ship (with the library's bar)**
-- [ ] `CHANGELOG.md` for the package (0.1.0, 0.2.0 and this), and upgrade notes.
-- [ ] README: the counting rules, the `hold` tier, cost, and limits. Site Memory panel.
+- [x] `CHANGELOG.md` for the package (0.1.0, 0.2.0 and this), and upgrade notes.
+- [x] README: the counting rules, the `hold` tier, cost, and limits. Site Memory panel
+  (built from `pattern-latest.json`; it also gained the `hold` status it would otherwise
+  have shown raw).
 - [ ] A paid production smoke (~$0.01) of M10 linking first, so we build on verified
   ground; the same after M11.
 - [ ] `@gleator/lazaret` 0.3.0 (new optional fields and an action, nothing removed).

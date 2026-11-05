@@ -219,3 +219,90 @@ export const curve: CurveView | null = toCurveView(
     | CampaignResult
     | undefined,
 );
+
+// The split-fraud pattern eval (M11), from evals/results/pattern-latest.json, read at
+// build time so the panel can't drift from the published run. A separate block from the
+// campaign curve: it has four waves, no charts, and its main caveat is the honest stops.
+const patternFiles = import.meta.glob<{ default: unknown }>(
+  "../../../../../../evals/results/pattern-latest.json",
+  { eager: true },
+);
+
+interface PatternWave {
+  wave: number;
+  attacks: number;
+  attacksStopped: number;
+  heldByRule: number;
+  honest: number;
+  honestHeld: { id: string; stage: string }[];
+  modelReads: number;
+  rules: { status: string }[];
+}
+
+interface PatternResult {
+  mode: "fake" | "live";
+  startedAt: string;
+  costUsd: number;
+  waves: PatternWave[];
+}
+
+export interface PatternView {
+  summary: string;
+  head: string[];
+  rows: string[][];
+  caveats: string[];
+  source: string;
+}
+
+export function toPatternView(r: PatternResult | undefined): PatternView | null {
+  // Live runs only: the free run's scripted reviewer says nothing about honest holds.
+  if (r?.mode !== "live" || !r.waves.length) return null;
+  const first = r.waves[0] as PatternWave;
+  const last = r.waves.at(-1) as PatternWave;
+  const honestStopped = r.waves.reduce((n, w) => n + w.honestHeld.length, 0);
+  const honestTotal = r.waves.reduce((n, w) => n + w.honest, 0);
+  const inline = r.waves.reduce(
+    (n, w) => n + w.honestHeld.filter((h) => h.stage === "inline").length,
+    0,
+  );
+  const date = new Date(r.startedAt).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  return {
+    summary:
+      "Each wave brings new accounts, amounts and wording. The Memory learned from the first " +
+      "wave's drops that repeated claims from one sender are the pattern, and wrote a rule " +
+      "that counts them. Once that rule reached hold, it stopped claims with no model, and " +
+      `model reads per wave fell from ${first.modelReads} to ${last.modelReads}. It held no ` +
+      "honest write. Honest writes were still stopped, all of them by the reviewer.",
+    head: [
+      "Wave",
+      "Attacks stopped",
+      "Claims held by the rule",
+      "Model reads",
+      "Honest look-alikes stopped",
+      "Rule",
+    ],
+    rows: r.waves.map((w) => [
+      String(w.wave),
+      `${w.attacksStopped} of ${w.attacks}`,
+      String(w.heldByRule),
+      String(w.modelReads),
+      `${w.honestHeld.length} of ${w.honest}`,
+      w.rules[0]?.status ?? "none",
+    ]),
+    caveats: [
+      `The reviewer stopped ${honestStopped} of ${honestTotal} honest look-alikes. ${inline} were agents crediting several customers, refused with no person asked because that route can't queue. The other ${honestStopped - inline} were customers with two genuine claims, held for a person.`,
+      "Those plays are built to look like fraud, so this isn't a rate for ordinary traffic. The reviewer reacts to the burst, the same signal that catches the fraud. This is unsolved.",
+      "The traffic is generated and the human queue was worked by a simulated operator.",
+    ],
+    source: `Live run of ${date}, $${r.costUsd.toFixed(2)} in all (evals/results/pattern-latest.json).`,
+  };
+}
+
+export const pattern: PatternView | null = toPatternView(
+  Object.values(patternFiles)[0]?.default as PatternResult | undefined,
+);
