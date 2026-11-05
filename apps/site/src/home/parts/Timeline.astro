@@ -6,7 +6,7 @@ import { TIMELINE } from "../data/career";
 ---
 
 <section class="timeline" data-timeline aria-labelledby="tl-title">
-  <h3 id="tl-title" class="tl-title">The journey so far</h3>
+  <h2 id="tl-title" class="tl-title">The journey so far</h2>
   <p class="tl-hint">Select a year to read about it.</p>
 
   <div class="stage">
@@ -106,16 +106,19 @@ import { TIMELINE } from "../data/career";
 <style>
   .timeline {
     max-width: 760px;
-    margin: clamp(52px, 7vw, 76px) auto 0;
+    margin: 0 auto;
     text-align: center;
   }
+  /* It leads the sheet, so it's sized like the Profile sheet's name, a step down. */
   .tl-title {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: clamp(1.7rem, 3.4vw, 2.2rem);
     font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
   }
   .tl-hint {
-    margin: 4px 0 0;
+    margin: 6px 0 0;
     font-size: 0.85rem;
     color: var(--ink-3);
   }
@@ -196,6 +199,8 @@ import { TIMELINE } from "../data/career";
   }
   .stop {
     display: grid;
+    /* Top-aligned: a one-line name would otherwise stretch its rows and drop its dot. */
+    align-content: start;
     justify-items: center;
     gap: 2px;
   }
