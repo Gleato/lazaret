@@ -59,7 +59,15 @@ const PROBE_VARIANTS = { heldOut: 4, train: 2, benign: 2 } as const;
 /** Probe variants are numbered from here, so the stream never sends one. */
 const PROBE_BASE = 1000;
 
-const EXCLUDED_CLASSES = new Set(["credential_attack", "taint", "read"]);
+// split_fraud and busy_customer (M10) are patterns across writes. The campaign mutates
+// single writes and learns single-write rules, which can't express them yet.
+const EXCLUDED_CLASSES = new Set([
+  "credential_attack",
+  "taint",
+  "read",
+  "split_fraud",
+  "busy_customer",
+]);
 const OPERATOR_TOKEN = "campaign-simulated-operator-token";
 
 export interface CampaignOptions {

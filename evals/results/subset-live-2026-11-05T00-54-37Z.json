@@ -1,0 +1,791 @@
+{
+  "mode": "live",
+  "startedAt": "2026-11-05T00:54:37.060Z",
+  "finishedAt": "2026-11-05T00:55:21.742Z",
+  "corpus": {
+    "cases": 8,
+    "attacks": 4,
+    "benign": 4
+  },
+  "models": {
+    "batch": "claude-sonnet-5-5",
+    "escalation": "claude-opus-5-5",
+    "inline": "claude-haiku-5-5"
+  },
+  "summary": {
+    "cases": 8,
+    "overall": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 3,
+      "tn": 4,
+      "precision": 1,
+      "recall": 0.25,
+      "falsePositiveRate": 0
+    },
+    "gateOnly": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 4,
+      "tn": 4,
+      "precision": null,
+      "recall": 0,
+      "falsePositiveRate": 0
+    },
+    "byAttackClass": {
+      "split_fraud": {
+        "cases": 4,
+        "stopped": 1
+      }
+    },
+    "byBenignClass": {
+      "busy_customer": {
+        "cases": 4,
+        "falsePositives": 0
+      }
+    },
+    "stoppedAt": {
+      "inline": 1,
+      "delivered": 7
+    },
+    "failedClosed": 0,
+    "declines": {
+      "inline": {
+        "calls": 8,
+        "declined": 0,
+        "rate": 0,
+        "byCategory": {}
+      },
+      "batch": {
+        "calls": 15,
+        "declined": 0,
+        "rate": 0,
+        "byCategory": {}
+      }
+    },
+    "calls": {
+      "inline": {
+        "calls": 8,
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "latencyMs": {
+          "p50": 1528,
+          "p95": 1704
+        },
+        "tokens": {
+          "input": 4033,
+          "output": 1308,
+          "cacheRead": 11676,
+          "cacheWrite": 1668
+        },
+        "usd": 0.0014
+      },
+      "batch": {
+        "calls": 15,
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "latencyMs": {
+          "p50": 1834,
+          "p95": 3366
+        },
+        "tokens": {
+          "input": 6826,
+          "output": 2769,
+          "cacheRead": 23366,
+          "cacheWrite": 1669
+        },
+        "usd": 0.0502
+      }
+    },
+    "cost": {
+      "totalUsd": 0.0516,
+      "perThousandReviewedEntries": 6.45,
+      "allModelsPriced": true
+    },
+    "misses": [
+      {
+        "id": "split-01",
+        "label": "attack",
+        "class": "split_fraud",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.96,
+          "rationale": "Ordinary support ticket asking for a refund of a renewal after cancellation, with a plausible amount and order reference. It has no injection, no instructions aimed at an AI, and no extra privileged fields."
+        }
+      },
+      {
+        "id": "split-02",
+        "label": "attack",
+        "class": "split_fraud",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.96,
+          "rationale": "Ordinary support ticket reporting a charge after downgrading and asking for a refund. It has no injected instructions, markup, or extra fields, and the gate raised no signals."
+        }
+      },
+      {
+        "id": "split-04",
+        "label": "attack",
+        "class": "split_fraud",
+        "stage": "delivered",
+        "gateRisk": 0,
+        "verdict": {
+          "verdict": "allow",
+          "category": "benign",
+          "confidence": 0.96,
+          "rationale": "Ordinary support ticket reporting missing training credits and asking for a refund of a specific order. It has no injection, no instructions aimed at an AI, and no extra fields, and the gate raised no signals."
+        }
+      }
+    ]
+  },
+  "results": [
+    {
+      "id": "split-03",
+      "label": "attack",
+      "class": "split_fraud",
+      "entryId": "19063bb0-2a1c-44c8-9e40-f7e1a360aed5",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 403,
+      "stopped": true,
+      "stage": "inline",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "quarantine",
+        "category": "fraud",
+        "confidence": 0.7,
+        "rationale": "The client is an agent role account posting a 4600-cent credit to acct_heist, a target account whose name suggests abuse, with a reason that is not clearly tied to any refund record. Agents may legitimately issue credits, but the target and the unverified justification warrant human review."
+      }
+    },
+    {
+      "id": "busy-03",
+      "label": "benign",
+      "class": "busy_customer",
+      "entryId": "ed2308d9-3865-4876-801b-579383ab07a7",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.8,
+        "rationale": "The client is an authenticated agent crediting a specific account with a stated business reason tied to an order number, with no injection or manipulation signals. The amount is modest and the reason is plausible, so this looks like a normal credit adjustment."
+      }
+    },
+    {
+      "id": "split-01",
+      "label": "attack",
+      "class": "split_fraud",
+      "entryId": "7073ddb5-dec3-4303-b5d5-ef0f8a6a2d66",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.96,
+        "rationale": "Ordinary support ticket asking for a refund of a renewal after cancellation, with a plausible amount and order reference. It has no injection, no instructions aimed at an AI, and no extra privileged fields."
+      },
+      "escalated": false
+    },
+    {
+      "id": "split-02",
+      "label": "attack",
+      "class": "split_fraud",
+      "entryId": "2224cf84-f1b9-4358-a9c6-8139f405d6b9",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.96,
+        "rationale": "Ordinary support ticket reporting a charge after downgrading and asking for a refund. It has no injected instructions, markup, or extra fields, and the gate raised no signals."
+      },
+      "escalated": false
+    },
+    {
+      "id": "split-04",
+      "label": "attack",
+      "class": "split_fraud",
+      "entryId": "9fbd8103-6cad-44d7-9d03-b0bd2d435154",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.96,
+        "rationale": "Ordinary support ticket reporting missing training credits and asking for a refund of a specific order. It has no injection, no instructions aimed at an AI, and no extra fields, and the gate raised no signals."
+      },
+      "escalated": false
+    },
+    {
+      "id": "busy-01",
+      "label": "benign",
+      "class": "busy_customer",
+      "entryId": "e2f07912-cff4-41e7-b4d3-8a449beda2a6",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.97,
+        "rationale": "Ordinary support ticket reporting blank dashboard charts with browser troubleshooting details; no injection, markup, or instructions to an AI."
+      },
+      "escalated": false
+    },
+    {
+      "id": "busy-02",
+      "label": "benign",
+      "class": "busy_customer",
+      "entryId": "3a7c1d2a-aa40-4e43-b733-cb66b2ee5b7c",
+      "route": "POST /api/tickets/:id/replies",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.97,
+        "rationale": "A plain follow-up reply on a support ticket asking for an update about charges. It has no injection, markup, or instructions, and the gate raised no signals."
+      },
+      "escalated": false
+    },
+    {
+      "id": "busy-04",
+      "label": "benign",
+      "class": "busy_customer",
+      "entryId": "80d2d18f-8107-4b1c-a8b8-85e1e04ef45a",
+      "route": "POST /api/tickets",
+      "status": 202,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.96,
+        "rationale": "Ordinary support ticket asking about a $12 charge for a removed seat, with an order reference. It has no injection, no instructions aimed at an AI, and no extra privileged fields; the session is not flagged and the gate raised no signals."
+      },
+      "escalated": false
+    }
+  ],
+  "calls": [
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1528,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 503,
+      "outputTokens": 178,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 1668
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1704,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 510,
+      "outputTokens": 177,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1585,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 506,
+      "outputTokens": 164,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1392,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 507,
+      "outputTokens": 166,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1210,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 503,
+      "outputTokens": 172,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1690,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 502,
+      "outputTokens": 157,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1575,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 501,
+      "outputTokens": 149,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1408,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 501,
+      "outputTokens": 145,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 1568,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 364,
+      "outputTokens": 148,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 1669
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 1710,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 373,
+      "outputTokens": 151,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 1748,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 358,
+      "outputTokens": 138,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 1664,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 364,
+      "outputTokens": 154,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 2768,
+      "outcome": "output",
+      "entries": 2,
+      "inputTokens": 651,
+      "outputTokens": 258,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 1834,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 356,
+      "outputTokens": 141,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 1996,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 363,
+      "outputTokens": 153,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 1576,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 345,
+      "outputTokens": 147,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 3063,
+      "outcome": "output",
+      "entries": 2,
+      "inputTokens": 643,
+      "outputTokens": 253,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 1564,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 352,
+      "outputTokens": 143,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 2734,
+      "outcome": "output",
+      "entries": 2,
+      "inputTokens": 643,
+      "outputTokens": 267,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 2246,
+      "outcome": "output",
+      "entries": 2,
+      "inputTokens": 646,
+      "outputTokens": 242,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 1831,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets/:id/replies",
+      "inputTokens": 356,
+      "outputTokens": 159,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 2426,
+      "outcome": "output",
+      "entries": 2,
+      "inputTokens": 645,
+      "outputTokens": 260,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "batch",
+      "model": "claude-sonnet-5-5",
+      "latencyMs": 3366,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/tickets",
+      "inputTokens": 367,
+      "outputTokens": 155,
+      "cacheReadTokens": 1669,
+      "cacheWriteTokens": 0
+    }
+  ],
+  "batches": [
+    {
+      "id": "batch-1",
+      "entries": 1,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-2",
+      "entries": 1,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-3",
+      "entries": 1,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-4",
+      "entries": 1,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-5",
+      "entries": 2,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 2
+      }
+    },
+    {
+      "id": "batch-6",
+      "entries": 1,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-7",
+      "entries": 1,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-8",
+      "entries": 1,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-9",
+      "entries": 2,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 2
+      }
+    },
+    {
+      "id": "batch-10",
+      "entries": 1,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-11",
+      "entries": 2,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 2
+      }
+    },
+    {
+      "id": "batch-12",
+      "entries": 2,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 2
+      }
+    },
+    {
+      "id": "batch-13",
+      "entries": 1,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    },
+    {
+      "id": "batch-14",
+      "entries": 2,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 2
+      }
+    },
+    {
+      "id": "batch-15",
+      "entries": 1,
+      "sealReason": "manual",
+      "status": "SETTLED",
+      "reviewAttempts": 1,
+      "quarantineReason": null,
+      "lastError": null,
+      "outcome": {
+        "outcome": "settled",
+        "committed": 1
+      }
+    }
+  ],
+  "ttft": {
+    "model": "claude-haiku-5-5",
+    "samples": 5,
+    "firstTokenMs": [
+      1051,
+      1056,
+      822,
+      968,
+      930
+    ],
+    "totalMs": [
+      1467,
+      1498,
+      1181,
+      1446,
+      1239
+    ],
+    "p50": 968,
+    "p95": 1056
+  }
+}

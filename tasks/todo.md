@@ -915,6 +915,79 @@ River 2017, GEL 2019), the resume follows after approval; the long page stays at
 - [x] `npm test`, `npm run typecheck`, `npx biome check .` clean.
 - [x] **After approval (approved 2026-11-02):** update the resume (gleator.com link, any date fixes) and re-render. Done: lab dates corrected in `~/dev/resume/my-resume.html`, re-rendered (one page), and published as `apps/site/public/ridge-gleaton-resume.pdf`. No gleator.com link yet; it goes on the resume once the site is live.
 
+### M10 — Link writes across batches (2026-11-04, approved; evals in progress)
+
+**Why.** The user's live test (2026-11-04, Review below) sent five believable refund
+tickets, each in its own 30 s batch. The reviewer allowed all five: it is told to weigh
+entries from one session together, but only ever sees the current batch, and taint only
+carries dropped or held writes forward, never allowed ones. Four refunds were paid,
+$190. The idea is the user's: link writes by keys that survive across batches, and show
+the reviewer each new write's recent linked history before it judges. It protects apps
+that don't add up claims themselves. It narrows the loss, it doesn't end it: the first
+writes in a pattern still look honest, and committed writes can't be recalled.
+
+**Design (to confirm at check-in)**
+- **Link keys, configurable:** `session` (always), `actor` (the account id; today only
+  inline review resolves it, through `review.actor`), and the route's `resources` (the
+  credits route already has `account:{id}`, the account receiving the money). Linking by
+  session alone is weak: signing in again starts a new one.
+- **Open question, actor on escrowed writes:** `EntryInput` has no actor. Resolving it at
+  intake costs one origin subrequest per write; caching it per session cuts that to one
+  per session. Decide at check-in.
+- **History, not merging:** each write still gets its own verdict. The prompt gains a
+  `linked_history` block: for the last N (say 8) linked writes in a window (say 24 h),
+  the route, a capped preview, the time and the earlier verdict. It's still untrusted
+  data, escaped like the rest. Fixed caps keep the extra cost known.
+- **Default to holding:** the prompt says a pattern across writes is evidence, not proof,
+  so it usually means "quarantine" (a person checks), not "drop".
+- **Retention:** compaction prunes settled entries, so the Ledger keeps a small index per
+  link key (entry id, route, preview, verdict, time) for the window, kept through
+  compaction and crash recovery.
+- **Both paths:** batch review and inline review (the payout routes) get the history.
+- **Learning:** the rule DSL judges one request (`json:`, `body`, `signal:`…), so it
+  can't express "more than 3 refund claims from one account in an hour". Add a bounded
+  aggregate condition (count of linked writes on a route within a window), so memory can
+  learn this attack once it is caught, and backtest it like any rule.
+
+**Evals first, before any library change**
+- [x] Attack cases (`split_fraud`): split-01 the heist as sent, split-02 the same with a
+  new sign-in before each claim, split-03 four credits to one account, split-04 a shorter
+  three-claim heist (where does the line fall?).
+- [x] Hard negatives (`busy_customer`): busy-01 a refund then an unrelated bug, busy-02
+  a refund with two follow-up replies, busy-03 an agent crediting four different
+  customers, busy-04 one customer with two genuine billing problems (the hardest).
+- [x] Runner: a step can set `newBatch` (seal and review everything first, as if the
+  client waited 30 s) and `session` (another login of the same account). Spaced cases
+  run after the shuffled rest, so the existing 120 cases batch exactly as before:
+  gate-only 5 stopped / 0 benign held and fake 32 / 1, both unchanged. The campaign
+  excludes both new classes: it learns single-write rules, which can't express them.
+- [x] Free baseline (`eval:gate`, 2026-11-04): all 8 new cases delivered in both
+  gate-only and scripted modes, as expected. Every split attack gets through today.
+- [x] Live baseline (real reviewer, 2026-11-05, $0.05 + $0.001): `EVAL_ONLY=split-,busy-`
+  runs just those cases and writes `results/subset-live-*.json`, never `live-latest.json`
+  (the site's numbers). Results: split-01, split-02 and split-04 delivered, every claim
+  allowed at 0.96 as "an ordinary support ticket"; split-03's fourth credit was held
+  (quarantine 0.6), but its rationale is general caution about credits, not the three
+  credits before it, which the inline reviewer can't see (the live demo also denied one
+  credit of five). All four honest cases delivered (0.8-0.97). So 1 of 4 attacks
+  stopped, 0 of 4 honest held. Fixed in passing: split-03 first used `acct_heist`,
+  which the reviewer cited as a giveaway; renamed to `acct_rowan` (and the busy-03
+  accounts to ordinary names) and re-ran those two. The `00-54-37Z` file's split-03 row
+  is that invalid first run; `00-55-53Z` replaces it.
+
+**Build, in order, measuring after each**
+- [ ] Link keys in config, plus the per-key history index in the Ledger (unit tests:
+  window, caps, compaction, recovery).
+- [ ] `linked_history` in the batch and inline prompts (tests: escaping, caps, no
+  credentials, memory signals still hidden).
+- [ ] Aggregate condition in the rule DSL, with the same ReDoS-style bounds.
+- [ ] Re-run the evals: more split fraud stopped, without more honest writes held.
+
+**Ship**
+- [ ] Update "What Lazaret doesn't catch" (README and the site's Evals section) with the
+  measured result: what linking catches, what still gets through, and what it costs.
+- [ ] Publish a minor version of `@gleator/lazaret`.
+
 ---
 
 ## 10. Open questions

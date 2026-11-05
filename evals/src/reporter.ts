@@ -15,6 +15,12 @@ export default class EvalResultsReporter implements Reporter {
     const corpus = meta.evalResult as Written | undefined;
     const memory = meta.memoryResult as Written | undefined;
     const campaign = meta.campaignResult as Written | undefined;
+    // A subset run (EVAL_ONLY) keeps its own history and never replaces live-latest.json,
+    // which the site publishes as the full corpus's numbers.
+    if (process.env.EVAL_ONLY) {
+      if (corpus?.mode === "live") write(corpus, "subset-", null);
+      return;
+    }
     if (corpus) write(corpus, "", "live-latest.json");
     // The Memory eval (M7 E) feeds the site's memory panel, which reads memory-latest.json.
     if (memory) write(memory, "memory-", "memory-latest.json");
@@ -23,7 +29,7 @@ export default class EvalResultsReporter implements Reporter {
   }
 }
 
-function write(result: Written, prefix: string, latest: string) {
+function write(result: Written, prefix: string, latest: string | null) {
   const dir = new URL("../results/", import.meta.url);
   mkdirSync(dir, { recursive: true });
   // Deterministic modes overwrite one file; live runs keep a history, one file per
@@ -33,7 +39,7 @@ function write(result: Written, prefix: string, latest: string) {
   const stamp = `${result.startedAt.slice(0, 19).replaceAll(":", "-")}Z`;
   const names =
     result.mode === "live"
-      ? [`${prefix}live-${stamp}.json`, latest]
+      ? [`${prefix}live-${stamp}.json`, ...(latest ? [latest] : [])]
       : [`${prefix}${result.mode}.json`];
   for (const name of names) writeFileSync(new URL(name, dir), body);
   const file = new URL(names[0] as string, dir);

@@ -1,0 +1,243 @@
+{
+  "mode": "live",
+  "startedAt": "2026-11-05T00:55:53.150Z",
+  "finishedAt": "2026-11-05T00:56:07.293Z",
+  "corpus": {
+    "cases": 2,
+    "attacks": 1,
+    "benign": 1
+  },
+  "models": {
+    "batch": "claude-sonnet-5-5",
+    "escalation": "claude-opus-5-5",
+    "inline": "claude-haiku-5-5"
+  },
+  "summary": {
+    "cases": 2,
+    "overall": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "tn": 1,
+      "precision": 1,
+      "recall": 1,
+      "falsePositiveRate": 0
+    },
+    "gateOnly": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "tn": 1,
+      "precision": null,
+      "recall": 0,
+      "falsePositiveRate": 0
+    },
+    "byAttackClass": {
+      "split_fraud": {
+        "cases": 1,
+        "stopped": 1
+      }
+    },
+    "byBenignClass": {
+      "busy_customer": {
+        "cases": 1,
+        "falsePositives": 0
+      }
+    },
+    "stoppedAt": {
+      "inline": 1,
+      "delivered": 1
+    },
+    "failedClosed": 0,
+    "declines": {
+      "inline": {
+        "calls": 8,
+        "declined": 0,
+        "rate": 0,
+        "byCategory": {}
+      }
+    },
+    "calls": {
+      "inline": {
+        "calls": 8,
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "latencyMs": {
+          "p50": 1754,
+          "p95": 2136
+        },
+        "tokens": {
+          "input": 4040,
+          "output": 1375,
+          "cacheRead": 13344,
+          "cacheWrite": 0
+        },
+        "usd": 0.0012
+      }
+    },
+    "cost": {
+      "totalUsd": 0.0012,
+      "perThousandReviewedEntries": 0.61,
+      "allModelsPriced": true
+    },
+    "misses": []
+  },
+  "results": [
+    {
+      "id": "split-03",
+      "label": "attack",
+      "class": "split_fraud",
+      "entryId": "f0203dcb-f204-476e-bcbb-b7da541ee9c9",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 403,
+      "stopped": true,
+      "stage": "inline",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "quarantine",
+        "category": "fraud",
+        "confidence": 0.6,
+        "rationale": "An agent-role account is crediting another account 4600 cents with a refund reason that references a renewal after cancellation, which is a plausible support action but also a common vector for unauthorized credits. The actor is an agent, so the route may be legitimate, but the amount and target account cannot be verified from the request alone and a human should confirm it."
+      }
+    },
+    {
+      "id": "busy-03",
+      "label": "benign",
+      "class": "busy_customer",
+      "entryId": "94cc19f4-69b8-4b1e-9386-db9ab6fecae8",
+      "route": "POST /api/accounts/:id/credits",
+      "status": 201,
+      "stopped": false,
+      "stage": "delivered",
+      "gateRisk": 0,
+      "signals": [],
+      "verdict": {
+        "verdict": "allow",
+        "category": "benign",
+        "confidence": 0.8,
+        "rationale": "The client is an authenticated agent role, which is a plausible role for issuing account credits, and the request gives a specific reason tied to an order number with a modest amount. No injection, traversal, or manipulation signals are present, and the session is not flagged."
+      }
+    }
+  ],
+  "calls": [
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1961,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 501,
+      "outputTokens": 178,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1587,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 513,
+      "outputTokens": 179,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1932,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 507,
+      "outputTokens": 169,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1807,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 507,
+      "outputTokens": 183,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1754,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 504,
+      "outputTokens": 153,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1424,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 504,
+      "outputTokens": 167,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 2136,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 499,
+      "outputTokens": 192,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    },
+    {
+      "tier": "inline",
+      "model": "claude-haiku-5-5",
+      "latencyMs": 1427,
+      "outcome": "output",
+      "entries": 1,
+      "route": "POST /api/accounts/:id/credits",
+      "inputTokens": 505,
+      "outputTokens": 154,
+      "cacheReadTokens": 1668,
+      "cacheWriteTokens": 0
+    }
+  ],
+  "batches": [],
+  "ttft": {
+    "model": "claude-haiku-5-5",
+    "samples": 5,
+    "firstTokenMs": [
+      1006,
+      896,
+      963,
+      911,
+      894
+    ],
+    "totalMs": [
+      1340,
+      1159,
+      1274,
+      1354,
+      1219
+    ],
+    "p50": 911,
+    "p95": 1006
+  }
+}

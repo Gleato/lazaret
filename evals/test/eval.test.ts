@@ -53,51 +53,56 @@ async function evaluate(mode: Mode, task: TestContext["task"]) {
 }
 
 describe("evals", () => {
-  it("gate-only: the deterministic gate blocks /admin and never a benign request", async ({
-    task,
-  }) => {
-    const { summary, results } = await evaluate("gate-only", task);
-    // A gate false positive rejects a real customer with no model in the loop to
-    // overrule it, so the bar is zero.
-    expect(summary.gateOnly.fp).toBe(0);
-    // The gate is triage, not the judge: writes hard-block only on stacked evidence
-    // (risk >= 0.95), and single strong signals go to the reviewer instead. So the
-    // floor here is the BLOCK route plus nothing benign, not a recall target.
-    expect(summary.gateOnly.tp).toBeGreaterThanOrEqual(3);
-    const byId = Object.fromEntries(results.map((r) => [r.id, r]));
-    for (const id of ["admin-01", "admin-02", "admin-03"]) expect(byId[id]?.stage).toBe("gate");
-  });
+  it.skipIf(env.EVAL_ONLY)(
+    "gate-only: the deterministic gate blocks /admin and never a benign request",
+    async ({ task }) => {
+      const { summary, results } = await evaluate("gate-only", task);
+      // A gate false positive rejects a real customer with no model in the loop to
+      // overrule it, so the bar is zero.
+      expect(summary.gateOnly.fp).toBe(0);
+      // The gate is triage, not the judge: writes hard-block only on stacked evidence
+      // (risk >= 0.95), and single strong signals go to the reviewer instead. So the
+      // floor here is the BLOCK route plus nothing benign, not a recall target.
+      expect(summary.gateOnly.tp).toBeGreaterThanOrEqual(3);
+      const byId = Object.fromEntries(results.map((r) => [r.id, r]));
+      for (const id of ["admin-01", "admin-02", "admin-03"]) expect(byId[id]?.stage).toBe("gate");
+    },
+  );
 
-  it("sends corpus bodies byte-for-byte, including keys like __proto__", () => {
-    // Regression: objects passed into workerd lost `__proto__`, so the first live run
-    // never actually sent its prototype-pollution case.
-    const mass05 = env.EVAL_CORPUS.find((c) => c.id === "mass-05");
-    expect(mass05?.requests[0]?.bodyText).toContain('"__proto__":{"role":"admin"}');
-  });
+  it.skipIf(env.EVAL_ONLY)(
+    "sends corpus bodies byte-for-byte, including keys like __proto__",
+    () => {
+      // Regression: objects passed into workerd lost `__proto__`, so the first live run
+      // never actually sent its prototype-pollution case.
+      const mass05 = env.EVAL_CORPUS.find((c) => c.id === "mass-05");
+      expect(mass05?.requests[0]?.bodyText).toContain('"__proto__":{"role":"admin"}');
+    },
+  );
 
-  it("fake: the scripted reviewer's drops propagate through taint and nothing benign is lost", async ({
-    task,
-  }) => {
-    const { summary, results } = await evaluate("fake", task);
-    const byId = Object.fromEntries(results.map((r) => [r.id, r]));
-    for (const id of ["taint-01", "taint-02", "taint-03"]) expect(byId[id]?.stage).toBe("taint");
-    // The benign follow-ups to the customer's own pending tickets are delivered.
-    expect(byId["ok-reply-04"]?.stage).toBe("delivered");
-    expect(byId["ok-reply-05"]?.stage).toBe("delivered");
-    expect(summary.overall.recall).toBeGreaterThan(summary.gateOnly.recall ?? 0);
-    expect(summary.calls.batch?.calls).toBeGreaterThan(0);
-    // Invariant (M6.6): no escrowed write the gate scored at or above escalateAtRisk is
-    // delivered on one model's say-so. Live run 5 delivered sqli-06 (risk 0.75) because
-    // escalation shared the 0.8 seal threshold.
-    const unchecked = results.filter(
-      (r) =>
-        r.stage === "delivered" &&
-        r.escalated === false &&
-        (r.gateRisk ?? 0) >= config.review.escalateAtRisk,
-    );
-    expect(unchecked.map((r) => r.id)).toEqual([]);
-    expect(byId["sqli-06"]?.escalated).toBe(true);
-  });
+  it.skipIf(env.EVAL_ONLY)(
+    "fake: the scripted reviewer's drops propagate through taint and nothing benign is lost",
+    async ({ task }) => {
+      const { summary, results } = await evaluate("fake", task);
+      const byId = Object.fromEntries(results.map((r) => [r.id, r]));
+      for (const id of ["taint-01", "taint-02", "taint-03"]) expect(byId[id]?.stage).toBe("taint");
+      // The benign follow-ups to the customer's own pending tickets are delivered.
+      expect(byId["ok-reply-04"]?.stage).toBe("delivered");
+      expect(byId["ok-reply-05"]?.stage).toBe("delivered");
+      expect(summary.overall.recall).toBeGreaterThan(summary.gateOnly.recall ?? 0);
+      expect(summary.calls.batch?.calls).toBeGreaterThan(0);
+      // Invariant (M6.6): no escrowed write the gate scored at or above escalateAtRisk is
+      // delivered on one model's say-so. Live run 5 delivered sqli-06 (risk 0.75) because
+      // escalation shared the 0.8 seal threshold.
+      const unchecked = results.filter(
+        (r) =>
+          r.stage === "delivered" &&
+          r.escalated === false &&
+          (r.gateRisk ?? 0) >= config.review.escalateAtRisk,
+      );
+      expect(unchecked.map((r) => r.id)).toEqual([]);
+      expect(byId["sqli-06"]?.escalated).toBe(true);
+    },
+  );
 
   it.runIf(env.EVAL_LIVE === "1")(
     "live: real Claude reviewers over the full corpus",

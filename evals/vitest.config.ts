@@ -22,7 +22,14 @@ function devVar(name: string): string | undefined {
 }
 process.env.ANTHROPIC_API_KEY ||= devVar("ANTHROPIC_API_KEY");
 
-const corpus = loadCorpus("./corpus");
+// EVAL_ONLY=split-,busy- runs just the cases whose ids start with those prefixes, for a
+// cheap measurement of new cases (M10). A subset run skips the full-corpus regression
+// tests and writes its own file, never live-latest.json, which the site publishes.
+const only = process.env.EVAL_ONLY?.split(",").filter(Boolean) ?? [];
+const corpus = loadCorpus("./corpus").filter(
+  (c) => !only.length || only.some((p) => c.id.startsWith(p)),
+);
+if (only.length && !corpus.length) throw new Error(`EVAL_ONLY=${only.join(",")} matched no cases`);
 const live = process.env.EVAL_LIVE === "1";
 if (live) {
   if (process.env.EVAL_CONFIRM_SPEND !== "yes")
@@ -48,6 +55,7 @@ export default defineConfig({
         bindings: {
           // Round-tripped so the binding is plain JSON, which is what Miniflare accepts.
           EVAL_CORPUS: JSON.parse(JSON.stringify(corpus)),
+          ...(only.length ? { EVAL_ONLY: only.join(",") } : {}),
           ...(live
             ? {
                 EVAL_LIVE: "1",

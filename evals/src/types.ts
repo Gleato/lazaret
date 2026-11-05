@@ -20,6 +20,18 @@ export interface CaseRequest {
   headers?: Record<string, string>;
   /** Send this request N times; `{n}` in string fields becomes 1..N. */
   repeat?: number;
+  /**
+   * Wait out the review cycle first: everything sent so far is sealed and reviewed
+   * before this request, so it lands in a later batch, as when a client waits 30 s
+   * between writes. Lets a case spread a split attack across batches, which is how
+   * the live "quiet heist" (2026-11-04, M10 in tasks/todo.md) beat batch review.
+   */
+  newBatch?: boolean;
+  /**
+   * Send as a different login of the same account: a new session token, same actor.
+   * Tests linking that survives a fresh sign-in.
+   */
+  session?: string;
 }
 
 export interface EvalCase {

@@ -223,9 +223,17 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
   // Request ids that reached origin. "Delivered" means exactly this: a 401 from origin
   // for a wrong password still counts as delivered, a 403 from Lazaret does not.
   const reached = new Set<string>();
-  const tokenOf = (c: EvalCase) => `Bearer tw_${hex(c.id).repeat(6)}`;
+  // One token per login. A step's `session` is another login of the same account, so
+  // it gets its own token (a new Lazaret session) but the same actor on GET /api/me.
+  const tokenOf = (c: EvalCase, session = "") =>
+    `Bearer tw_${hex(session ? `${c.id}#${session}` : c.id).repeat(6)}`;
   const actors = new Map(
-    corpus.map((c) => [tokenOf(c), { id: `acct_${c.id}`, role: c.actor ?? "customer" }]),
+    corpus.flatMap((c) =>
+      ["", ...c.requests.flatMap((r) => (r.session ? [r.session] : []))].map((s) => [
+        tokenOf(c, s),
+        { id: `acct_${c.id}`, role: c.actor ?? "customer" },
+      ]),
+    ),
   );
   const origin = async (request: Request) => {
     const id = request.headers.get("x-lazaret-id");
@@ -295,8 +303,46 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
     cut?: boolean;
   };
   const targets: Target[] = [];
+  const committer = createCommitter({
+    origin: config.origin,
+    secret: SECRET,
+    fetchOrigin: origin,
+  });
+  // Seal whatever is open, then review every sealed batch in order. Outcomes are kept
+  // so a quarantined batch shows up in the report with its reason. Runs once at the
+  // end, and before any step marked `newBatch`.
+  const reviewSealed = async () => {
+    await ledger.seal();
+    const state = await ledger.getState();
+    for (const batch of Object.values(state.batches).sort(
+      (a, b) => Number(a.id.slice(6)) - Number(b.id.slice(6)),
+    )) {
+      if (batch.status !== "SEALED") continue;
+      outcomes[batch.id] = await runReviewPipeline(
+        stepRunner,
+        {
+          ledger: ledger as unknown as LedgerPort,
+          reviewer,
+          committer,
+          config,
+          attemptBackoffMs: 500,
+          ...(options.memory ? { memory: options.memory.port } : {}),
+        },
+        batch.id,
+      );
+    }
+  };
+  // Cases that wait out review cycles run after the rest, in corpus order. Shuffling
+  // only the others keeps their batches exactly as they were before M10 added these.
+  const spaced = (c: EvalCase) => c.requests.some((r) => r.newBatch);
   try {
-    for (const c of shuffle(corpus, options.seed ?? 2026)) {
+    for (const c of [
+      ...shuffle(
+        corpus.filter((c) => !spaced(c)),
+        options.seed ?? 2026,
+      ),
+      ...corpus.filter(spaced),
+    ]) {
       const receipts: (string | null)[] = [];
       const steps = c.requests.flatMap(expand);
       for (const [i, step] of steps.entries()) {
@@ -326,11 +372,12 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
           }
           continue;
         }
+        if (step.newBatch) await reviewSealed();
         const res = await gateway.fetch(
           new Request(`https://support.tidewater.test${path}`, {
             method: step.method,
             headers: {
-              authorization: tokenOf(c),
+              authorization: tokenOf(c, step.session),
               "cf-connecting-ip":
                 c.ip ??
                 `10.${parseInt(hex(c.id).slice(0, 2), 16)}.${parseInt(hex(c.id).slice(2, 4), 16)}.7`,
@@ -357,32 +404,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
       }
     }
 
-    // Seal whatever is still open, then review every sealed batch in order.
-    // Outcomes are kept so a quarantined batch shows up in the report with its reason.
-    await ledger.seal();
-    const committer = createCommitter({
-      origin: config.origin,
-      secret: SECRET,
-      fetchOrigin: origin,
-    });
-    const state = await ledger.getState();
-    for (const batch of Object.values(state.batches).sort(
-      (a, b) => Number(a.id.slice(6)) - Number(b.id.slice(6)),
-    )) {
-      if (batch.status !== "SEALED") continue;
-      outcomes[batch.id] = await runReviewPipeline(
-        stepRunner,
-        {
-          ledger: ledger as unknown as LedgerPort,
-          reviewer,
-          committer,
-          config,
-          attemptBackoffMs: 500,
-          ...(options.memory ? { memory: options.memory.port } : {}),
-        },
-        batch.id,
-      );
-    }
+    await reviewSealed();
     await Promise.allSettled(background);
   } finally {
     console.log = originalLog;
