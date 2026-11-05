@@ -1213,9 +1213,14 @@ Never a tier that rejects: a busy honest customer can trip a count.
 - [x] README: the counting rules, the `hold` tier, cost, and limits. Site Memory panel
   (built from `pattern-latest.json`; it also gained the `hold` status it would otherwise
   have shown raw).
-- [ ] A paid production smoke (~$0.01) of M10 linking first, so we build on verified
-  ground; the same after M11.
-- [ ] `@gleator/lazaret` 0.3.0 (new optional fields and an action, nothing removed).
+- [x] A paid production smoke of M10 and M11 together, after deploying them (2026-11-05,
+  3/3, about $0.01). It caught a real bug: the first run was refused at login. A login has
+  no session, so it fell back to IP + user agent, and linking on that made repeat logins
+  one sender, which the reviewer refused as a credential attack. Writes with no session
+  are no longer linked (regression test fails without the fix; free evals unchanged;
+  not re-measured live). The new smoke check proves the link lookup runs in production,
+  not how the reviewer used it.
+- [x] `@gleator/lazaret` 0.3.0 (new optional fields and an action, nothing removed).
 
 ---
 
