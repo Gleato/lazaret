@@ -1,6 +1,6 @@
 // The Edu x Exp sheet: the resume as a document, the timeline, and the logo wall.
 //
-// The resume text mirrors ~/dev/resume/my-resume.html (2026-11-02). Dates follow the
+// The resume text mirrors ~/dev/resume/my-resume.html (2026-11-02; eval line 2026-11-05, M10). Dates follow the
 // user's board, which they confirmed over the resume on 2026-11-02: Savannah River
 // from 2017, GEL from 2019. The resume itself is updated to match once the site is
 // approved (tasks/todo.md, M9). Timeline notes only restate facts from the resume.
@@ -73,7 +73,7 @@ export const RESUME = {
     bullets: [
       "Built and published on npm an edge gateway that holds API writes in a ledger, has a sandboxed Claude reviewer vet them for attacks such as prompt injection, and commits only approved writes to origin.",
       "Designed the ledger as an event-sourced state machine on Durable Objects (SQLite) with compaction, crash recovery, and HMAC-signed idempotent commits; 400+ tests include proving no write commits twice.",
-      "Built a labelled 120-case eval harness: the latest live run stopped 63/63 attacks with 0/57 false positives at ~$2 per 1,000 requests; confirmed verdicts are distilled into backtested gate rules.",
+      "Built a labelled 128-case eval harness: the latest live run stopped 67/67 attacks, including fraud split across requests, with 2/61 false positives at ~$2.50 per 1,000 requests; confirmed verdicts are distilled into backtested gate rules.",
       "Shipped a live demo; a Playwright suite queries its production database to prove no attack got in.",
     ],
   },

@@ -12,7 +12,9 @@ that fails is dropped, together with the writes that depend on it.
   machine. State is a replay of the log, which is compacted as it grows. A crash loses
   nothing that was acknowledged.
 - **Reviewer:** Claude, with no tools and no network, returning JSON verdicts. It fails
-  closed. A disagreement with the gate escalates to a stronger model.
+  closed. A disagreement with the gate escalates to a stronger model. With `link`, it
+  also sees each write's recent linked writes (same login, account or resource), so
+  fraud split across requests that each look honest shows up as a pattern.
 - **Committer:** replays approved writes to origin, HMAC-signed and idempotent.
 - **Memory:** learns from the reviewer's verdicts and from human labels. It proposes rules
   in a safe DSL, backtests them against clean traffic, and promotes them into the gate,

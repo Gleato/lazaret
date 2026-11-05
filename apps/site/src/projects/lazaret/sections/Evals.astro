@@ -200,11 +200,17 @@ const escalation = evals.declines.find((d) => d.tier === "escalation");
       <figcaption>
         <h3>What it doesn’t catch</h3>
         <p class="sans">
-          Lazaret judges each write on its own merits, so fraud spread across many believable requests
-          gets through. In a live test on 4 November 2026, one customer sent five refund tickets, each
-          under $50 and each reviewed in its own batch. All five were allowed, and four of the refunds,
-          $190 in all, were paid before the demo app added a limit per customer. Adding up a customer’s
-          claims is the application’s job.
+          Lazaret used to judge each write on its own merits, so fraud spread across many believable
+          requests got through. In a live test on 4 November 2026, one customer sent five refund
+          tickets, each under $50 and each reviewed in its own batch. All five were allowed, and four
+          refunds, $190 in all, were paid.
+        </p>
+        <p class="sans">
+          Now each write is linked to earlier ones by login, account and the customer it acts on, and
+          the reviewer sees that history. On the four split-fraud cases above it held 4 of 4 for a
+          person, up from 1 of 4, and none of their four honest look-alikes. The first claims in a
+          pattern still look honest, and claims spread across many accounts don’t link, so the demo
+          app also caps refunds per customer. Paying out money stays the application’s call.
         </p>
         <p class="sans">
           The same test hid instructions in invisible Unicode characters. The gate has no rule for

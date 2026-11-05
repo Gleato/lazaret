@@ -1031,7 +1031,15 @@ writes in a pattern still look honest, and committed writes can't be recalled.
     published run; choosing which run to publish is part of shipping.
 
 **Ship**
-- [ ] Update "What Lazaret doesn't catch" (README and the site's Evals section) with the
+- [x] Shipped 2026-11-05: full run 2 published as `live-latest.json` (67/67 stopped, 2/61
+  honest held); README evals table, step 11 (`link`), "What Lazaret doesn't catch" and
+  the roadmap updated; the site's note rewritten and "Fraud split across requests" named
+  in its class table; the npm README mentions linking. The resume line now quotes run 2
+  (the user's choice): `~/dev/resume/my-resume.html`, its PDF (one page) on the site,
+  and `career.ts`. Deployed: demo guard `a12d316a`, site `ff9be730`. Verified live: demo
+  status and the production UI suite (4/4, free), the evals page and the PDF. Not
+  verified live: linking itself on production writes (needs a paid smoke run).
+- [x] Update "What Lazaret doesn't catch" (README and the site's Evals section) with the
   measured result: what linking catches, what still gets through, and what it costs.
 - [ ] Publish a minor version of `@gleator/lazaret`.
 

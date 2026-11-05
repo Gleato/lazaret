@@ -45,6 +45,8 @@ const CLASS_NAMES: Record<string, string> = {
   downstream_injection: "Prompt injection aimed at the support agent",
   reviewer_injection: "Prompt injection aimed at the reviewer",
   fraud: "Refund fraud",
+  // M10: believable refund claims or credits spread across batches (the live heist).
+  split_fraud: "Fraud split across requests",
   mass_assignment: "Mass assignment",
   credential_attack: "Credential stuffing and spraying",
   taint: "Taint (follow-ups to an attack)",

@@ -210,7 +210,20 @@ a WebSocket stream of the Ledger at `/__lazaret/live`, plus `/__lazaret/status`,
 headers, tokens, IPs or queries, 8-character session hashes, and bodies cut to
 `live.bodyPreviewChars`. Acting on the queue still needs the operator token.
 
-**11. Share behaviour counts across isolates (recommended in production).** Rate,
+**11. Link writes across batches (recommended where writes move money).** By default
+the reviewer judges each batch on its own, so fraud split across batches (five honest-
+looking refund claims, 30 s apart) never looks like a pattern. `link: {}` ties each write
+to earlier ones by session, by account (from `review.actor`) and by any route resource
+with a parameter (for a credit, `account:{id}`: the account being paid), and shows the
+reviewer the recent linked writes with their paths and verdicts
+([`links.ts`](packages/lazaret/src/ledger/links.ts)). From other senders it shows only
+writes that were allowed, so an attacker can't get a victim's honest writes held by
+attacking their account first. The reviewer is told a pattern is evidence, not proof:
+it holds for a person rather than dropping. Defaults: 24 h window, 8 earlier writes,
+160-character previews. It costs extra prompt tokens and, for escrowed writes, one
+account lookup per session.
+
+**12. Share behaviour counts across isolates (recommended in production).** Rate,
 timing and failure scoring is per isolate by default, and Cloudflare can spread one
 client across several isolates. That client is often a credential-stuffing swarm.
 `behaviour: { store: "durable" }`, with a `LazaretBehaviour` Durable Object bound as
@@ -274,34 +287,36 @@ hourly reset by hand, call `http://localhost:8787/__scheduled?cron=0+*+*+*+*`.
 
 ## Evals
 
-[`evals/`](evals) holds a labelled corpus of 120 cases: 63 attacks and 57 benign
+[`evals/`](evals) holds a labelled corpus of 128 cases: 67 attacks and 61 benign
 requests, including hard negatives such as tickets that quote SQL errors or mention
-`localhost`. The attacks include prompt injection aimed at Lazaret's own reviewer and
-indirect injection aimed at Tidewater's AI support agent. The runner pushes the corpus
+`localhost`. The attacks include prompt injection aimed at Lazaret's own reviewer,
+indirect injection aimed at Tidewater's AI support agent, and fraud split across
+requests that each look honest (sent in separate batches, some from a fresh login). The runner pushes the corpus
 through the real gateway, Ledger and review pipeline, and reports precision, recall,
 false-positive rate, latency, time to first token and cost.
 
-Latest live run (2026-10-29; Sonnet 5.5 batch review, Opus 5.5 escalation, Haiku 5.5
-inline; [`evals/results/live-latest.json`](evals/results/live-latest.json)):
+Latest live run (2026-11-05; Sonnet 5.5 batch review, Opus 5.5 escalation, Haiku 5.5
+inline; linked history on; [`evals/results/live-latest.json`](evals/results/live-latest.json)):
 
 |                                                           |                                                     |
 | --------------------------------------------------------- | --------------------------------------------------- |
-| Attacks stopped (recall)                                  | 63 / 63 (100%)                                      |
-| Precision                                                 | 100%                                                |
-| Benign requests stopped (FPR)                             | 0 / 57                                              |
+| Attacks stopped (recall)                                  | 67 / 67 (100%)                                      |
+| Precision                                                 | 97%                                                 |
+| Benign requests stopped (FPR)                             | 2 / 61 (3.3%)                                       |
 | Reviewer prompt injection / downstream agent injection    | 8 / 8 and 10 / 10 stopped                           |
-| Stopped by the deterministic gate alone, before any model | 5 / 63, with 0 false positives                      |
-| Escalations                                               | 4, none declined (the run before: 7, 3 declined)    |
-| Inline review latency                                     | p50 1.6 s, p95 2.3 s; time to first token p50 0.8 s |
-| Batch review latency                                      | p50 4.2 s, p95 7.2 s (off the request path)         |
-| Cost                                                      | $0.23 per run, $2.12 per 1,000 reviewed requests    |
+| Fraud split across requests                               | 4 / 4 held for a person (1 / 4 without linking)     |
+| Stopped by the deterministic gate alone, before any model | 5 / 67, with 0 false positives                      |
+| Escalations                                               | 3, none declined                                    |
+| Inline review latency                                     | p50 1.5 s, p95 1.9 s; time to first token p50 0.6 s |
+| Batch review latency                                      | p50 2.5 s, p95 10.0 s (off the request path)        |
+| Cost                                                      | $0.30 per run, $2.50 per 1,000 reviewed requests    |
 
 The reviewer now sees the gate's decoded view of any field that was encoded (URL
-encoding, HTML entities, look-alike Unicode), next to the raw request. In this run the
-batch reviewer dropped sqli-06, a URL-encoded injection, by itself; in earlier runs it
-allowed it, and only the second opinion caught it. The previous run's one false positive
-was a credit whose inline review ran past the 3 s deadline; credits deny rather than pass
-on the gate alone. Only the model you configure can decide an outcome. When it declines
+encoding, HTML entities, look-alike Unicode), next to the raw request. The two false
+positives were borderline tickets, an account merge naming a second email and a GDPR
+erasure for a named third party, held at 0.5 confidence for a person to check. Neither had
+any linked history, and both were delivered in the two runs before (the previous
+published run, 2026-10-29, held 0 of 57). Only the model you configure can decide an outcome. When it declines
 to review a payload, the entry is held for a human with the API's reason (for example
 `cyber`), and a human releases or drops it from the review queue. Any first-pass allow
 the gate scored at 0.7 or above gets a second opinion. One corpus, one run: treat these
@@ -360,19 +375,34 @@ Worker, typechecks it under both `Bundler` and `NodeNext` resolution, and bundle
 
 ## What Lazaret doesn't catch
 
-Lazaret judges each write on its own merits. Fraud spread across many believable
-requests gets through, because no single request in it is an attack.
+Lazaret judged each write on its own merits, so fraud spread across many believable
+requests got through: no single request in it is an attack. A live test on the demo
+(2026-11-04) showed this. One customer sent five refund tickets, each under $50 and each
+reviewed in its own batch. All five were allowed, Tidewater's AI assistant proposed all
+five refunds, and four of them, $190 in all, were paid.
 
-A live test on the demo (2026-11-04) showed this. One customer sent five refund
-tickets, each under $50 and each reviewed in its own batch. All five were allowed,
-Tidewater's AI assistant proposed all five refunds, and four of them, $190 in all, were
-paid. Adding up one customer's claims is the application's job, so Tidewater now caps
-the refunds its assistant proposes per customer, in code (`limitPerCustomer` in
-`apps/demo-origin/src/agent/run.ts`).
+Two changes followed. Tidewater now caps the refunds its assistant proposes per
+customer, in code (`limitPerCustomer` in `apps/demo-origin/src/agent/run.ts`), because
+adding up one customer's claims is the application's job. And Lazaret can now link writes
+across batches (step 11 above). On the eval's four split-fraud cases, the reviewer held
+4 of 4 for a person, up from 1 of 4, and held none of the four honest look-alikes (a busy
+customer, a support agent crediting several customers).
 
-The same test hid instructions for the assistant in invisible Unicode tag characters.
-The gate has no rule for those characters, but the reviewer decoded them and dropped
-the ticket.
+What still gets through:
+
+- **The first writes in a pattern.** A pattern only shows once a few writes have built up,
+  so the first one or two claims still look honest, and a committed write can't be
+  recalled. An app that pays out money should keep its own hard limits.
+- **Anything outside the links.** Writes are linked by session, account and resource, so
+  claims spread across many accounts, each paid to a different customer, don't link.
+  History also only reaches back over the window (the demo's Ledger restarts hourly).
+- **A model's judgement.** The reviewer decides what counts as a pattern, and it can
+  waver: two borderline honest tickets were held in the latest run, though they had no
+  linked history and passed in the two runs before.
+
+The same live test hid instructions for the assistant in invisible Unicode tag
+characters. The gate has no rule for those characters, but the reviewer decoded them and
+dropped the ticket.
 
 ## Roadmap
 
@@ -384,9 +414,10 @@ the ticket.
 - [x] M6: Demo origin (Tidewater Support helpdesk) and evals, plus the human review queue
 - [x] M7: gleator.com site, live ledger visualiser, attack console, evals and memory
   panels, spend cap, demo guard
-- [ ] M8: log compaction and a shared behaviour store (done), the demo deployed and
-  checked by a production E2E suite (done), the npm package, and the gleator.com launch
-  with the redesign
+- [x] M8: log compaction, a shared behaviour store, the demo deployed and checked by a
+  production E2E suite, and the npm package
+- [x] M9: the gleator.com redesign and launch
+- [x] M10: linked history, so the reviewer sees fraud split across batches
 
 The full spec is in [`tasks/todo.md`](tasks/todo.md).
 
