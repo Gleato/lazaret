@@ -1,6 +1,6 @@
 {
   "name": "@gleator/lazaret",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "An AI quarantine for your writes: an edge harness that holds mutations in a ledger until an independent reviewer vets them.",
   "license": "MIT",
   "author": "Gleato",

@@ -6,7 +6,7 @@
 > passes. Lives at **gleator.com**, published as **`@gleator/lazaret`**
 > (bare `lazaret` on npm is taken by an unrelated supply-chain tool).
 
-Status: **M0–M8 done (2026-11-01): demo live at demo.gleator.com, `@gleator/lazaret@0.1.0` on npm. M9 (the folder redesign of gleator.com) built, approved and **live at gleator.com since 2026-11-02**; resume updated. gleator.com is on the resume and the live PDF. Site CSP live. Demo redeployed 2026-11-03.**
+Status: **M10 shipped 2026-11-05 (linked history; `@gleator/lazaret@0.2.0` on npm). M0–M8 done (2026-11-01): demo live at demo.gleator.com, `@gleator/lazaret@0.1.0` on npm. M9 (the folder redesign of gleator.com) built, approved and **live at gleator.com since 2026-11-02**; resume updated. gleator.com is on the resume and the live PDF. Site CSP live. Demo redeployed 2026-11-03.**
 
 ---
 
