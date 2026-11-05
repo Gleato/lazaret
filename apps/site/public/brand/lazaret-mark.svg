@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2012 2012" role="img"><title>Lazaret</title><defs>
+<linearGradient id="fb" gradientUnits="userSpaceOnUse" x1="830" y1="500" x2="1190" y2="1120"><stop offset="0" stop-color="#fdc808"/><stop offset=".45" stop-color="#fdd208"/><stop offset="1" stop-color="#fde405"/></linearGradient>
+<linearGradient id="fd" gradientUnits="userSpaceOnUse" x1="640" y1="1110" x2="520" y2="1500"><stop offset="0" stop-color="#a87202"/><stop offset=".4" stop-color="#bc8503"/><stop offset=".7" stop-color="#d29b02"/><stop offset="1" stop-color="#e8b303"/></linearGradient>
+<linearGradient id="ft" gradientUnits="userSpaceOnUse" x1="420" y1="1400" x2="190" y2="1900"><stop offset="0" stop-color="#fdbe04"/><stop offset=".5" stop-color="#fdc906"/><stop offset="1" stop-color="#fee004"/></linearGradient>
+</defs><g transform="translate(4 -6)"><path fill="url(#ft)" d="M246 1227 180 1977 560 1510z"/><path fill="url(#fd)" d="M246 1227 968 1063 560 1510z"/><path fill="url(#fb)" d="M315 365 1673 46 1218 584 1824 863 246 1228z"/></g></svg>

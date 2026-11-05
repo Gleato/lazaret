@@ -2145,3 +2145,19 @@ the clipboard. **Still unconfirmed:** a real copy and a real share sheet in a no
   Live check on gleator.com: the HTML has no `localhost` and has the production demo origin;
   mid-open the sheet and hinge have a 0px gap, the height before the handoff equals the settled
   height (984px), and the console is clean. **Not checked:** the motion watched at full speed.
+
+## Rebrand: the G and the yellow flag (2026-11-05)
+
+- **Site icon:** the user's G, cut from its white ground. `favicon.svg` (the old Q flag) gave
+  way to `favicon.ico`, `icon-192.png` and `apple-touch-icon.png`.
+- **Lazaret logo:** the user's yellow flag, redrawn as a vector from measurements of their
+  file (a cut-out would leave a white fringe), with "Lazaret" in Solitus (SIL OFL 1.1)
+  converted to outlines, on their blue `#008CFF`. Title case is my call; caps are a one-word
+  change (`NAME` in the script). Everything regenerates from `apps/site/brand/build.py`.
+- **Left alone on purpose:** the Q flag in the `/projects/lazaret` hero. It is an illustration
+  of the historical signal, with its own caption, not the logo. Tidewater keeps its own name.
+- **Colour check:** browser-pane captures record Display P3 values, so `#008CFF` samples as a
+  duller blue. On a real display it is correct, with the folder's 6% night dimming on top.
+- **npm:** 0.3.1 is docs only, because the npm page only changes with a release. The publish
+  and the GitHub social preview upload are the user's: npm needs their login and 2FA, and
+  GitHub has no API for the social preview.

@@ -1,3 +1,5 @@
+<p><img src="https://raw.githubusercontent.com/Gleato/lazaret/main/apps/site/public/brand/lazaret-banner.png" alt="Lazaret" width="640"></p>
+
 # @gleator/lazaret
 
 **An AI quarantine for your writes.** A Cloudflare Workers gateway that holds every

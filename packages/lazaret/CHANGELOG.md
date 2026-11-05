@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 (2026-11-05)
+
+Documentation only: the README carries the new Lazaret logo. No code changes.
+
 ## 0.3.0 (2026-11-05)
 
 Learns split fraud: claims that each look honest, spread across requests.

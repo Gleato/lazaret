@@ -36,7 +36,10 @@ const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ""), Ast
     <title>{title}</title>
     <meta name="description" content={description} />
     {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- The G is a textured render, so PNGs rather than an SVG (apps/site/brand/build.py). -->
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content={themeColor.light} media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content={themeColor.dark} media="(prefers-color-scheme: dark)" />
     <meta property="og:title" content={title} />

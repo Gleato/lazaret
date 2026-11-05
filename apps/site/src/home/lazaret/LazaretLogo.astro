@@ -1,20 +1,11 @@
 ---
-// Lazaret's lockup as on board 2: the flag-and-water mark and the wordmark, light on
-// the project's dark harbour ground. Paths copied from the brand's lazaret-wordmark.svg.
+// Lazaret's lockup: the yellow flag and the name in Solitus on the brand blue (the user's
+// rebrand, 2026-11-05). The file comes straight from public/brand, which
+// apps/site/brand/build.py generates, so the site can't drift from the npm and GitHub art.
+import lockup from "../../../public/brand/lazaret-wordmark-white.svg?raw";
 ---
 
-<div class="lockup">
-  <svg viewBox="0 0 172 64" role="img" aria-labelledby="lz-title">
-    <title id="lz-title">Lazaret</title>
-    <g color="#e3e5da">
-      <rect x="9" y="10" width="3.5" height="34" rx="1.75" fill="currentColor"></rect>
-      <path d="M12.5 12h22.5c1.1 0 2 .9 2 2v15c0 1.1-.9 2-2 2H12.5z" fill="#f0be2a"></path>
-      <path d="M2 48c4.5 0 4.5-3.5 9-3.5s4.5 3.5 9 3.5 4.5-3.5 9-3.5 4.5 3.5 9 3.5" fill="none" stroke="#86b9b3" stroke-width="3.5" stroke-linecap="round"></path>
-      <!-- Wordmark set in Figtree, the site's one face (M9), at the brand file's size and spacing. -->
-      <text x="52" y="44" fill="currentColor" font-family="Figtree, sans-serif" font-weight="700" font-size="34" letter-spacing="-0.5">lazaret</text>
-    </g>
-  </svg>
-</div>
+<div class="lockup" set:html={lockup} />
 
 <style>
   .lockup {
@@ -23,12 +14,12 @@
     aspect-ratio: 460 / 170;
     padding: 6% 9%;
     border-radius: 14px;
-    background: #121e22;
+    background: #008cff;
     box-shadow:
-      0 1px 0 rgb(255 255 255 / 6%) inset,
+      0 1px 0 rgb(255 255 255 / 12%) inset,
       0 10px 22px -14px rgb(10 20 25 / 70%);
   }
-  svg {
+  .lockup :global(svg) {
     width: 100%;
     height: auto;
   }

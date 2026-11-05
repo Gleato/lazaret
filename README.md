@@ -1,3 +1,5 @@
+<p><img src="apps/site/public/brand/lazaret-banner.png" alt="Lazaret" width="640"></p>
+
 # Lazaret
 
 **An AI quarantine for your writes.**
@@ -15,8 +17,8 @@ server. Writes that fail are dropped, along with anything that depends on them.
 > Tidewater Support helpdesk behind a real Lazaret deployment, on live Claude models. A
 > Playwright suite checks it in production: every canned attack is kept out of
 > Tidewater's database, and honest writes get through. The library is
-> [`@gleator/lazaret`](packages/lazaret) 0.1.0. The gleator.com site launches with a
-> redesign.
+> [`@gleator/lazaret`](packages/lazaret) 0.3.1, and the project lives at
+> [gleator.com](https://gleator.com/projects/lazaret).
 
 ## How it works
 
