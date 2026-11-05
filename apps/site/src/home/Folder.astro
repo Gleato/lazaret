@@ -116,6 +116,8 @@ const SCORES = 6;
     --radius: 20px;
     --stroke: 3px;
     --hinge-h: 22px;
+    /* The curve inside the outline: what anything laid against the top edge must follow. */
+    --radius-in: calc(var(--radius) - var(--stroke));
     position: relative;
     margin-inline: clamp(0px, 3.5vw, 56px);
   }
@@ -124,7 +126,11 @@ const SCORES = 6;
   .tabs {
     position: relative;
     display: flex;
-    padding-left: clamp(0px, 1vw, 6px);
+    /* Tabs sit on the flat run of the top edge, between the two rounded corners. Any
+       closer and a tab overhangs the curve: on phones the last tab used to reach the
+       right edge and left a gap under it, and the first sat a few px in from a square
+       corner, which read as a stray notch. */
+    padding-inline: var(--radius);
     margin-bottom: calc(-1 * var(--stroke));
   }
   .tab {
@@ -206,7 +212,7 @@ const SCORES = 6;
     z-index: 5;
     background: var(--manila);
     border: var(--stroke) solid var(--line);
-    border-radius: 0 var(--radius) 0 0;
+    border-radius: var(--radius) var(--radius) 0 0;
     border-bottom: 0;
     padding: clamp(18px, 3.4vw, 40px) clamp(12px, 5.6vw, 64px) clamp(26px, 4vw, 48px);
     box-shadow: 0 1px 0 rgb(255 255 255 / 55%) inset;
@@ -218,16 +224,20 @@ const SCORES = 6;
   }
   .folder[data-state="closed"] .body {
     border-bottom: var(--stroke) solid var(--line);
-    border-radius: 0 var(--radius) var(--radius) var(--radius);
+    border-radius: var(--radius);
   }
   /* The top edge of the divider in front, peeking above the paper in its tab's colour. */
+  /* A top border on a corner-tall box, not a 6px filled bar: CSS shrinks a radius that
+     doesn't fit its box, so a 6px bar can't follow the folder's curve at either end. */
   .divider-edge {
     position: absolute;
     inset: 0 0 auto;
-    height: 6px;
-    background: var(--edge, transparent);
-    border-radius: 0 calc(var(--radius) - 4px) 0 0;
-    transition: background-color 0.28s ease;
+    box-sizing: border-box;
+    height: var(--radius-in);
+    border-top: 6px solid var(--edge, transparent);
+    border-radius: var(--radius-in) var(--radius-in) 0 0;
+    pointer-events: none;
+    transition: border-color 0.28s ease;
   }
   .folder[data-active="profile"]:not([data-state="closed"]) {
     --edge: var(--blue);
