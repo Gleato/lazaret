@@ -2133,7 +2133,7 @@ hash is in the CSP, with no console errors live. A real click on gleator.com in 
 browser pane showed the fallback, because that pane denies clipboard writes on every site
 (same denial on example.com and localhost). The live `Permissions-Policy` doesn't restrict
 the clipboard. **Still unconfirmed:** a real copy and a real share sheet in a normal browser.
-- **Folder opens in one motion (2026-11-05, not deployed):** the user's screenshots showed the
+- **Folder opens in one motion (2026-11-05, live: site `f7e15666`):** the user's screenshots showed the
   crease landing at the closed folder's height, halfway down a sheet, then jumping below it.
   The cause was two steps in `apps/site/src/home/folder-ui.ts`: the cover landed, then the body
   grew. `open()` now measures the open layout before anything paints and runs the cover, body
@@ -2142,3 +2142,6 @@ the clipboard. **Still unconfirmed:** a real copy and a real share sheet in a no
   browser at 1024px and 375px on all three tabs: 0px gap between sheet and hinge, and the body
   height just before the handoff equals the settled height. No automated test: the only
   browser suite is the production one, and the folder's geometry has no pure logic to unit-test.
+  Live check on gleator.com: the HTML has no `localhost` and has the production demo origin;
+  mid-open the sheet and hinge have a 0px gap, the height before the handoff equals the settled
+  height (984px), and the console is clean. **Not checked:** the motion watched at full speed.
