@@ -15,6 +15,11 @@
 // can be skipped outright under prefers-reduced-motion.
 import type { TabId } from "../lib/folder";
 import PREOPEN from "./folder-preopen.js?raw";
+// "Ridge Gleaton / Software engineer, Charleston, SC / File no. 001", written on the cover
+// in marker. Baked paths, so to change the words see scripts/sharpie-cover.mjs. The button's
+// aria-label names the control, as it did for the paper label this replaced.
+import SHARPIE from "./parts/cover-sharpie.svg?raw";
+import SHARPIE_TALL from "./parts/cover-sharpie-tall.svg?raw";
 
 interface Props {
   pages: Record<TabId, number>;
@@ -82,11 +87,8 @@ const SCORES = 6;
 
     <div class="cover" data-cover>
       <button type="button" class="cover-front" data-open aria-label="Open the folder">
-        <span class="label">
-          <span class="label-name">Ridge Gleaton</span>
-          <span class="label-line">Software engineer, Charleston, SC</span>
-          <span class="label-file">File no. 001</span>
-        </span>
+        <span class="sharpie sharpie-wide" set:html={SHARPIE} />
+        <span class="sharpie sharpie-tall" set:html={SHARPIE_TALL} />
         <span class="hint" aria-hidden="true">
           <svg viewBox="0 0 20 20" width="14" height="14"><path d="M10 15V5M5.5 9.5 10 5l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
           <span class="hint-mouse">Click to open</span><span class="hint-touch">Tap to open</span>
@@ -209,6 +211,8 @@ const SCORES = 6;
     font-weight: 700;
     height: 52px;
     margin-top: -4px;
+    /* The extra height goes on top, so the label stays level with the other tabs' labels. */
+    padding-top: 8px;
   }
   /* The open tab flares into the folder: a concave curve each side, and its 1px edge bends
      with it into the folder's top edge, so the two read as one piece of card. Each corner
@@ -407,40 +411,25 @@ const SCORES = 6;
     pointer-events: none;
   }
 
-  /* The paper label on the front. */
-  .label {
+  /* Written straight on the card in marker (the user's call, 2026-11-05: no paper label).
+     Same --ink as the tab labels and the hint: ink is the only colour on the frame besides
+     the card's own, so a warmer "soaked in" mix read as a second, brownish black. */
+  .sharpie {
     position: absolute;
-    top: clamp(28px, 7%, 56px);
-    left: clamp(20px, 6%, 64px);
-    display: grid;
-    gap: 4px;
-    min-width: min(72%, 320px);
-    padding: 16px 20px 14px;
-    background: var(--paper);
-    border-radius: 3px;
-    box-shadow:
-      0 0 0 1px rgb(0 0 0 / 6%),
-      0 2px 3px rgb(0 0 0 / 14%);
-    transform: rotate(-0.6deg);
+    top: clamp(24px, 9%, 60px);
+    left: clamp(18px, 6.5%, 72px);
+    width: min(64%, 680px);
+    color: var(--ink);
+    pointer-events: none;
   }
-  .label-name {
-    font-weight: 800;
-    font-size: clamp(1.25rem, 2.6vw, 1.6rem);
-    letter-spacing: -0.01em;
-    line-height: 1.1;
+  .sharpie :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
   }
-  .label-line {
-    color: var(--ink-2);
-    font-size: 0.9rem;
-  }
-  .label-file {
-    margin-top: 6px;
-    padding-top: 7px;
-    border-top: 1px dashed rgb(0 0 0 / 22%);
-    color: var(--ink-3);
-    font-size: 0.78rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
+  .sharpie-tall {
+    display: none;
   }
   .hint {
     position: absolute;
@@ -548,6 +537,19 @@ const SCORES = 6;
     }
     .tab[aria-selected="true"] {
       height: 46px;
+    }
+  }
+  /* A portrait cover gets the stacked writing, sized so it clears the hint on short phones.
+     Landscape phones keep the long lines: there the cover is wide again. */
+  @media (max-width: 640px) and (min-height: 480px) {
+    .sharpie-wide {
+      display: none;
+    }
+    .sharpie-tall {
+      display: block;
+      /* Height left above the hint, turned into a width by the drawing's 800:880 shape. */
+      top: clamp(14px, 5%, 40px);
+      width: min(80%, 320px, calc((var(--closed-h) - 170px) / 1.1));
     }
   }
 </style>

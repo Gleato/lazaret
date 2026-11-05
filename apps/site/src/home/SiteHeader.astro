@@ -15,7 +15,7 @@ import NeuralFlow from "./NeuralFlow.astro";
   <div class="net-slot"><NeuralFlow /></div>
   <nav class="links on-desk" aria-label="Elsewhere">
     <a href={NPM_URL} class="brand-link" aria-label="@gleator/lazaret on npm">
-      <Image src={npm} alt="" height={20} class="logo npm" loading="eager" />
+      <Image src={npm} alt="" height={17} densities={[1, 2, 3]} class="logo npm" loading="eager" />
     </a>
     <a href={GITHUB_PROFILE_URL} class="brand-link" aria-label="Ridge Gleaton on GitHub">
       <Image src={github} alt="" height={24} class="logo gh" loading="eager" />
@@ -61,8 +61,10 @@ import NeuralFlow from "./NeuralFlow.astro";
   .logo {
     display: block;
     width: auto;
-    /* Both files are black artwork, and the desk is always charcoal. */
-    filter: invert(1);
+    /* Both files are dark artwork, and the desk is always charcoal. brightness(0) first
+       because npm's is #231f20, not black, so inverting alone left it grey beside GitHub.
+       Invert gives pure white, cold next to the wordmark; the last two land on --on-desk. */
+    filter: brightness(0) invert(1) brightness(0.9) sepia(0.15);
   }
   .npm {
     height: 17px;
