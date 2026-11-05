@@ -171,7 +171,7 @@ import { TIMELINE } from "../data/career";
     font-weight: 800;
   }
   .note-year {
-    color: var(--red);
+    color: var(--ink-3);
     margin-right: 4px;
     font-variant-numeric: tabular-nums;
   }
@@ -229,24 +229,11 @@ import { TIMELINE } from "../data/career";
   .dot:hover {
     transform: scale(1.15);
   }
+  /* One ink for every stop (neutral palette, 2026-11-05): the year and name already say
+     what each stop is, so colour coding work, school and projects added noise. */
   .dot[aria-expanded="true"] {
-    background: var(--red);
+    background: var(--ink);
     transform: scale(1.2);
-  }
-  .work .dot {
-    border-color: var(--red);
-  }
-  .school .dot {
-    border-color: var(--blue);
-  }
-  .build .dot {
-    border-color: var(--green);
-  }
-  .school .dot[aria-expanded="true"] {
-    background: var(--blue);
-  }
-  .build .dot[aria-expanded="true"] {
-    background: var(--green);
   }
   .year {
     margin-top: 6px;

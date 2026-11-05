@@ -28,11 +28,11 @@
   .curl[disabled] {
     cursor: default;
   }
-  /* The corner of this page is gone: what shows is the manila behind it. */
+  /* The corner of this page is gone: what shows is the folder behind it. */
   .under {
     position: absolute;
     inset: 0;
-    background: var(--manila);
+    background: var(--fold);
     clip-path: polygon(0 0, 100% 0, 100% 100%);
   }
   /* The turned-back flap: the paper's underside, lit along the fold. */
@@ -42,7 +42,7 @@
     clip-path: polygon(0 0, 0 100%, 100% 100%);
     background: linear-gradient(225deg, #fdfaf7 0%, #f1ece6 38%, #d9d3cc 50%, #f6f2ee 66%, #ffffff 100%);
     border-bottom-left-radius: 22% 30%;
-    filter: drop-shadow(-3px 4px 4px rgb(60 40 10 / 28%));
+    filter: drop-shadow(-3px 4px 4px rgb(0 0 0 / 28%));
     transform-origin: 0 100%;
     transition: transform 0.35s cubic-bezier(0.3, 0.7, 0.2, 1);
   }

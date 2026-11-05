@@ -181,7 +181,7 @@ const stages = [
     inset: 4px auto 4px 4px;
     width: calc(50% - 4px);
     border-radius: 999px;
-    background: var(--green);
+    background: var(--ink);
     transition: transform 0.32s cubic-bezier(0.3, 0.7, 0.2, 1);
   }
   [data-level="1"] .switch-thumb {
@@ -217,9 +217,9 @@ const stages = [
     color: var(--ink-3);
   }
   .core {
-    background: #121e22;
-    border-color: #121e22;
-    color: #e3e5da;
+    background: var(--desk);
+    border-color: var(--desk);
+    color: var(--on-desk);
   }
   .mini {
     display: flex;
@@ -233,8 +233,8 @@ const stages = [
   .mini li {
     padding: 3px 8px;
     border-radius: 999px;
-    background: rgb(240 190 42 / 18%);
-    color: #f0be2a;
+    background: rgb(255 255 255 / 12%);
+    color: var(--on-desk);
   }
   .link {
     position: relative;
@@ -276,10 +276,10 @@ const stages = [
     border: 1.5px dashed currentColor;
   }
   .drop {
-    color: var(--red);
+    color: var(--bad);
   }
   .held {
-    color: #8a5a00;
+    color: var(--hold);
   }
   .caption {
     margin: 18px auto 0;
@@ -321,8 +321,8 @@ const stages = [
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: #121e22;
-    color: #e3e5da;
+    background: var(--desk);
+    color: var(--on-desk);
     font-size: 0.8rem;
     font-weight: 800;
     box-shadow: 0 0 0 4px var(--paper);
@@ -340,7 +340,7 @@ const stages = [
   .stage-tech {
     font-size: 0.8rem;
     font-weight: 600;
-    color: var(--green);
+    color: var(--ink);
   }
   .stage-text {
     margin: 4px 0 8px;
@@ -374,7 +374,7 @@ const stages = [
   .code {
     font-size: 0.8rem;
     font-weight: 700;
-    color: var(--green);
+    color: var(--ink);
     text-underline-offset: 3px;
   }
 

@@ -1,22 +1,23 @@
 ---
-// The home page header from the boards: the Gleator wordmark, the uptime clock in
-// the middle, and the official npm and GitHub lockups (the user's own logo files),
-// which link to the published package and the repo.
+// The home page header: the Gleator wordmark, the neural network animation in the middle,
+// and the official npm and GitHub lockups (the user's own logo files, inverted for the
+// charcoal desk). GitHub goes to Ridge's profile, npm to the published package. LinkedIn
+// isn't here because the user doesn't use it.
 import { Image } from "astro:assets";
 import github from "../assets/logos/github-lockup.svg";
 import npm from "../assets/logos/npm.png";
-import { GITHUB_URL, NPM_URL } from "./data/links";
-import FlipClock from "./FlipClock.astro";
+import { GITHUB_PROFILE_URL, NPM_URL } from "./data/links";
+import NeuralFlow from "./NeuralFlow.astro";
 ---
 
 <header class="site-head">
   <a class="wordmark on-desk" href="/" aria-label="Gleator, home">Gleator</a>
-  <div class="clock-slot"><FlipClock /></div>
-  <nav class="links" aria-label="Lazaret">
+  <div class="net-slot"><NeuralFlow /></div>
+  <nav class="links on-desk" aria-label="Elsewhere">
     <a href={NPM_URL} class="brand-link" aria-label="@gleator/lazaret on npm">
       <Image src={npm} alt="" height={20} class="logo npm" loading="eager" />
     </a>
-    <a href={GITHUB_URL} class="brand-link" aria-label="Lazaret on GitHub">
+    <a href={GITHUB_PROFILE_URL} class="brand-link" aria-label="Ridge Gleaton on GitHub">
       <Image src={github} alt="" height={24} class="logo gh" loading="eager" />
     </a>
   </nav>
@@ -34,13 +35,13 @@ import FlipClock from "./FlipClock.astro";
     justify-self: start;
     font: 800 clamp(2.6rem, 6.2vw, 5.4rem) / 0.9 var(--figtree);
     letter-spacing: -0.035em;
-    color: var(--ink);
     text-decoration: none;
     /* Optical alignment: the G's bowl overshoots the folder's left edge otherwise. */
     margin-left: -0.04em;
   }
-  .clock-slot {
+  .net-slot {
     justify-self: center;
+    min-width: 0;
   }
   .links {
     justify-self: end;
@@ -60,6 +61,8 @@ import FlipClock from "./FlipClock.astro";
   .logo {
     display: block;
     width: auto;
+    /* Both files are black artwork, and the desk is always charcoal. */
+    filter: invert(1);
   }
   .npm {
     height: 17px;
@@ -67,22 +70,14 @@ import FlipClock from "./FlipClock.astro";
   .gh {
     height: 22px;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .logo {
-      filter: invert(1);
-    }
-  }
-  :root[data-theme="dark"] .logo {
-    filter: invert(1);
-  }
 
-  /* Phones: wordmark and links share the top row, the clock sits under them. */
+  /* Phones: wordmark and links share the top row, the network sits under them. */
   @media (max-width: 700px) {
     .site-head {
       grid-template-columns: 1fr auto;
       row-gap: 14px;
     }
-    .clock-slot {
+    .net-slot {
       grid-column: 1 / -1;
       grid-row: 2;
     }

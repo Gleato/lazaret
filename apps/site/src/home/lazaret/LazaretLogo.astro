@@ -1,8 +1,9 @@
 ---
-// Lazaret's lockup: the yellow flag and the name in Solitus on the brand blue (the user's
-// rebrand, 2026-11-05). The file comes straight from public/brand, which
-// apps/site/brand/build.py generates, so the site can't drift from the npm and GitHub art.
-import lockup from "../../../public/brand/lazaret-wordmark-white.svg?raw";
+// Lazaret's lockup: the yellow flag and the name in Solitus, in ink on the paper. The blue
+// plaque (the 2026-11-05 rebrand) stays on npm and GitHub; here it came out so the flag is
+// the one bright thing on the page. The file comes straight from public/brand, which
+// apps/site/brand/build.py generates, so the site can't drift from the published art.
+import lockup from "../../../public/brand/lazaret-wordmark.svg?raw";
 ---
 
 <div class="lockup" set:html={lockup} />
@@ -11,13 +12,8 @@ import lockup from "../../../public/brand/lazaret-wordmark-white.svg?raw";
   .lockup {
     display: grid;
     place-items: center;
-    aspect-ratio: 460 / 170;
-    padding: 6% 9%;
-    border-radius: 14px;
-    background: #008cff;
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 12%) inset,
-      0 10px 22px -14px rgb(10 20 25 / 70%);
+    width: min(100%, 320px);
+    margin-inline: auto;
   }
   .lockup :global(svg) {
     width: 100%;

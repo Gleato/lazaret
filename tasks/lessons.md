@@ -69,3 +69,16 @@
   same thing is confusing, and one share button is all it needs.
 - **Rule:** when making a decorative element work, count the distinct outcomes. One outcome
   gets one control. Don't keep a metaphor's parts if they stop meaning anything.
+
+## Keep the user's supplied assets unless they ask to drop them (2026-11-05)
+- **What happened:** while repointing the header links I also swapped the user's real npm and
+  GitHub logos for plain text, to keep the frame neutral. The user asked for the logos back.
+- **Rule:** when a change is about where something links or what it says, leave the assets the
+  user supplied. Swapping them is a separate decision: ask, or at least call it out.
+
+## `perspective` and `transform` scope z-index (2026-11-05)
+- **What happened:** the folder's top edge never showed in front of the back tabs. `.shell` has
+  `perspective`, which makes a stacking context, so `.body`'s `z-index: 5` never competed with
+  the tabs. I blamed the edge's shade first, and my added shadow was hidden the same way.
+- **Rule:** when a line or shadow "isn't showing", check what's on top with `elementFromPoint`
+  before tuning colour. Read what the user circles literally, too.

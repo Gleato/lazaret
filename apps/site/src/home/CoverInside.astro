@@ -5,7 +5,7 @@
 // The slip used to list three roles with checkboxes that were only drawn on. They read as
 // broken, and live ones would all have done the same thing, so it is one real button
 // now (src/lib/share.ts, the user's call, 2026-11-05).
-import { EMAIL, GITHUB_PROFILE_URL, LINKEDIN_URL, SITE_URL } from "./data/links";
+import { EMAIL, GITHUB_PROFILE_URL, SITE_URL } from "./data/links";
 ---
 
 <div class="inside">
@@ -26,7 +26,6 @@ import { EMAIL, GITHUB_PROFILE_URL, LINKEDIN_URL, SITE_URL } from "./data/links"
       <p class="card-role">Software Engineer</p>
       <ul class="card-links">
         <li><a href={`mailto:${EMAIL}`}>{EMAIL}</a></li>
-        <li><a href={LINKEDIN_URL}>linkedin.com/in/gleator</a></li>
         <li><a href={GITHUB_PROFILE_URL}>github.com/Gleato</a></li>
       </ul>
     </div>
@@ -56,11 +55,11 @@ import { EMAIL, GITHUB_PROFILE_URL, LINKEDIN_URL, SITE_URL } from "./data/links"
     align-self: start;
     max-width: 260px;
     padding: 16px 18px 14px;
-    background: #fff7d1;
+    background: var(--paper);
     border-radius: 2px;
     box-shadow:
-      0 0 0 1px rgb(120 100 20 / 14%),
-      0 3px 5px -2px rgb(80 60 0 / 22%);
+      0 0 0 1px rgb(0 0 0 / 6%),
+      0 3px 5px -2px rgb(0 0 0 / 22%);
     transform: rotate(-1.4deg);
   }
   .slip-title {
@@ -73,7 +72,7 @@ import { EMAIL, GITHUB_PROFILE_URL, LINKEDIN_URL, SITE_URL } from "./data/links"
     font-size: 0.9rem;
     color: var(--ink-2);
   }
-  /* Ruled like the form it sits on, in the blue ink the slip's tick was drawn in. */
+  /* Ruled like the form it sits on. */
   .share {
     display: flex;
     align-items: center;
@@ -85,22 +84,22 @@ import { EMAIL, GITHUB_PROFILE_URL, LINKEDIN_URL, SITE_URL } from "./data/links"
     font: inherit;
     font-weight: 700;
     font-size: 0.92rem;
-    color: var(--blue);
+    color: var(--ink);
     background: transparent;
-    border: 1.5px solid var(--blue);
+    border: 1.5px solid var(--ink);
     border-radius: 2px;
     cursor: pointer;
     overflow-wrap: anywhere;
   }
   .share[data-state="copied"] {
-    color: #fff7d1;
-    background: var(--blue);
+    color: var(--paper);
+    background: var(--ink);
   }
   /* Hover only where it exists: on touch it would stick after the tap. */
   @media (hover: hover) {
     .share:hover {
-      color: #fff7d1;
-      background: var(--blue);
+      color: var(--paper);
+      background: var(--ink);
     }
   }
   .share svg {
@@ -136,7 +135,7 @@ import { EMAIL, GITHUB_PROFILE_URL, LINKEDIN_URL, SITE_URL } from "./data/links"
     border-radius: 4px;
     box-shadow:
       0 0 0 1px rgb(0 0 0 / 7%),
-      0 4px 10px -4px rgb(60 40 0 / 30%);
+      0 4px 10px -4px rgb(0 0 0 / 30%);
     transform: rotate(2.2deg);
   }
   .card p {
@@ -173,8 +172,8 @@ import { EMAIL, GITHUB_PROFILE_URL, LINKEDIN_URL, SITE_URL } from "./data/links"
     width: 100%;
     height: 96px;
     margin-top: -30px;
-    background: linear-gradient(var(--manila-2), color-mix(in srgb, var(--manila-2) 85%, var(--manila-3)));
-    border: 2px solid color-mix(in srgb, var(--line) 55%, transparent);
+    background: linear-gradient(var(--fold-mid), color-mix(in srgb, var(--fold-mid) 85%, var(--fold-deep)));
+    border: 1px solid var(--fold-edge);
     border-radius: 4px 4px 12px 12px;
     clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 100%);
     box-shadow: 0 -2px 0 rgb(255 255 255 / 50%) inset;
@@ -183,7 +182,7 @@ import { EMAIL, GITHUB_PROFILE_URL, LINKEDIN_URL, SITE_URL } from "./data/links"
   .property {
     grid-column: 1 / -1;
     margin: 0;
-    color: var(--ink-3);
+    color: var(--ink);
     font-size: 0.8rem;
   }
   .property a {

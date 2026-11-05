@@ -1,0 +1,110 @@
+---
+// The header's neural network (the user's request, 2026-11-05): a slim line of a network
+// making a decision. Three signals converge on one output, hold, then run back the same
+// way, on a loop with no seam. It's in the open tab's colour, so it belongs to the folder.
+//
+// SMIL rather than CSS keyframes: each node needs its own timing, and generating those as
+// attributes needs no script or inline stylesheet, so the CSP stays as it is. Reduced
+// motion shows the finished decision, standing still. Decorative, so hidden from screen
+// readers. Geometry and timing are in src/lib/neural-flow.ts, which the tests cover.
+import {
+  EDGES,
+  GLOWS,
+  glowTrack,
+  HEIGHT,
+  NODES,
+  PERIOD_S,
+  PULSE_DASH,
+  PULSE_SPLINES,
+  pulseTrack,
+  SIGNALS,
+  WIDTH,
+} from "../lib/neural-flow";
+
+const dur = `${PERIOD_S}s`;
+const list = (ns: number[]) => ns.join(";");
+---
+
+<svg class="net" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width={WIDTH} height={HEIGHT} aria-hidden="true">
+  <path class="edges" d={EDGES}></path>
+  <g class="nodes">{NODES.map((n) => <circle cx={n.x} cy={n.y} r="1.5" />)}</g>
+
+  <g class="live">
+    {
+      SIGNALS.map((d) => (
+        <path class="signal" d={d} pathLength="1" stroke-dasharray={PULSE_DASH}>
+          <animate
+            attributeName="stroke-dashoffset"
+            dur={dur}
+            repeatCount="indefinite"
+            calcMode="spline"
+            keyTimes={list(pulseTrack.times)}
+            keySplines={PULSE_SPLINES}
+            values={list(pulseTrack.values)}
+          />
+        </path>
+      ))
+    }
+    {
+      GLOWS.map((g) => {
+        const t = glowTrack(g.col);
+        return (
+          <circle class="glow" cx={g.x} cy={g.y} r="2.1" opacity="0">
+            <animate
+              attributeName="opacity"
+              dur={dur}
+              repeatCount="indefinite"
+              keyTimes={list(t.times)}
+              values={list(t.values)}
+            />
+          </circle>
+        );
+      })
+    }
+  </g>
+
+  <g class="still">
+    {SIGNALS.map((d) => <path class="signal" d={d} />)}
+    {GLOWS.map((g) => <circle class="glow" cx={g.x} cy={g.y} r="2.1" />)}
+  </g>
+</svg>
+
+<style>
+  .net {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .edges {
+    fill: none;
+    stroke: var(--on-desk);
+    stroke-width: 0.5;
+    opacity: 0.12;
+  }
+  .nodes {
+    fill: var(--on-desk);
+    opacity: 0.42;
+  }
+  .signal {
+    fill: none;
+    stroke: var(--fold);
+    stroke-width: 1.1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .glow {
+    fill: var(--fold);
+  }
+  .still {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live {
+      display: none;
+    }
+    .still {
+      display: inline;
+    }
+  }
+</style>

@@ -1,33 +1,43 @@
 /*
-  The folder home (M9). Palette lifted from the user's boards (portfolioDesign/1–3.png):
-  a white desk, a charcoal-outlined manila folder, off-white paper, and one colour
-  per divider tab (blue Profile, green Projects, red Edu x Exp). Figtree for all text.
-  The folder is the one loud thing; everything on the paper stays quiet and printed.
-  Scoped to body.home so the long Lazaret page keeps its own tokens.
+  The folder home (M9). A charcoal desk, a charcoal-outlined folder, and off-white paper,
+  in one palette for every visitor whatever their device's light or dark setting.
+
+  Colour pass (2026-11-05): all the colour lives in the frame. Each tab has one flat colour
+  and the folder takes the colour of the open tab. Everything filed inside stays neutral:
+  ink is the only accent, and --ok, --hold and --bad are ink too, so state is carried by
+  words and shape. The exceptions are brand marks and the photos.
+  Figtree for all text. Scoped to body.home so the long Lazaret page keeps its own tokens.
 */
 
+/* Registered so a transition can tween it: everything built on it, folder shading and
+   the header's network included, changes with the tab from the one transition below. */
+@property --fold {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ff7a5c;
+}
+
 body.home {
-  --desk: #ffffff;
+  --desk: #1b1a19;
+  --on-desk: #f2ede6;
   --ink: #1c1a19;
   --ink-2: #4d4845;
   --ink-3: #7a736d;
   --line: #3a3435;
-  --manila: #fdf3df;
-  --manila-2: #f6e6c2;
-  --manila-3: #e8d2a2;
+  --fold-profile: #ff7a5c;
+  --fold-projects: #ffc145;
+  --fold-experience: #7d9dff;
   --paper: #fffcf9;
   --paper-edge: #e9e1d6;
-  --blue: #2a4aa3;
-  --blue-soft: #cfd9fd;
-  --green: #0f5129;
-  --green-soft: #c9eedb;
-  --red: #a3141c;
-  --red-soft: #fde4de;
-  --arrow-off: #c6cfd8;
-  --stamp: #b3261e;
-  --focus: #2a4aa3;
+  --tint: #f5efe4;
+  --ok: var(--ink);
+  --ok-soft: var(--tint);
+  --hold: var(--ink-2);
+  --bad: var(--ink);
+  --bad-soft: var(--tint);
+  --arrow-off: #cfc8bd;
+  --focus: var(--ink);
   --rule: #ddd4c8;
-  --lagoon: #2a4aa3;
 
   background: var(--desk);
   color: var(--ink);
@@ -37,26 +47,31 @@ body.home {
   font-size: 0.889rem;
 }
 
-/* Night: the desk lamp goes off, the folder stays a physical object (its colours
-   don't invert), only a touch dimmer so it doesn't glare. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) body.home {
-    --desk: #1b1a19;
-    --focus: #9fb4ff;
-  }
-  :root:not([data-theme="light"]) body.home .folder {
-    filter: brightness(0.94);
-  }
-  :root:not([data-theme="light"]) body.home .on-desk {
-    color: #f2ede6;
+/* :has() rather than a class from the script, so the deep-link pre-open gets it for free. */
+body.home {
+  --fold: var(--fold-profile);
+}
+body.home:has(.folder[data-active="projects"]) {
+  --fold: var(--fold-projects);
+}
+body.home:has(.folder[data-active="experience"]) {
+  --fold: var(--fold-experience);
+}
+@media (prefers-reduced-motion: no-preference) {
+  body.home {
+    transition: --fold 0.28s ease;
   }
 }
-:root[data-theme="dark"] body.home {
-  --desk: #1b1a19;
-  --focus: #9fb4ff;
+
+/* Overscroll past the page shows the root, so it has to match the desk too. */
+html:has(body.home) {
+  background: #1b1a19;
 }
-:root[data-theme="dark"] body.home .on-desk {
-  color: #f2ede6;
+
+/* Anything sitting directly on the desk. The focus ring flips with it. */
+body.home .on-desk {
+  --focus: var(--on-desk);
+  color: var(--on-desk);
 }
 
 body.home p {
@@ -93,7 +108,7 @@ body.home .skip:focus {
 
 /* ── Paper ─────────────────────────────────────────────────────────────────────
    Every sheet in the folder is one of these: off-white stock with a hairline edge, a
-   soft shadow where it lifts off the manila, and a grain you only notice up close. */
+   soft neutral shadow where it lifts off the folder, and a grain you only notice up close. */
 .paper {
   position: relative;
   background:
@@ -102,9 +117,9 @@ body.home .skip:focus {
   border-radius: 2px;
   padding: clamp(26px, 5vw, 60px) clamp(18px, 5.4vw, 64px) clamp(30px, 5vw, 60px);
   box-shadow:
-    0 0 0 1px rgb(90 70 30 / 10%),
-    0 1px 1px rgb(90 70 30 / 8%),
-    0 12px 26px -16px rgb(90 60 10 / 40%);
+    0 0 0 1px rgb(0 0 0 / 6%),
+    0 1px 2px rgb(0 0 0 / 10%),
+    0 18px 30px -18px rgb(0 0 0 / 45%);
   --pad-x: clamp(18px, 5.4vw, 64px);
 }
 @media (max-width: 640px) {
@@ -117,19 +132,19 @@ body.home .skip:focus {
 .paper[data-under="1"],
 .paper[data-under="2"] {
   box-shadow:
-    0 0 0 1px rgb(90 70 30 / 10%),
+    0 0 0 1px rgb(0 0 0 / 6%),
     4px 4px 0 -1px var(--paper),
-    4px 4px 0 0 rgb(90 70 30 / 14%),
-    0 12px 26px -16px rgb(90 60 10 / 40%);
+    4px 4px 0 0 rgb(0 0 0 / 10%),
+    0 18px 30px -18px rgb(0 0 0 / 45%);
 }
 .paper[data-under="2"] {
   box-shadow:
-    0 0 0 1px rgb(90 70 30 / 10%),
+    0 0 0 1px rgb(0 0 0 / 6%),
     4px 4px 0 -1px var(--paper),
-    4px 4px 0 0 rgb(90 70 30 / 14%),
+    4px 4px 0 0 rgb(0 0 0 / 10%),
     8px 8px 0 -1px var(--paper),
-    8px 8px 0 0 rgb(90 70 30 / 12%),
-    0 12px 26px -16px rgb(90 60 10 / 40%);
+    8px 8px 0 0 rgb(0 0 0 / 8%),
+    0 18px 30px -18px rgb(0 0 0 / 45%);
 }
 
 .paper h2,

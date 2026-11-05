@@ -1,5 +1,5 @@
 ---
-// The manila folder that holds the whole home page (the user's redesign, 2026-11-02).
+// The folder that holds the whole home page (the user's redesign, 2026-11-02).
 //
 // - Closed at first: the front cover lies over the sheets, the three divider tabs
 //   showing above it. It nods open now and then, and says "Click to open".
@@ -21,10 +21,13 @@ interface Props {
 }
 const { pages } = Astro.props;
 
-const tabs: { id: TabId; label: string; color: string; soft: string }[] = [
-  { id: "profile", label: "Profile", color: "var(--blue)", soft: "var(--blue-soft)" },
-  { id: "projects", label: "Projects", color: "var(--green)", soft: "var(--green-soft)" },
-  { id: "experience", label: "Edu x Exp", color: "var(--red)", soft: "var(--red-soft)" },
+// One colour per tab, no tints of it (the user's colour pass, 2026-11-05). The whole folder
+// takes the colour of the open tab, and the contents stay neutral, so the frame is the one
+// place the site is loud.
+const tabs: { id: TabId; label: string; fold: string }[] = [
+  { id: "profile", label: "Profile", fold: "var(--fold-profile)" },
+  { id: "projects", label: "Projects", fold: "var(--fold-projects)" },
+  { id: "experience", label: "Edu x Exp", fold: "var(--fold-experience)" },
 ];
 const SCORES = 6;
 ---
@@ -42,7 +45,7 @@ const SCORES = 6;
           aria-controls={`sheet-${t.id}`}
           aria-selected={i === 0 ? "true" : "false"}
           tabindex={i === 0 ? 0 : -1}
-          style={`--c: ${t.color}; --c-soft: ${t.soft}; --z: ${tabs.length - i}`}
+          style={`--tab: ${t.fold}; --z: ${tabs.length - i}`}
         >
           <span class="tab-label">{t.label}</span>
         </button>
@@ -52,7 +55,6 @@ const SCORES = 6;
 
   <div class="shell" data-shell>
     <div class="body" data-body inert>
-      <div class="divider-edge" aria-hidden="true"></div>
       <div class="sheets" data-sheets>
         {
           tabs.map((t, i) => (
@@ -115,12 +117,27 @@ const SCORES = 6;
   .folder {
     --closed-h: clamp(340px, 56vh, 520px);
     --radius: 20px;
-    --stroke: 3px;
+    --stroke: 1px;
     --hinge-h: 22px;
     /* The curve inside the outline: what anything laid against the top edge must follow. */
     --radius-in: calc(var(--radius) - var(--stroke));
     position: relative;
+    /* Rests on the desk. drop-shadow, not box-shadow, so the tabs and the folder cast one
+       silhouette. */
+    filter: drop-shadow(0 22px 34px rgb(0 0 0 / 50%));
     margin-inline: clamp(0px, 3.5vw, 56px);
+  }
+
+  /* ── Colour ─────────────────────────────────────────────────────────────────
+     --fold is set on the body in home.css, so the header's network follows it too. */
+  .folder {
+    --fold-mid: color-mix(in srgb, var(--fold) 90%, var(--ink));
+    --fold-deep: color-mix(in srgb, var(--fold) 78%, var(--ink));
+    /* The edge of the card itself, a darker shade of its own colour. It was a charcoal
+       outline, drawn for manila on a white desk; on the dark desk that read as a grey halo.
+       50% black because it also has to read against the other tabs: at 66%, periwinkle's
+       edge was as bright as the coral tab behind it and the line vanished. */
+    --fold-edge: color-mix(in srgb, var(--fold) 50%, #000);
   }
 
   /* ── Tabs ─────────────────────────────────────────────────────────────────── */
@@ -141,11 +158,14 @@ const SCORES = 6;
     height: 48px;
     margin-left: -14px;
     padding: 4px 14px 0;
-    border: var(--stroke) solid var(--line);
+    border: var(--stroke) solid color-mix(in srgb, var(--tab) 50%, #000);
     border-bottom: 0;
     border-radius: 16px 16px 0 0;
-    background: var(--c-soft);
-    color: var(--ink-2);
+    /* A small step back toward the desk, so the open tab reads as in front. Any more and
+       the colours turn muddy (marigold goes mustard). */
+    background: color-mix(in srgb, var(--tab) 94%, var(--desk));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 26%);
+    color: var(--ink);
     font: 600 1rem / 1 var(--figtree);
     cursor: pointer;
     transform-origin: 50% 100%;
@@ -165,7 +185,7 @@ const SCORES = 6;
     inset: 6px auto 0 -1px;
     width: 10px;
     border-radius: 12px 0 0 0;
-    box-shadow: -4px 0 6px -4px rgb(40 25 0 / 30%);
+    box-shadow: -4px 0 6px -4px rgb(0 0 0 / 30%);
     pointer-events: none;
   }
   .tab:first-child::before {
@@ -176,9 +196,8 @@ const SCORES = 6;
   }
   .tab[aria-selected="true"] {
     z-index: 10;
-    background: var(--c);
-    color: #fff;
-    font-style: italic;
+    /* No bottom border, so the open tab and the folder read as one piece of card. */
+    background: var(--tab);
     font-weight: 700;
     height: 52px;
     margin-top: -4px;
@@ -186,12 +205,22 @@ const SCORES = 6;
   /* Closed, no divider is in front yet: every tab at rest. */
   .folder[data-state="closed"] .tab[aria-selected="true"] {
     z-index: var(--z);
-    background: var(--c-soft);
-    color: var(--ink-2);
-    font-style: normal;
+    background: color-mix(in srgb, var(--tab) 94%, var(--desk));
     font-weight: 600;
     height: 48px;
     margin-top: 0;
+  }
+  /* Carries the open tab's colour over the folder's top highlight, so no line crosses
+     the join. Closed, no tab is in front, so the folder's edge runs unbroken. */
+  .tab[aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 calc(-1 * var(--stroke) - 1px);
+    height: calc(var(--stroke) + 1px);
+    background: var(--tab);
+  }
+  .folder[data-state="closed"] .tab[aria-selected="true"]::after {
+    display: none;
   }
   .tab-label {
     display: block;
@@ -205,18 +234,26 @@ const SCORES = 6;
   /* ── Back panel ───────────────────────────────────────────────────────────── */
   .shell {
     position: relative;
+    /* perspective makes this its own stacking context, so .body's z-index only counts in
+       here. This one sets the order against the tabs: above the back tabs, so the open
+       folder's top edge and shadow run in front of them, and below the open tab (10). */
+    z-index: 5;
     perspective: 2400px;
     perspective-origin: 50% 0%;
   }
   .body {
     position: relative;
     z-index: 5;
-    background: var(--manila);
-    border: var(--stroke) solid var(--line);
+    background: var(--fold);
+    border: var(--stroke) solid var(--fold-edge);
     border-radius: var(--radius) var(--radius) 0 0;
     border-bottom: 0;
     padding: clamp(18px, 3.4vw, 40px) clamp(12px, 5.6vw, 64px) clamp(26px, 4vw, 48px);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 55%) inset;
+    /* The second shadow falls upward onto the tabs behind the folder, so they tuck under
+       it. The open tab sits above the folder and stays clear of it. */
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 14%) inset,
+      0 -3px 6px -1px rgb(0 0 0 / 24%);
   }
   .folder[data-state="closed"] .body,
   .folder[data-state="opening"] .body {
@@ -224,30 +261,8 @@ const SCORES = 6;
     overflow: hidden;
   }
   .folder[data-state="closed"] .body {
-    border-bottom: var(--stroke) solid var(--line);
+    border-bottom: var(--stroke) solid var(--fold-edge);
     border-radius: var(--radius);
-  }
-  /* The top edge of the divider in front, peeking above the paper in its tab's colour. */
-  /* A top border on a corner-tall box, not a 6px filled bar: CSS shrinks a radius that
-     doesn't fit its box, so a 6px bar can't follow the folder's curve at either end. */
-  .divider-edge {
-    position: absolute;
-    inset: 0 0 auto;
-    box-sizing: border-box;
-    height: var(--radius-in);
-    border-top: 6px solid var(--edge, transparent);
-    border-radius: var(--radius-in) var(--radius-in) 0 0;
-    pointer-events: none;
-    transition: border-color 0.28s ease;
-  }
-  .folder[data-active="profile"]:not([data-state="closed"]) {
-    --edge: var(--blue);
-  }
-  .folder[data-active="projects"]:not([data-state="closed"]) {
-    --edge: var(--green);
-  }
-  .folder[data-active="experience"]:not([data-state="closed"]) {
-    --edge: var(--red);
   }
   .sheets {
     position: relative;
@@ -263,14 +278,14 @@ const SCORES = 6;
     height: var(--hinge-h);
     /* The board bends here: each side shades as it falls into the valley of the fold. */
     background: linear-gradient(
-      var(--manila) 0%,
-      color-mix(in srgb, var(--manila-2) 70%, var(--manila)) 30%,
-      var(--manila-3) 49%,
-      var(--manila-3) 51%,
-      color-mix(in srgb, var(--manila-2) 70%, var(--manila)) 70%,
-      var(--manila) 100%
+      var(--fold) 0%,
+      color-mix(in srgb, var(--fold-mid) 70%, var(--fold)) 30%,
+      var(--fold-deep) 49%,
+      var(--fold-deep) 51%,
+      color-mix(in srgb, var(--fold-mid) 70%, var(--fold)) 70%,
+      var(--fold) 100%
     );
-    border-inline: var(--stroke) solid var(--line);
+    border-inline: var(--stroke) solid var(--fold-edge);
   }
   .folder[data-state="opening"] .hinge,
   .folder[data-state="open"] .hinge {
@@ -281,18 +296,18 @@ const SCORES = 6;
     position: absolute;
     inset: calc(50% - 1px) 0 auto;
     height: 2px;
-    background: rgb(110 78 22 / 48%);
+    background: rgb(0 0 0 / 30%);
     box-shadow:
-      0 -1px 0 rgb(255 255 255 / 85%),
-      0 1px 0 rgb(255 255 255 / 45%);
+      0 -1px 0 rgb(255 255 255 / 28%),
+      0 1px 0 rgb(255 255 255 / 16%);
   }
   .score {
     position: absolute;
     left: 0;
     right: 0;
     height: 1px;
-    background: rgb(120 88 30 / 22%);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 70%);
+    background: rgb(0 0 0 / 14%);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 22%);
     transition: opacity 0.35s ease;
   }
   .hinge .score:nth-of-type(1) {
@@ -338,7 +353,7 @@ const SCORES = 6;
   }
   .cover-front,
   .cover-inside {
-    border: var(--stroke) solid var(--line);
+    border: var(--stroke) solid var(--fold-edge);
   }
   .cover-front {
     position: absolute;
@@ -347,14 +362,13 @@ const SCORES = 6;
     width: 100%;
     padding: 0;
     border-radius: var(--radius);
-    background:
-      radial-gradient(120% 90% at 20% 0%, rgb(255 255 255 / 35%), transparent 60%),
-      var(--manila-2);
+    /* Flat: a white sheen suited manila but turned the saturated card chalky. */
+    background: var(--fold);
     color: var(--ink);
     text-align: left;
     cursor: pointer;
     backface-visibility: hidden;
-    box-shadow: 0 -1px 0 rgb(255 255 255 / 50%) inset;
+    box-shadow: 0 -1px 0 rgb(255 255 255 / 24%) inset;
     font: inherit;
   }
   .cover-inside {
@@ -362,7 +376,7 @@ const SCORES = 6;
     min-height: calc(var(--closed-h) - 14px);
     border-top: 0;
     border-radius: 0 0 var(--radius) var(--radius);
-    background: var(--manila);
+    background: var(--fold);
     padding: clamp(18px, 3.4vw, 40px) clamp(12px, 5.6vw, 64px);
     position: relative;
   }
@@ -381,7 +395,7 @@ const SCORES = 6;
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: #3d2a05;
+    background: #000;
     opacity: 0;
     pointer-events: none;
   }
@@ -398,8 +412,8 @@ const SCORES = 6;
     background: var(--paper);
     border-radius: 3px;
     box-shadow:
-      0 0 0 1px rgb(80 60 20 / 12%),
-      0 2px 3px rgb(80 60 20 / 18%);
+      0 0 0 1px rgb(0 0 0 / 6%),
+      0 2px 3px rgb(0 0 0 / 14%);
     transform: rotate(-0.6deg);
   }
   .label-name {
@@ -415,7 +429,7 @@ const SCORES = 6;
   .label-file {
     margin-top: 6px;
     padding-top: 7px;
-    border-top: 1px dashed rgb(80 60 20 / 30%);
+    border-top: 1px dashed rgb(0 0 0 / 22%);
     color: var(--ink-3);
     font-size: 0.78rem;
     font-weight: 600;
@@ -431,7 +445,7 @@ const SCORES = 6;
     padding: 9px 16px 9px 13px;
     border-radius: 999px;
     background: var(--ink);
-    color: var(--manila);
+    color: var(--fold);
     font-weight: 600;
     font-size: 0.92rem;
     transform: translateX(-50%);
@@ -515,7 +529,6 @@ const SCORES = 6;
     .folder {
       --closed-h: clamp(320px, 62vh, 480px);
       --radius: 14px;
-      --stroke: 2.5px;
     }
     .tab {
       width: 37%;

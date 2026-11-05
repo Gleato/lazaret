@@ -124,10 +124,10 @@ const WORD: Record<Mark, string> = { yes: "Yes", no: "No", partial: "Partly" };
   }
   /* Lazaret's column is the one being argued for: a light green band, top to bottom. */
   .lz {
-    background: #eef8f1;
+    background: var(--tint);
   }
   thead .lz {
-    color: var(--green);
+    color: var(--ink);
     font-weight: 800;
     border-radius: 8px 8px 0 0;
   }
@@ -148,14 +148,14 @@ const WORD: Record<Mark, string> = { yes: "Yes", no: "No", partial: "Partly" };
     stroke-linejoin: round;
   }
   .yes .mark {
-    background: #1f7a43;
+    background: var(--ink);
     color: #fff;
   }
   .no .mark {
     color: #a39d94;
   }
   .partial .mark {
-    color: #8a6a1f;
+    color: var(--ink-3);
   }
   .partial svg {
     stroke-width: 1.6;
@@ -177,10 +177,10 @@ const WORD: Record<Mark, string> = { yes: "Yes", no: "No", partial: "Partly" };
     margin-right: 3px;
   }
   .key.yes {
-    color: #1f7a43;
+    color: var(--ink);
   }
   .key.partial {
-    color: #8a6a1f;
+    color: var(--ink-3);
   }
   .hover-hint {
     margin-left: auto;

@@ -2161,3 +2161,37 @@ the clipboard. **Still unconfirmed:** a real copy and a real share sheet in a no
 - **npm:** 0.3.1 is docs only, because the npm page only changes with a release. The publish
   and the GitHub social preview upload are the user's: npm needs their login and 2FA, and
   GitHub has no API for the social preview.
+
+## Neutral palette trial (2026-11-05, branch `neutral-palette`, not deployed)
+
+Trial of a neutral frame, at the user's request, with rollback on the table.
+
+- [x] Charcoal desk for every visitor; dropped the dark-mode folder dimming
+- [x] Manila tabs, no colored rim; ink is the only accent
+- [x] Green, amber and red only inside the Lazaret demo, one shade each
+- [x] Flag and ink wordmark on the Projects sheet; blue plaque stays on npm and GitHub
+- [x] Logo wall in one ink (gamma SVG filter, since brightness() greyed the white boxes)
+- [x] Removed the uptime clock and its tests; header links to GitHub profile and LinkedIn
+
+Review: unit tests and Biome pass. Checked by eye on localhost at desktop and phone width,
+with the device in light mode: all three tabs, closed folder, timeline, 404. The demo showed
+its "can't be reached" state because Tidewater wasn't running locally, so the live held and
+delivered colors weren't seen. The long /projects/lazaret page keeps its own tokens and was
+not changed.
+
+## Color folder trial (2026-11-05, branch `color-folder`, not deployed)
+
+The user asked for a second version to compare: neutral contents, color in the frame.
+
+- [x] Each tab one flat color; the folder takes the open tab's color (`--fold` is a registered property, so one transition covers it)
+- [x] Contents neutral, status carried by words and shape; Edu x Exp logos keep their color
+- [x] Flip clock shows today's date and time on the visitor's clock
+- [x] Header links are GitHub and npm; LinkedIn removed from the header and business card
+- [x] User picked this version over neutral (not committed or deployed yet)
+- [x] Flip clock replaced by NeuralFlow (SMIL, clock width, open tab's color); real npm and GitHub logos restored
+
+Review: 53 unit tests, Biome and the production build pass. Sampled the running animation:
+each time matches its mirror, and the loop's end matches its start. Reduced-motion stills
+are CSS only and weren't seen in a browser.
+- [x] Folder edges retuned for the dark desk: same-hue 1px edge, one drop shadow, softer highlights, neutral paper and crease shadows (user approved after a browser-only trial)
+- [x] Open folder's edge runs in front of the back tabs (`.shell` z-index; `perspective` had scoped `.body`'s)

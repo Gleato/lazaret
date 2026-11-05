@@ -125,13 +125,14 @@ const turnstileSiteKey =
     background: #b9b2a8;
   }
   .dot[data-state="live"] {
-    background: #1f9d55;
+    background: var(--ok);
   }
   .dot[data-state="paused"] {
-    background: #c98a00;
+    background: var(--hold);
   }
   .dot[data-state="down"] {
-    background: var(--red);
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--bad);
   }
 
   .cases {
@@ -174,9 +175,9 @@ const turnstileSiteKey =
     border-color: var(--ink-3);
   }
   .case input:checked + .case-body {
-    border-color: var(--green);
-    background: #f1faf4;
-    box-shadow: 0 0 0 1px var(--green);
+    border-color: var(--ink);
+    background: var(--tint);
+    box-shadow: 0 0 0 1px var(--ink);
   }
   .case input:focus-visible + .case-body {
     outline: 2.5px solid var(--focus);
@@ -195,12 +196,13 @@ const turnstileSiteKey =
     letter-spacing: 0.02em;
   }
   .tag.honest {
-    background: #e6f0fb;
-    color: #1d4f91;
+    background: var(--tint);
+    color: var(--ink-2);
   }
+  /* No red: the contents are neutral, so a filled tag is what sets attacks apart. */
   .tag.attack {
-    background: #fbe7e5;
-    color: #9b1c1c;
+    background: var(--ink);
+    color: var(--paper);
   }
 
   .watch {
@@ -224,7 +226,7 @@ const turnstileSiteKey =
     padding: 12px 22px;
     border: 0;
     border-radius: 999px;
-    background: var(--green);
+    background: var(--ink);
     color: #fff;
     font: 700 1rem / 1 var(--figtree);
     cursor: pointer;
@@ -234,13 +236,13 @@ const turnstileSiteKey =
       background-color 0.15s;
   }
   .send:hover:not([disabled]) {
-    background: #0b4021;
+    background: var(--line);
   }
   .send:active:not([disabled]) {
     transform: translateY(1px);
   }
   .send[disabled] {
-    background: #9aa59e;
+    background: #a39d94;
     box-shadow: none;
     cursor: not-allowed;
   }
@@ -251,7 +253,7 @@ const turnstileSiteKey =
     flex-basis: 100%;
     margin: 0;
     font-size: 0.85rem;
-    color: var(--red);
+    color: var(--bad);
   }
   .msg:empty {
     display: none;
@@ -311,16 +313,17 @@ const turnstileSiteKey =
     animation: pulse 1.4s ease-in-out infinite;
   }
   [data-outcome="delivered"] [data-step="3"] .pip {
-    background: #1f7a43;
-    border-color: #1f7a43;
+    background: var(--ok);
+    border-color: var(--ok);
   }
+  /* Hollow for dropped: delivered and dropped share one ink, so shape tells them apart. */
   [data-outcome="dropped"] [data-step="3"] .pip {
-    background: var(--red);
-    border-color: var(--red);
+    background: transparent;
+    border-color: var(--bad);
   }
   [data-outcome="held"] [data-step="3"] .pip {
-    background: #c98a00;
-    border-color: #c98a00;
+    background: var(--hold);
+    border-color: var(--hold);
   }
   @keyframes pulse {
     50% {
@@ -370,12 +373,12 @@ const turnstileSiteKey =
     font-weight: 700;
   }
   .off {
-    background: #fbe7e5;
-    color: #7c1515;
+    background: var(--bad-soft);
+    color: var(--bad);
   }
   .on {
-    background: #e5f4ea;
-    color: #0f5129;
+    background: var(--ok-soft);
+    color: var(--ok);
   }
   .agent-note {
     grid-column: 1 / -1;
