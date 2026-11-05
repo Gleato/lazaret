@@ -2202,3 +2202,5 @@ front of the back tabs, no console errors. Not checked live: a demo run (paid, b
 check) and reduced motion.
 
 Tab joins (2026-11-05, after the deploy): removed the top-only highlights so every edge matches, and added curved joins on the open tab (`--fillet`). The tabs moved in by the fillet, so labels no longer wrap at 640-760px.
+
+Deployed 2026-11-05: `6dfb326`, worker version 947daa1c-25ea-422b-acca-25e457d0838c. Checked on gleator.com: curved joins, matched edges and one-line tab labels, no console errors.
