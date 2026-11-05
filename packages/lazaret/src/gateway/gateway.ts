@@ -15,7 +15,7 @@ import { inspect } from "../gate/inspect.ts";
 import { compileRule } from "../gate/rules.ts";
 import type { GateSignal } from "../gate/signals.ts";
 import type { LazaretLedger } from "../ledger/durable-object.ts";
-import { type LinkedWrite, linkKeys } from "../ledger/links.ts";
+import { HOLD_CAP_PER_HOUR, type LinkCounts, type LinkedWrite, linkKeys } from "../ledger/links.ts";
 import type { ObservedInput } from "../ledger/public.ts";
 import type { EntryInput } from "../ledger/types.ts";
 import { archiveRecord } from "../memory/sample.ts";
@@ -186,11 +186,14 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
       // durable store is visible from outside (Workers' clock advances on I/O, which
       // these lookups are).
       let behaviourMs: number | null = null;
+      // The linked-history lookup (M10, M11), also shown as Server-Timing.
+      let linksMs: number | null = null;
       const tag = (res: Response): Response => {
         const out = new Response(res.body, res);
         out.headers.set("x-lazaret-request-id", requestId);
         if (behaviourMs !== null)
           out.headers.append("server-timing", `behaviour;dur=${behaviourMs}`);
+        if (linksMs !== null) out.headers.append("server-timing", `links;dur=${linksMs}`);
         return out;
       };
       const reject = (status: number, error: string) => tag(json(status, { error, requestId }));
@@ -303,6 +306,106 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
         weight: ANOMALY_WEIGHTS[a as Exclude<PathAnomaly, "null_byte">],
       }));
 
+      // Every request Lazaret sends origin is signed with the client's own headers, so
+      // origin authenticates the client as usual and knows the request came through here.
+      const toOrigin = async (
+        id: string,
+        method: string,
+        target: URL,
+        body: Uint8Array | null,
+        signal?: AbortSignal,
+      ): Promise<Response> => {
+        const secret = binding<string>(env, config.signing.secretBinding);
+        if (!secret) throw new Error(`Lazaret: missing secret ${config.signing.secretBinding}`);
+        const signature = await signRequest(
+          {
+            id,
+            method,
+            target: target.pathname + target.search,
+            body,
+            timestamp: Math.floor(now() / 1000),
+          },
+          secret,
+        );
+        return fetchOrigin(
+          new Request(target, {
+            method,
+            headers: {
+              ...headers,
+              ...signature,
+              "x-forwarded-for": ip,
+              "x-forwarded-proto": url.protocol.slice(0, -1),
+            },
+            body,
+            redirect: "manual",
+            ...(signal ? { signal } : {}),
+          }),
+        );
+      };
+
+      const actorLookup = () => {
+        const actorConfig = config.review.actor;
+        return actorConfig
+          ? lookupActor(actorConfig, (signal) =>
+              toOrigin(
+                crypto.randomUUID(),
+                "GET",
+                originUrl(config.origin, actorConfig.path, ""),
+                null,
+                signal,
+              ),
+            )
+          : Promise.resolve(null);
+      };
+
+      const params = matched?.params ?? {};
+      const resourceTemplates = matched?.compiled.route.resources ?? [];
+      const resources = resourceTemplates.map((t) => fillTemplate(t, params));
+      // Linked history and counts (M10, M11), worked out before the gate decides, so a
+      // learned rule can read the counts as `linked.*` signals. Only for writes that get
+      // reviewed. One Ledger round trip; advisory: if the Ledger can't answer, the write
+      // goes ahead without counts or history, as it did before linking.
+      const link = config.link;
+      const linkable = link !== null && (policy === "ESCROW" || policy === "INLINE_REVIEW");
+      // The actor: looked up fresh for inline review (the reviewer is told it as a fact),
+      // cached per session for an escrowed write (it answers 202 at once).
+      let actor: Actor | null = null;
+      let actorKnown = false;
+      if (linkable && link.by.includes("actor")) {
+        actor =
+          policy === "INLINE_REVIEW"
+            ? await actorLookup()
+            : await cachedActor(sessionId, actorLookup);
+        actorKnown = true;
+      }
+      const links = linkable
+        ? linkKeys(link.by, { sessionId, actorId: actorIdOf(actor), resourceTemplates, resources })
+        : [];
+      let linkHistory: LinkedWrite[] = [];
+      let heldSender = 0;
+      const linkSignals: GateSignal[] = [];
+      if (linkable && links.length) {
+        const started = performance.now();
+        const found = await Promise.resolve(
+          ledgerFor(env).getLinkContext(
+            links,
+            routeName,
+            policy === "INLINE_REVIEW"
+              ? { windowMs: link.windowMs, maxHistory: link.maxHistory }
+              : undefined,
+          ),
+        ).catch((err: unknown) => {
+          console.error(JSON.stringify({ lazaret: "links_unavailable", error: String(err) }));
+          return null;
+        });
+        linksMs = Math.round(performance.now() - started);
+        if (found) {
+          linkHistory = found.history;
+          heldSender = found.counts.heldSender;
+          linkSignals.push(...countSignals(found.counts));
+        }
+      }
+
       const decision = decide(
         config,
         policy,
@@ -314,7 +417,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
           headers,
           json: inspection.json,
         },
-        [...pathSignals, ...inspection.signals, ...behaviourSignals],
+        [...pathSignals, ...inspection.signals, ...behaviourSignals, ...linkSignals],
         await memoryRules(env),
       );
 
@@ -357,41 +460,40 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
         return reject(403, "forbidden");
       }
 
-      // Every request Lazaret sends origin is signed with the client's own headers, so
-      // origin authenticates the client as usual and knows the request came through here.
-      const toOrigin = async (
-        id: string,
-        method: string,
-        target: URL,
-        body: Uint8Array | null,
-        signal?: AbortSignal,
-      ): Promise<Response> => {
-        const secret = binding<string>(env, config.signing.secretBinding);
-        if (!secret) throw new Error(`Lazaret: missing secret ${config.signing.secretBinding}`);
-        const signature = await signRequest(
-          {
-            id,
-            method,
-            target: target.pathname + target.search,
-            body,
-            timestamp: Math.floor(now() / 1000),
-          },
-          secret,
+      // A hold rule (M11) sends the write to a person without a model call, up to a cap
+      // per sender per hour: past it, the write goes to the reviewer as before, so a
+      // wrong rule can delay a customer's writes but not quietly swallow all of them.
+      const hold = decision.hold && heldSender < HOLD_CAP_PER_HOUR ? decision.hold : undefined;
+      if (decision.hold && !hold) {
+        console.log(
+          JSON.stringify({ lazaret: "hold_capped", requestId, rule: decision.hold.ruleId }),
         );
-        return fetchOrigin(
-          new Request(target, {
+      }
+
+      // Index an inline write once it's decided, so the next linked one sees it (M10).
+      const rememberLinked = (
+        verdict: "allow" | "drop" | "quarantine",
+        category: string,
+        held = false,
+      ) => {
+        if (!links.length) return;
+        const recording = Promise.resolve(
+          ledgerFor(env).recordLinked({
+            entryId: requestId,
+            keys: links,
+            at: sample.at,
+            route: routeName,
             method,
-            headers: {
-              ...headers,
-              ...signature,
-              "x-forwarded-for": ip,
-              "x-forwarded-proto": url.protocol.slice(0, -1),
-            },
-            body,
-            redirect: "manual",
-            ...(signal ? { signal } : {}),
+            path: norm.path,
+            preview: bodyText,
+            verdict,
+            category,
+            ...(held ? { held: true } : {}),
           }),
+        ).catch((err: unknown) =>
+          console.error(JSON.stringify({ lazaret: "links_record_failed", error: String(err) })),
         );
+        if (ctx) ctx.waitUntil(recording);
       };
 
       const forward = async (): Promise<Response> => {
@@ -402,40 +504,12 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
         return tag(res);
       };
 
-      const params = matched?.params ?? {};
-      const resourceTemplates = matched?.compiled.route.resources ?? [];
-      const link = config.link;
-      // This write's link keys (M10). Resources link only when their template names a
-      // parameter: see linkKeys in ledger/links.ts.
-      const linksFor = (actor: Actor | null) =>
-        link
-          ? linkKeys(link.by, {
-              sessionId,
-              actorId: actorIdOf(actor),
-              resourceTemplates,
-              resources: entry.resources,
-            })
-          : [];
-      const actorLookup = () => {
-        const actorConfig = config.review.actor;
-        return actorConfig
-          ? lookupActor(actorConfig, (signal) =>
-              toOrigin(
-                crypto.randomUUID(),
-                "GET",
-                originUrl(config.origin, actorConfig.path, ""),
-                null,
-                signal,
-              ),
-            )
-          : Promise.resolve(null);
-      };
       const entry: EntryInput = {
         sessionId,
         route: routeName,
         riskScore: decision.risk,
         signals: decision.signals,
-        resources: (matched?.compiled.route.resources ?? []).map((t) => fillTemplate(t, params)),
+        resources,
         params,
         request: {
           method,
@@ -457,13 +531,8 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
         }
 
         case "ESCROW": {
-          if (link) {
-            const actor = link.by.includes("actor")
-              ? await cachedActor(sessionId, actorLookup)
-              : null;
-            const links = linksFor(actor);
-            if (links.length) entry.links = links;
-          }
+          if (links.length) entry.links = links;
+          if (hold) entry.hold = hold;
           const receipt = await ledgerFor(env).append(entry);
           return tag(
             json(
@@ -477,6 +546,22 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
         }
 
         case "INLINE_REVIEW": {
+          // Held by a rule (M11): an inline write can't wait in a queue, so it's refused
+          // with no model call, as inline review refuses anything it can't clear.
+          if (hold) {
+            setStatus(403);
+            observe({ kind: "inline", outcome: "deny", category: hold.category });
+            rememberLinked("quarantine", hold.category, true);
+            console.log(
+              JSON.stringify({
+                lazaret: "inline_held",
+                requestId,
+                route: routeName,
+                rule: hold.ruleId,
+              }),
+            );
+            return reject(403, "held_for_review");
+          }
           const apiKey = binding<string>(env, config.review.apiKeyBinding);
           const base =
             deps.reviewer ?? (apiKey ? new AnthropicReviewer(apiKey, config.review) : null);
@@ -498,44 +583,9 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
             });
           // A few ms over a service binding, against the ~1.1 s the model takes to start.
           // Not cached: the reviewer is told the actor as a fact, so it's always fresh here.
-          const actor = await actorLookup();
-          // Linked history (M10): the writes this one shares a session, account or
-          // resource with. Advisory: if the Ledger can't answer, review goes ahead without.
-          const links = linksFor(actor);
-          const history: LinkedWrite[] =
-            link && links.length && !spent
-              ? await Promise.resolve(
-                  ledgerFor(env).getLinked(links, {
-                    windowMs: link.windowMs,
-                    maxHistory: link.maxHistory,
-                  }),
-                ).catch((err: unknown) => {
-                  console.error(
-                    JSON.stringify({ lazaret: "links_unavailable", error: String(err) }),
-                  );
-                  return [];
-                })
-              : [];
-          // Index this write once it's decided, so the next linked one sees it.
-          const rememberLinked = (verdict: "allow" | "drop" | "quarantine", category: string) => {
-            if (!link || !links.length) return;
-            const recording = Promise.resolve(
-              ledgerFor(env).recordLinked({
-                entryId: requestId,
-                keys: links,
-                at: sample.at,
-                route: routeName,
-                method,
-                path: norm.path,
-                preview: bodyText,
-                verdict,
-                category,
-              }),
-            ).catch((err: unknown) =>
-              console.error(JSON.stringify({ lazaret: "links_record_failed", error: String(err) })),
-            );
-            if (ctx) ctx.waitUntil(recording);
-          };
+          // Already looked up above when linking needed it.
+          if (!actorKnown) actor = await actorLookup();
+          const history = spent ? [] : linkHistory;
           const started = Date.now();
           const result = spent
             ? ({ unavailable: "daily review budget spent", cause: "budget" } as const)
@@ -599,7 +649,9 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
             if (
               !reachable &&
               matched?.compiled.route.onReviewUnavailable === "gate" &&
-              decision.signals.length === 0
+              // Count signals (M11) are measurements, not evidence: weight 0, so a login
+              // after earlier logins is still spotless.
+              decision.signals.every((s) => s.weight === 0)
             ) {
               console.log(
                 JSON.stringify({
@@ -647,6 +699,35 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
       }
     },
   };
+}
+
+/**
+ * The hour's linked counts as zero-weight gate signals (M11). Zero weight: they never
+ * move risk on their own. They are there for rules (learned or written) to read, as
+ * `signal:linked.sender_route_1h gte 2`, and for the reviewer, as facts. Only non-zero
+ * counts are emitted, so an unlinked write's signals look exactly as they did before.
+ */
+function countSignals(counts: LinkCounts): GateSignal[] {
+  const out: GateSignal[] = [];
+  if (counts.senderRoute > 0)
+    out.push({
+      source: "behaviour",
+      id: "linked.sender_route_1h",
+      category: "linked",
+      weight: 0,
+      value: counts.senderRoute,
+      evidence: `${counts.senderRoute} earlier on this route from this sender in the last hour`,
+    });
+  if (counts.resourceRoute > 0)
+    out.push({
+      source: "behaviour",
+      id: "linked.resource_route_1h",
+      category: "linked",
+      weight: 0,
+      value: counts.resourceRoute,
+      evidence: `${counts.resourceRoute} earlier on this route acting on the same resource in the last hour`,
+    });
+  return out;
 }
 
 function matchRoute(

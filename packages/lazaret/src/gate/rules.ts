@@ -41,8 +41,13 @@ export interface Rule {
   id: string;
   description?: string;
   when: Condition;
-  /** `block` rejects at the edge; `flag` adds `weight` to the risk score. */
-  action: "block" | "flag";
+  /**
+   * `block` rejects at the edge; `flag` adds `weight` to the risk score; `hold` (M11)
+   * sends the write to a person with no model call: an escrowed write waits in the
+   * human queue, an inline one is refused (403), since it can't wait. For patterns
+   * an honest client can also trip, such as a third refund claim in an hour.
+   */
+  action: "block" | "flag" | "hold";
   weight?: number;
   category?: string;
 }
@@ -77,8 +82,8 @@ export class RuleError extends Error {
 
 export function compileRule(rule: Rule): CompiledRule {
   if (!rule.id) throw new RuleError("?", "id is required");
-  if (rule.action !== "block" && rule.action !== "flag") {
-    throw new RuleError(rule.id, "action must be block or flag");
+  if (rule.action !== "block" && rule.action !== "flag" && rule.action !== "hold") {
+    throw new RuleError(rule.id, "action must be block, flag or hold");
   }
   if (
     rule.action === "flag" &&
@@ -219,8 +224,12 @@ function fieldReader(ruleId: string, field: FieldRef): (ctx: RuleContext) => unk
   }
   if (field.startsWith("signal:")) {
     const id = field.slice(7);
-    // Value is the signal's weight, so rules can say "signal:x gte 0.5" or "exists".
-    return (ctx) => ctx.signals.find((s) => s.id === id || s.category === id)?.weight;
+    // A measured signal reads as its value (M11: "signal:linked.sender_route_1h gte 2");
+    // any other reads as its weight, so rules can say "signal:x gte 0.5" or "exists".
+    return (ctx) => {
+      const s = ctx.signals.find((x) => x.id === id || x.category === id);
+      return s === undefined ? undefined : (s.value ?? s.weight);
+    };
   }
   throw new RuleError(ruleId, `unknown field ${field}`);
 }

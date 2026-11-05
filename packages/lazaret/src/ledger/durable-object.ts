@@ -13,6 +13,8 @@ import {
 } from "./compaction.ts";
 import type { LedgerEvent, StoredEvent } from "./events.ts";
 import {
+  countLinks,
+  type LinkCounts,
   type LinkedWrite,
   type LinkRow,
   migrateLinks,
@@ -273,6 +275,26 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
   }
 
   /**
+   * Everything the gateway needs about a write's links in one round trip (M11): the
+   * hour's counts on its route, which become `linked.*` gate signals, and, for an
+   * inline write, its history for the reviewer (pass `history`).
+   */
+  getLinkContext(
+    keys: string[],
+    route: string,
+    history?: LinkWindow,
+  ): { counts: LinkCounts; history: LinkedWrite[] } {
+    if (!validLinkKeys(keys) || typeof route !== "string") {
+      throw new TypeError("invalid link keys");
+    }
+    const now = this.now();
+    return {
+      counts: countLinks(this.ctx.storage.sql, keys, route, now),
+      history: history ? this.#readLinks(keys, now, history) : [],
+    };
+  }
+
+  /**
    * Index a write the gateway decided inline (M10), so later writes see it. Not part of
    * the event log: inline writes never were (they're telemetry here, like `observe`).
    */
@@ -362,6 +384,7 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
           preview: e.request.bodyEncoding === "utf8" ? e.request.body : null,
           verdict: v.verdict,
           category: v.category,
+          ...(e.hold ? { held: true } : {}),
         };
       });
     this.#commit(
@@ -1075,6 +1098,17 @@ function validateEntryInput(input: EntryInput): void {
   }
   if (input.links !== undefined && !validLinkKeys(input.links)) {
     throw new TypeError("entry.links must be up to 16 short strings");
+  }
+  if (
+    input.hold !== undefined &&
+    !(
+      input.hold &&
+      typeof input.hold.ruleId === "string" &&
+      typeof input.hold.category === "string" &&
+      typeof input.hold.description === "string"
+    )
+  ) {
+    throw new TypeError("entry.hold needs a ruleId, category and description");
   }
   const { request } = input;
   if (!request || typeof request.method !== "string" || typeof request.path !== "string") {

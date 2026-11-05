@@ -12,6 +12,13 @@ export interface GateSignal {
   category: string;
   /** Contribution to risk, in [0, 1]. */
   weight: number;
+  /**
+   * A measurement, for signals that report one rather than evidence of an attack (M11),
+   * e.g. `linked.sender_route_1h`: how many writes this sender made on this route in the
+   * last hour. Such signals have weight 0, so they never move risk; rules read
+   * `signal:<id>` as `value` when set, else as `weight`.
+   */
+  value?: number;
   /** Short excerpt of what matched (≤ 80 chars). Untrusted: escape before rendering. */
   evidence?: string;
 }

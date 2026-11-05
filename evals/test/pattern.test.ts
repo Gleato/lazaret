@@ -45,13 +45,20 @@ describe("pattern eval", () => {
   });
 
   it.skipIf(env.EVAL_LIVE === "1")(
-    "fake: split fraud is held, honest look-alikes are not",
+    "fake: learns a counting rule, then holds split fraud at the gate with fewer model reads",
     async ({ task }) => {
       const result = await evaluate("fake", task);
       for (const w of result.waves) {
         expect(w.attacksStopped).toBe(w.attacks);
         expect(w.honestHeld).toEqual([]);
       }
+      const [first, ...later] = result.waves;
+      // Wave 1 teaches it; by the last wave a counting rule holds claims with no model.
+      expect(first?.heldByRule).toBe(0);
+      const last = later.at(-1);
+      expect(last?.rules.map((r) => r.status)).toContain("hold");
+      expect(last?.heldByRule).toBeGreaterThan(0);
+      expect(last?.modelReads).toBeLessThan(first?.modelReads ?? 0);
     },
   );
 

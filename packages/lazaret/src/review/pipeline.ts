@@ -130,17 +130,30 @@ export async function runReviewPipeline(
   // If verdicts already landed (e.g. a replay after a crash mid-commit), go straight to commit.
   let hadDrops = false;
   if (snapshot.entries.length > 0 && snapshot.status !== "SETTLED") {
-    if (!(await waitForBudget(step, deps))) {
-      const reason = `review budget spent for ${MAX_BUDGET_WAITS} days running`;
-      await step.do("quarantine", async () => ledger.quarantine(batchId, reason));
-      return { outcome: "quarantined", reason };
+    // Writes a `hold` rule matched at the gate (M11) go to a person without a model
+    // call; only the rest are reviewed. A batch of nothing but holds costs nothing, so
+    // it doesn't wait for budget either.
+    const held = snapshot.entries.filter((e) => e.hold);
+    const toReview = snapshot.entries.filter((e) => !e.hold);
+    let result: StepVerdicts = { ok: true, verdicts: {} };
+    if (toReview.length) {
+      if (!(await waitForBudget(step, deps))) {
+        const reason = `review budget spent for ${MAX_BUDGET_WAITS} days running`;
+        await step.do("quarantine", async () => ledger.quarantine(batchId, reason));
+        return { outcome: "quarantined", reason };
+      }
+      const hints = await memoryContext(step, deps, toReview);
+      result = await reviewWithAttempts(step, deps, { ...snapshot, entries: toReview }, hints);
     }
-    const hints = await memoryContext(step, deps, snapshot.entries);
-    const result = await reviewWithAttempts(step, deps, snapshot, hints);
     if (!result.ok) {
       await step.do("quarantine", async () => ledger.quarantine(batchId, result.reason));
       return { outcome: "quarantined", reason: result.reason };
     }
+    // Review normally opens the batch; with nothing to review, open it here, or the
+    // verdicts would land on a batch still SEALED (caught by test/hold.test.ts).
+    if (!toReview.length)
+      await step.do("begin-review-held", async () => ledger.beginReview(batchId));
+    for (const e of held) result.verdicts[e.id] = heldVerdict(e);
     await step.do("record-verdicts", async () => {
       await ledger.recordVerdicts(batchId, result.verdicts);
       return true;
@@ -239,7 +252,10 @@ async function archiveToMemory(
   if (!memory) return;
   await step.do("memory-archive", async () => {
     try {
-      const entries = await deps.ledger.getReviewedEntries(batchId);
+      // Writes a rule held (M11) have no reviewer verdict, so they stay out: the archive
+      // is the reviewer's independent judgement, which is what rules are scored against.
+      // An operator's decision on them is archived as a label when it comes.
+      const entries = (await deps.ledger.getReviewedEntries(batchId)).filter((e) => !e.hold);
       const at = Date.now();
       // Archive is idempotent per entry id, so a replay of this step can't double-count.
       await memory.archive(entries.map((e) => archiveRecord(e, "batch", at)));
@@ -251,6 +267,17 @@ async function archiveToMemory(
       return false;
     }
   });
+}
+
+/** The verdict for a write a rule held (M11): quarantine, for a person, no model. */
+export function heldVerdict(e: EntryState): VerdictRecord {
+  const hold = e.hold as NonNullable<EntryState["hold"]>;
+  return {
+    verdict: "quarantine",
+    category: hold.category,
+    confidence: 1,
+    rationale: `Held by learned rule ${hold.ruleId}: ${hold.description}`.slice(0, 500),
+  };
 }
 
 function linkedContext(deps: PipelineDeps, snapshot: ReviewSnapshot): LinkedContext | undefined {

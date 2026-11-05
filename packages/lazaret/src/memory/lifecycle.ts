@@ -1,5 +1,11 @@
 import { type CompiledRule, compileRule } from "../gate/rules.ts";
-import type { MemoryRule, MemoryThresholds, RuleSample, RuleStatus } from "./types.ts";
+import {
+  countsLinkedWrites,
+  type MemoryRule,
+  type MemoryThresholds,
+  type RuleSample,
+  type RuleStatus,
+} from "./types.ts";
 
 // Pure decision logic for rule trust. Kept apart from storage so the policy is
 // easy to read and test exhaustively.
@@ -96,16 +102,23 @@ export function pendingExpired(
  * fresh model allow is a dispute, which holds promotion until it is settled (M7.1).
  */
 export function statusAfterLiveEvidence(
+  // `rule` is optional so callers from before M11 still compile; without it a rule is
+  // treated as an ordinary one (flag → block).
   rule: Pick<
     MemoryRule,
     "status" | "liveTruePositives" | "liveFalsePositives" | "lastHitAt" | "updatedAt"
-  >,
+  > &
+    Partial<Pick<MemoryRule, "rule">>,
   t: MemoryThresholds,
   now: number,
   /** Live hits on writes a model allowed and no human has labelled yet (M7.1). */
   openDisputes = 0,
 ): { status: RuleStatus; reason: string } | null {
-  const active = rule.status === "shadow" || rule.status === "flag" || rule.status === "block";
+  const active =
+    rule.status === "shadow" ||
+    rule.status === "flag" ||
+    rule.status === "hold" ||
+    rule.status === "block";
   if (!active) return null;
   if (rule.liveFalsePositives > 0) {
     return { status: "retired", reason: "matched a request the reviewer allowed" };
@@ -122,8 +135,9 @@ export function statusAfterLiveEvidence(
     };
   }
   if (rule.status === "flag" && rule.liveTruePositives >= t.promoteToBlockAfter) {
+    // A counting rule (M11) tops out at hold: a person decides, never an outright block.
     return {
-      status: "block",
+      status: rule.rule && countsLinkedWrites(rule.rule) ? "hold" : "block",
       reason: `${rule.liveTruePositives} confirmed live hits, no false positives`,
     };
   }

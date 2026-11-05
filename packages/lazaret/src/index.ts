@@ -29,7 +29,7 @@ export {
   LazaretBehaviour,
 } from "./gate/behaviour-durable.ts";
 export type { MemoryGateRule } from "./gate/gate.ts";
-export { decide, type GateDecision } from "./gate/gate.ts";
+export { decide, type GateDecision, type HoldReason } from "./gate/gate.ts";
 export { canonicalize, inspect } from "./gate/inspect.ts";
 export {
   type Condition,

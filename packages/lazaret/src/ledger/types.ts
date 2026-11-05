@@ -61,6 +61,11 @@ export interface EntryInput {
    * gateway when `link` is configured; `{receipt}` is filled in by the Ledger.
    */
   links?: string[];
+  /**
+   * Held for a person by a rule (M11, a `hold` rule matched at the gate). Review gives
+   * it a quarantine verdict without asking a model; an operator decides it.
+   */
+  hold?: { ruleId: string; category: string; description: string };
 }
 
 export interface VerdictRecord {

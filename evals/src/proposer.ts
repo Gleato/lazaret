@@ -97,6 +97,23 @@ const CATALOGUE: Record<string, RawProposal> = {
   },
 };
 
+/**
+ * Counting rules (M11): split fraud has no payload to key on, only a count of linked
+ * writes. Mirrors the pattern eval's scripted reviewer (src/pattern.ts), which holds a
+ * third same-path write from one sender: confirmed holds are the drops it learns from.
+ */
+const COUNTING: Record<string, RawProposal> = {
+  fraud: {
+    description:
+      "Holds a third ticket from one sender within an hour, the shape of refund claims split across writes.",
+    category: "fraud",
+    conditions: [
+      { field: "path", op: "eq", value: "/api/tickets", ci: false },
+      { field: "signal:linked.sender_route_1h", op: "gte", value: "2", ci: false },
+    ],
+  },
+};
+
 export const scriptedProposer: RuleProposer = {
   async propose(input: DistillInput): Promise<ReviewOutcome> {
     const covered = new Set(input.existing.map((r) => r.category));
@@ -104,8 +121,8 @@ export const scriptedProposer: RuleProposer = {
     const proposals = categories
       .filter((c) => !covered.has(c))
       .flatMap((c) => {
-        const candidate = CATALOGUE[c];
-        return candidate && fits(candidate, input) ? [candidate] : [];
+        const candidates = [CATALOGUE[c], COUNTING[c]].filter((x): x is RawProposal => !!x);
+        return candidates.filter((candidate) => fits(candidate, input)).slice(0, 1);
       });
     // Same cap as the prompt asks of the model ("between zero and three rules").
     return { kind: "output", model: "scripted", output: { proposals: proposals.slice(0, 3) } };

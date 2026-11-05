@@ -1122,14 +1122,32 @@ Never a tier that rejects: a busy honest customer can trip a count.
   unchanged, honest held still 0. Free first; live ~$1.50, quoted before running.
 
 **Build order, testing each step**
-- [ ] `value` on signals and `signal:` reads it; linked count signals in the gateway for
-  escrow and inline (unit + gateway tests, Server-Timing).
-- [ ] `hold` action: rule compile, gate, Ledger append marker, pipeline skips the model
-  and quarantines with the rule's reason; inline deny (tests incl. crash/replay).
-- [ ] Memory: confirmed holds as positives, linked-rule tier path and caps, live
-  evidence rules (lifecycle tests for every transition).
-- [ ] Distiller prompt and schema (fake-proposer tests).
-- [ ] Campaign support and the eval report; free run, then live.
+- [x] Count signals (2026-11-05). `GateSignal.value`; `signal:<id>` reads `value ??
+  weight`. The gateway now works out a write's links before the gate decides (one
+  Ledger round trip, `getLinkContext`, shown as `Server-Timing: links`) and adds
+  zero-weight `linked.sender_route_1h` / `linked.resource_route_1h`, only when non-zero.
+  Found and fixed: inline `onReviewUnavailable: "gate"` passed only writes with *no*
+  signals, so a count would have failed repeat logins closed in a reviewer outage; it
+  now ignores zero-weight signals (regression test fails without the fix).
+- [x] `hold` action. Rules (`action: "hold"`), `decide` (`decision.hold`; block wins;
+  only on ESCROW and INLINE_REVIEW; weight 0), `EntryInput.hold`, pipeline (held writes
+  get a quarantine verdict, "Held by learned rule …", no model, no budget wait, kept out
+  of the archive until an operator labels them), inline `403 held_for_review` with no
+  model call. Cap: 5 holds per sender per hour (`HOLD_CAP_PER_HOUR`), then the reviewer.
+  Found and fixed by the tests: an all-held batch was never opened for review, so its
+  verdicts failed to record.
+- [x] Memory. `hold` status and tier; a rule that reads `signal:linked.*` climbs
+  shadow → flag → hold, never block (`countsLinkedWrites`), and must have a `path`
+  condition or it's rejected. Operator drops of held writes were already archived as
+  drops and scored as live true positives, so no new evidence path was needed.
+  `statusAfterLiveEvidence` takes `rule` optionally, so pre-M11 callers still compile.
+- [x] Distiller prompt explains the count signals and counting rules. The scripted
+  proposer gained a counting candidate for free runs.
+- [x] Free pattern eval with learning (`pattern-fake.json`): wave 1 learns a counting
+  rule (shadow, support 14); wave 2 promotes it flag → hold; waves 3-4 hold 6 claims each
+  at the gate with no model, model reads 56 → 42 per wave, 8/8 attacks stopped and 0/8
+  honest held in every wave. 23 new tests in all; every suite passes.
+- [ ] Live pattern eval (~$0.60 estimated, capped at $1.50, quoted before running).
 
 **Ship (with the library's bar)**
 - [ ] `CHANGELOG.md` for the package (0.1.0, 0.2.0 and this), and upgrade notes.

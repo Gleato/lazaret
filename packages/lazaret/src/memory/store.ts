@@ -10,6 +10,7 @@ import {
   ACTIVE_STATUSES,
   type ActiveRuleSpec,
   type ArchivedVerdict,
+  countsLinkedWrites,
   DEFAULT_MEMORY_THRESHOLDS,
   type MemoryRule,
   type MemoryThresholds,
@@ -337,7 +338,8 @@ export class LazaretMemory<Env = unknown> extends DurableObject<Env> {
     return this.#rules(ACTIVE_STATUSES).map((r) => ({
       id: r.id,
       mode: r.status as ActiveRuleSpec["mode"],
-      weight: this.#t.flagWeight,
+      // A hold is routing, not evidence (gate.ts gives it weight 0 too).
+      weight: r.status === "hold" ? 0 : this.#t.flagWeight,
       category: r.category,
       rule: r.rule,
     }));
@@ -386,7 +388,7 @@ export class LazaretMemory<Env = unknown> extends DurableObject<Env> {
           .toArray()
           .map((r) => ({ route: r.route, sample: JSON.parse(r.sample) as RuleSample }))
       : [];
-    const existing = this.#rules(["pending", "shadow", "flag", "block"]).map((r) => ({
+    const existing = this.#rules(["pending", "shadow", "flag", "hold", "block"]).map((r) => ({
       description: r.description,
       category: r.category,
       status: r.status,
@@ -404,7 +406,7 @@ export class LazaretMemory<Env = unknown> extends DurableObject<Env> {
     const now = this.now();
     const { drops, allows, disputable } = this.#samples();
     const known = new Set(
-      this.#rules(["pending", "shadow", "flag", "block", "rejected"])
+      this.#rules(["pending", "shadow", "flag", "hold", "block", "rejected"])
         // A pre-M7.1 rejection for low support was "not enough evidence", not a verdict
         // on the rule, so it must not block the same rule from being proposed again.
         .filter((r) => !(r.status === "rejected" && LEGACY_SUPPORT_REJECTION.test(r.reason)))
@@ -436,6 +438,12 @@ export class LazaretMemory<Env = unknown> extends DurableObject<Env> {
       try {
         result = backtest(compileRule(rule), drops, allows, disputable);
         ({ status, reason } = statusAfterBacktest(result, this.#t));
+        // A counting rule (M11) must name its route: the counts are per route, but a
+        // rule without a path would hold, say, the third reply in any long honest thread.
+        if (countsLinkedWrites(rule) && !JSON.stringify(rule.when).includes('"field":"path"')) {
+          status = "rejected";
+          reason = "a rule that counts linked writes must also match a path";
+        }
       } catch (err) {
         status = "rejected";
         reason = `unsafe or invalid rule: ${(err as Error).message}`;
@@ -491,7 +499,7 @@ export class LazaretMemory<Env = unknown> extends DurableObject<Env> {
   // ── Operator & visualiser ────────────────────────────────────────────────────
 
   listRules(): MemoryRule[] {
-    return this.#rules(["pending", "shadow", "flag", "block", "rejected", "retired"]);
+    return this.#rules(["pending", "shadow", "flag", "hold", "block", "rejected", "retired"]);
   }
 
   getRuleEvents(afterSeq = 0, limit = 200): RuleEvent[] {
@@ -639,8 +647,12 @@ export class LazaretMemory<Env = unknown> extends DurableObject<Env> {
 
   #transition(rule: MemoryRule, to: RuleStatus, reason: string): RuleEvent {
     const now = this.now();
-    // Promotion to block flips the rule's action so the gate rejects outright.
-    const updated: Rule = { ...rule.rule, action: to === "block" ? "block" : "flag" };
+    // Promotion to block flips the rule's action so the gate rejects outright; to hold
+    // (M11), so the gate sends the write to a person.
+    const updated: Rule = {
+      ...rule.rule,
+      action: to === "block" ? "block" : to === "hold" ? "hold" : "flag",
+    };
     this.ctx.storage.sql.exec(
       "UPDATE rules SET status = ?, reason = ?, updated_at = ?, rule = ? WHERE id = ?",
       to,

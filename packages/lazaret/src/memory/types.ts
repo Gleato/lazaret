@@ -20,9 +20,20 @@ import type { Verdict } from "../ledger/types.ts";
 //           against the reviewer's independent verdicts
 //   flag    adds risk at the gate (more escalation, earlier seals)
 //   block   rejects at the edge without spending a model call
+//   hold    (M11) sends the write to a person without a model call. The top tier for
+//           a rule that counts linked writes (`signal:linked.*`): an honest client can
+//           trip a count too, so such a rule climbs shadow → flag → hold, never block.
 
-export type RuleStatus = "pending" | "shadow" | "flag" | "block" | "rejected" | "retired";
-export const ACTIVE_STATUSES: readonly RuleStatus[] = ["shadow", "flag", "block"];
+export type RuleStatus = "pending" | "shadow" | "flag" | "hold" | "block" | "rejected" | "retired";
+export const ACTIVE_STATUSES: readonly RuleStatus[] = ["shadow", "flag", "hold", "block"];
+
+/**
+ * Does this rule count linked writes (M11)? Such a rule reads a `linked.*` signal, and
+ * is capped at the `hold` tier and must name its route (see submitCandidates).
+ */
+export function countsLinkedWrites(rule: Rule): boolean {
+  return JSON.stringify(rule.when).includes('"signal:linked.');
+}
 
 /** A JSON value. Typed precisely (not `unknown`) so samples stay RPC-serialisable. */
 export type JsonValue =
@@ -121,7 +132,7 @@ export interface RuleProposal {
 /** The gate's view of an active memory rule. */
 export interface ActiveRuleSpec {
   id: string;
-  mode: "shadow" | "flag" | "block";
+  mode: "shadow" | "flag" | "hold" | "block";
   weight: number;
   category: string;
   rule: Rule;

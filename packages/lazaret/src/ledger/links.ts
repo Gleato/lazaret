@@ -37,6 +37,8 @@ export interface LinkedWrite {
   category: string;
   /** Which keys it shares with the write under review, e.g. ["same signed-in account"]. */
   linkedBy: string[];
+  /** Held by a `hold` rule rather than judged by a reviewer (M11). */
+  held?: boolean;
 }
 
 export interface LinkRow {
@@ -49,6 +51,8 @@ export interface LinkRow {
   preview: string | null;
   verdict: Verdict;
   category: string;
+  /** Held by a `hold` rule rather than judged by a reviewer (M11). */
+  held?: boolean;
 }
 
 /** Rows are kept this long whatever the window, so a longer window later still has data. */
@@ -90,6 +94,7 @@ export function recordLinks(sql: SqlStorage, rows: LinkRow[], now: number): void
       preview: row.preview?.slice(0, MAX_PREVIEW_CHARS) ?? null,
       verdict: row.verdict,
       category: row.category.slice(0, 64),
+      ...(row.held ? { held: true } : {}),
     });
     for (const key of new Set(row.keys)) {
       sql.exec(
@@ -114,7 +119,19 @@ export function readLinks(
   keys: string[],
   options: { since: number; limit: number; exclude?: Set<string> },
 ): LinkedWrite[] {
-  if (!keys.length || options.limit <= 0) return [];
+  if (options.limit <= 0) return [];
+  return relevantLinks(sql, keys, options)
+    .slice(0, options.limit)
+    .map(({ fromSender: _s, viaResource: _r, ...w }) => w);
+}
+
+/** Linked writes, how they link, already filtered to the ones that count as evidence. */
+function relevantLinks(
+  sql: SqlStorage,
+  keys: string[],
+  options: { since: number; exclude?: Set<string> },
+): (LinkedWrite & { fromSender: boolean; viaResource: boolean })[] {
+  if (!keys.length) return [];
   const placeholders = keys.map(() => "?").join(", ");
   const rows = sql
     .exec<{ entry_id: string; link_key: string; at: number; payload: string }>(
@@ -125,14 +142,15 @@ export function readLinks(
       options.since,
     )
     .toArray();
-  const byEntry = new Map<string, LinkedWrite & { fromSender: boolean }>();
+  const byEntry = new Map<string, LinkedWrite & { fromSender: boolean; viaResource: boolean }>();
   for (const row of rows) {
     if (options.exclude?.has(row.entry_id)) continue;
-    const fromSender = !row.link_key.startsWith("resource:");
+    const viaResource = row.link_key.startsWith("resource:");
     const seen = byEntry.get(row.entry_id);
     if (seen) {
       seen.linkedBy.push(describeKey(row.link_key));
-      seen.fromSender ||= fromSender;
+      seen.fromSender ||= !viaResource;
+      seen.viaResource ||= viaResource;
       continue;
     }
     const p = JSON.parse(row.payload) as Omit<LinkedWrite, "entryId" | "at" | "linkedBy">;
@@ -141,7 +159,8 @@ export function readLinks(
       at: row.at,
       ...p,
       linkedBy: [describeKey(row.link_key)],
-      fromSender,
+      fromSender: !viaResource,
+      viaResource,
     });
   }
   // Someone else's write on the same resource counts only if it was allowed. Their
@@ -150,10 +169,47 @@ export function readLinks(
   // honest writes, each because other senders had just attacked the same customer
   // account or ticket. What got through to that resource is still evidence (several
   // credits paid to one customer), and a sender's own failures still count against it.
-  return [...byEntry.values()]
-    .filter((w) => w.fromSender || w.verdict === "allow")
-    .slice(0, options.limit)
-    .map(({ fromSender: _, ...w }) => w);
+  return [...byEntry.values()].filter((w) => w.fromSender || w.verdict === "allow");
+}
+
+/**
+ * Most writes one sender may have held by rules in an hour (M11). Past it, a matching
+ * write goes to the reviewer instead: a wrong rule can delay a customer's writes, but
+ * can't quietly swallow all of them.
+ */
+export const HOLD_CAP_PER_HOUR = 5;
+
+/** Window of the count signals (M11). One hour, decided at check-in (tasks/todo.md). */
+export const LINK_COUNT_WINDOW_MS = 60 * 60 * 1000;
+
+export interface LinkCounts {
+  /** Earlier writes on this route from the same login session or signed-in account. */
+  senderRoute: number;
+  /** Earlier writes on this route acting on the same resource (others': allowed only). */
+  resourceRoute: number;
+  /** This sender's writes held by a `hold` rule in the hour, on any route (the cap). */
+  heldSender: number;
+}
+
+/**
+ * The numbers behind the `linked.*` count signals (M11), over the last hour: how many
+ * earlier decided writes on the same route share a sender key, and how many share a
+ * resource key, filtered exactly as the reviewer's history is. A rule can then say
+ * "a third refund claim from one sender in an hour" without a new rule language.
+ */
+export function countLinks(
+  sql: SqlStorage,
+  keys: string[],
+  route: string,
+  now: number,
+): LinkCounts {
+  const hour = relevantLinks(sql, keys, { since: now - LINK_COUNT_WINDOW_MS });
+  const linked = hour.filter((w) => w.route === route);
+  return {
+    senderRoute: linked.filter((w) => w.fromSender).length,
+    resourceRoute: linked.filter((w) => w.viaResource).length,
+    heldSender: hour.filter((w) => w.fromSender && w.held).length,
+  };
 }
 
 /**
