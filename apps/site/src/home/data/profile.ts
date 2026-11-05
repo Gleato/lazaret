@@ -86,25 +86,3 @@ export const PHOTOS: Photo[] = [
       "King of the Jungle, by JOV_97 on Reddit. I did not draw this. But hyper realistic pencil art is super cool.",
   },
 ];
-
-/**
- * The made-up journalist's profile around the user's intro (their brief: "a real
- * profile on someone written by a funny, made up journalist", clean humour only).
- * Everything here is the reporter's voice; none of it is put in Ridge's mouth.
- */
-export const PROFILE = {
-  publication: "The Manila Folder Review",
-  section: "Profiles",
-  issue: "Vol. 1, No. 1",
-  dek: "A software engineer who builds AI that checks other AI’s homework, and who also, it turns out, ferments peppers.",
-  reporter: "Marjorie Inkwell",
-  reporterRole: "staff correspondent",
-  dateline: "Charleston, S.C.",
-  filed: "2026-11-02",
-  polaroid: "The subject, with his editor, Ovie.",
-  notes: [
-    "Arrived on time. Had written tests for the interview.",
-    "Lists fermentation as a hobby. I checked: the peppers are real.",
-    "Ovie tried to eat my notepad. Ovie was not reprimanded. Ovie is a very good girl.",
-  ],
-};

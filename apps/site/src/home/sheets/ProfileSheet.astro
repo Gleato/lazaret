@@ -1,74 +1,16 @@
 ---
-// The Profile sheet (board 1), dressed as a magazine profile written by a made-up
-// reporter (the user's brief: clean humour, "comes off as clearly a joke"). The name,
-// the rule under it, the intro and the photo strip follow the board; the masthead,
-// byline, stamp, clipped polaroid and the reporter's margin notes are the dressing.
-import { Image } from "astro:assets";
-import ovie from "../../assets/profile/ovie.jpg";
-import { INTRO, PHOTOS, PROFILE } from "../data/profile";
-import Paperclip from "../parts/Paperclip.astro";
+// The Profile sheet (board 1): the name, the rule under it, the user's intro in their
+// own words, and the photo strip. A made-up reporter's profile used to dress this page
+// (masthead, byline, stamp, polaroid, margin notes); the user cut it on 2026-11-05 in
+// favour of a plain intro, so keep this page in Ridge's own voice.
+import { INTRO, PHOTOS } from "../data/profile";
 import PhotoStrip from "../parts/PhotoStrip.astro";
-
-const filed = new Date(`${PROFILE.filed}T12:00:00Z`).toLocaleDateString("en-US", {
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-  timeZone: "UTC",
-});
 ---
 
 <article class="paper profile">
-  <header class="masthead">
-    <span class="pub">{PROFILE.publication}</span>
-    <span class="issue">{PROFILE.section}, {PROFILE.issue}</span>
-  </header>
-
-  <div class="title-row">
-    <h2 class="name">Ridge Gleaton</h2>
-    <div class="stamp" role="img" aria-label="Stamped: verified human">
-      <svg viewBox="0 0 200 92" aria-hidden="true">
-        <defs>
-          <filter id="ink" x="-5%" y="-5%" width="110%" height="110%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="7" result="noise"></feTurbulence>
-            <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.45" result="speckle"></feColorMatrix>
-            <feComposite in="SourceGraphic" in2="speckle" operator="in" result="inked"></feComposite>
-            <feDisplacementMap in="inked" in2="noise" scale="2.2"></feDisplacementMap>
-          </filter>
-        </defs>
-        <g filter="url(#ink)" fill="none" stroke="currentColor">
-          <rect x="4" y="4" width="192" height="84" rx="9" stroke-width="4"></rect>
-          <rect x="11" y="11" width="178" height="70" rx="5" stroke-width="1.6"></rect>
-          <text x="100" y="47" text-anchor="middle" fill="currentColor" stroke="none" font-family="Figtree, sans-serif" font-weight="900" font-size="30" letter-spacing="2">VERIFIED</text>
-          <text x="100" y="70" text-anchor="middle" fill="currentColor" stroke="none" font-family="Figtree, sans-serif" font-weight="900" font-size="13.5" letter-spacing="2.4">HUMAN, NOT A BOT</text>
-        </g>
-      </svg>
-    </div>
-  </div>
+  <h2 class="name">Ridge Gleaton</h2>
   <span class="rule" aria-hidden="true"></span>
-
-  <p class="dek">{PROFILE.dek}</p>
-  <p class="byline">
-    <span>By <strong>{PROFILE.reporter}</strong>, {PROFILE.reporterRole}</span>
-    <span class="filed">Filed <time datetime={PROFILE.filed}>{filed}</time>, {PROFILE.dateline}</span>
-  </p>
-
-  <div class="story">
-    <figure class="polaroid">
-      <Paperclip class="polaroid-clip" />
-      <Image src={ovie} alt="Ridge and his golden retriever puppy, Ovie, smiling at sunset." width={480} widths={[240, 360, 480]} quality={72} sizes="180px" loading="eager" />
-      <figcaption>{PROFILE.polaroid}</figcaption>
-    </figure>
-
-    <p class="intro">{INTRO}</p>
-
-    <aside class="notes" aria-label="Reporter's notes">
-      <p class="notes-title">Reporter’s notes</p>
-      <ul>
-        {PROFILE.notes.map((n) => <li>{n}</li>)}
-      </ul>
-      <p class="notes-sign">M.I.</p>
-    </aside>
-  </div>
+  <p class="intro">{INTRO}</p>
 
   <PhotoStrip photos={PHOTOS} />
 </article>
@@ -78,36 +20,6 @@ const filed = new Date(`${PROFILE.filed}T12:00:00Z`).toLocaleDateString("en-US",
     color: var(--ink);
   }
 
-  /* The publication's own header: a nameplate and a thin double rule. */
-  .masthead {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 4px 16px;
-    padding-bottom: 10px;
-    margin-bottom: clamp(22px, 3.4vw, 36px);
-    border-bottom: 3px double rgb(40 30 20 / 55%);
-  }
-  .pub {
-    font-weight: 900;
-    font-size: clamp(0.95rem, 1.6vw, 1.1rem);
-    letter-spacing: -0.01em;
-  }
-  .issue {
-    color: var(--ink-3);
-    font-size: 0.82rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .title-row {
-    position: relative;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-  }
   .name {
     margin: 0;
     font-size: clamp(2.3rem, 5.4vw, 3.6rem);
@@ -125,171 +37,18 @@ const filed = new Date(`${PROFILE.filed}T12:00:00Z`).toLocaleDateString("en-US",
     background: var(--ink);
   }
 
-  .stamp {
-    flex: none;
-    width: clamp(118px, 17vw, 168px);
-    margin: 0 clamp(0px, 2vw, 18px) -10px 0;
-    color: var(--stamp);
-    opacity: 0.86;
-    transform: rotate(-9deg);
-    mix-blend-mode: multiply;
-  }
-  .stamp svg {
-    display: block;
-    width: 100%;
-    height: auto;
-    overflow: visible;
-  }
-
-  .dek {
-    margin: 0 0 10px;
-    max-width: 52ch;
-    font-size: clamp(1.08rem, 1.9vw, 1.25rem);
-    line-height: 1.4;
-    font-weight: 500;
-    color: var(--ink-2);
-    text-wrap: pretty;
-  }
-  .byline {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px 14px;
-    margin: 0 0 clamp(22px, 3.4vw, 34px);
-    font-size: 0.86rem;
-    color: var(--ink-2);
-  }
-  .byline strong {
-    color: var(--ink);
-    font-weight: 700;
-  }
-  .filed {
-    color: var(--ink-3);
-  }
-
-  .story {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) clamp(150px, 22%, 196px);
-    grid-template-areas:
-      "intro photo"
-      "notes photo";
-    column-gap: clamp(20px, 4vw, 48px);
-    align-items: start;
-  }
   .intro {
-    grid-area: intro;
     margin: 0;
     max-width: 62ch;
     font-size: clamp(1.05rem, 1.7vw, 1.16rem);
     line-height: 1.62;
     font-weight: 500;
-    text-indent: 1.6em;
     text-wrap: pretty;
   }
 
-  /* A polaroid clipped to the page, tilted the way it was dropped there. */
-  .polaroid {
-    grid-area: photo;
-    position: relative;
-    margin: 6px 0 0;
-    padding: 9px 9px 0;
-    background: #fff;
-    box-shadow:
-      0 0 0 1px rgb(0 0 0 / 6%),
-      0 8px 16px -8px rgb(40 30 10 / 45%);
-    transform: rotate(2.4deg);
-  }
-  .polaroid :global(img) {
-    display: block;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-    object-position: 62% 40%;
-    filter: saturate(0.92) contrast(1.03);
-  }
-  .polaroid figcaption {
-    padding: 9px 2px 12px;
-    font-size: 0.74rem;
-    font-style: italic;
-    line-height: 1.35;
-    color: var(--ink-2);
-  }
-  .polaroid :global(.polaroid-clip) {
-    top: -26px;
-    left: 18px;
-    width: 22px;
-    height: auto;
-    transform: rotate(-4deg);
-  }
-
-  /* Margin notes in the reporter's blue ballpoint. */
-  .notes {
-    grid-area: notes;
-    margin-top: clamp(20px, 3vw, 28px);
-    padding: 14px 16px 10px 18px;
-    max-width: 56ch;
-    border-left: 2px solid rgb(42 74 163 / 35%);
-    color: #22408f;
-    font-style: italic;
-  }
-  .notes-title {
-    margin: 0 0 6px;
-    font-weight: 700;
-    font-size: 0.86rem;
-  }
-  .notes ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: grid;
-    gap: 5px;
-    font-size: 0.9rem;
-    line-height: 1.45;
-  }
-  .notes li::before {
-    content: "–";
-    margin-right: 0.5em;
-  }
-  .notes-sign {
-    margin: 8px 0 0;
-    font-weight: 700;
-    font-size: 0.85rem;
-    text-align: right;
-    transform: rotate(-3deg);
-  }
-
   @media (max-width: 640px) {
-    .title-row {
-      align-items: flex-start;
-    }
-    /* Stamped over the empty end of the masthead, clear of the name. */
-    .stamp {
-      position: absolute;
-      right: -8px;
-      top: -64px;
-      width: 88px;
-    }
-    /* Phones: the polaroid floats so the intro wraps around it and runs full width under it. */
-    .story {
-      display: block;
-    }
-    .polaroid {
-      float: right;
-      width: 112px;
-      margin: 4px -2px 10px 14px;
-    }
-    .notes {
-      clear: both;
-    }
     .intro {
       font-size: 1rem;
-    }
-    .polaroid {
-      padding: 6px 6px 0;
-    }
-    .polaroid figcaption {
-      font-size: 0.66rem;
-      padding: 6px 1px 8px;
     }
   }
 </style>

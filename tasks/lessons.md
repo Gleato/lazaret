@@ -55,3 +55,10 @@
   and record CSP/console errors in a real browser. Never name an element id after a global
   that the code checks for.
 
+
+## Keep the profile in the user's own voice (2026-11-05)
+- **What happened:** the Profile sheet wrapped the user's intro in a made-up reporter's
+  profile (masthead, byline, stamp, polaroid, margin notes). The user disliked the whole
+  framing once it was live and cut it for a plain intro.
+- **Rule:** on the portfolio, present the user's own words plainly. Don't add invented
+  personas, jokes or dressing around them unless the user asks for that specific thing.
