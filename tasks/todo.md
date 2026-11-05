@@ -2102,3 +2102,9 @@ Never a tier that rejects: a busy honest customer can trip a count.
   and the photo strip; `PROFILE` is gone from `data/profile.ts`. Ovie's photo stays in
   the strip with the user's own caption. This supersedes the magazine-profile items
   under M9.
+- **Single sheets on Projects and Edu x Exp (2026-11-05, live: site `e3e8762e`):** the
+  user wanted each tab to read as one sheet of paper. Edu x Exp lost its clip and curl.
+  On Projects, the clip, curl, arrows and "Page n of N" render only when
+  `PROJECTS.length > 1`, so a second project brings them back. Checked with a temporary
+  second project: curl and both arrows turn pages, then reverted. `PageCurl` is now
+  always a button, since nothing uses the plain version.
