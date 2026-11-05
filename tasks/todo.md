@@ -2133,3 +2133,12 @@ hash is in the CSP, with no console errors live. A real click on gleator.com in 
 browser pane showed the fallback, because that pane denies clipboard writes on every site
 (same denial on example.com and localhost). The live `Permissions-Policy` doesn't restrict
 the clipboard. **Still unconfirmed:** a real copy and a real share sheet in a normal browser.
+- **Folder opens in one motion (2026-11-05, not deployed):** the user's screenshots showed the
+  crease landing at the closed folder's height, halfway down a sheet, then jumping below it.
+  The cause was two steps in `apps/site/src/home/folder-ui.ts`: the cover landed, then the body
+  grew. `open()` now measures the open layout before anything paints and runs the cover, body
+  and shell together on one timing, so the hinge travels to its real place under the sheet.
+  The cover also starts from its hover or nudge tilt instead of snapping flat. Checked in the
+  browser at 1024px and 375px on all three tabs: 0px gap between sheet and hinge, and the body
+  height just before the handoff equals the settled height. No automated test: the only
+  browser suite is the production one, and the folder's geometry has no pure logic to unit-test.

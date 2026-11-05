@@ -9,11 +9,10 @@ import {
 } from "../lib/folder";
 
 // The DOM half of the folder (Folder.astro). The rules live in lib/folder.ts; this
-// file only draws a state and runs the three motions: the cover opening, the body
-// growing to fit the sheet, and one divider coming forward over another.
+// file only draws a state and runs the two motions: the cover opening, and one divider
+// coming forward over another.
 
 const OPEN_MS = 950;
-const GROW_MS = 520;
 const SWAP_OUT_MS = 170;
 const SWAP_IN_MS = 340;
 const EASE_LID = "cubic-bezier(0.5, 0, 0.18, 1)";
@@ -71,57 +70,50 @@ export function initFolder(root: HTMLElement): void {
   const run = (el: Element, frames: Keyframe[], opts: KeyframeAnimationOptions) =>
     el.animate(frames, { fill: "none", ...opts }).finished.catch(() => undefined);
 
+  // One motion, one fold. The cover used to land under the closed folder and the body
+  // grew afterwards, so the crease showed halfway down a sheet and then jumped below it.
+  // The sheets are taller than the cover, so the open layout is measured first and the
+  // hinge travels to its real place below them while the cover swings over it.
   async function open(): Promise<void> {
+    // Hover and the nudge leave the cover tilted; start from there, not from flat.
+    const { m22, m23 } = new DOMMatrix(getComputedStyle(cover).transform);
+    const tilt = (Math.atan2(m23, m22) * 180) / Math.PI;
     root.dataset.state = "opening";
     cover.inert = true;
     if (!still()) {
-      const lidH = cover.offsetHeight;
+      const fromH = body.offsetHeight;
+      // The real open layout, read and undone before anything paints.
+      root.dataset.state = "open";
+      const toH = body.offsetHeight;
+      const coverH = cover.offsetHeight;
+      root.dataset.state = "opening";
       const hingeH = Number.parseFloat(getComputedStyle(root).getPropertyValue("--hinge-h")) || 18;
       const front = cover.querySelector(".cover-front .shade");
       const inside = cover.querySelector(".cover-inside .shade");
+      const motion = { duration: OPEN_MS, easing: EASE_LID };
       await Promise.all([
-        // The lid swings toward the reader and down over its bottom hinge.
-        // It lands one hinge-width lower: the fold opens up between back and front.
+        // The lid swings toward the reader and lands one hinge-width below the sheets.
         run(
           cover,
           [
-            { transform: "rotateX(0deg)" },
-            { transform: `translateY(${hingeH}px) rotateX(-180deg)` },
+            { transform: `translateY(0px) rotateX(${tilt}deg)` },
+            { transform: `translateY(${toH - fromH + hingeH}px) rotateX(-180deg)` },
           ],
-          {
-            duration: OPEN_MS,
-            easing: EASE_LID,
-          },
+          motion,
         ),
-        // Room for it to land in, opening up under the folder as it falls (the hinge
-        // itself is already in flow once the state is "opening").
-        run(shell, [{ paddingBottom: "0px" }, { paddingBottom: `${lidH}px` }], {
-          duration: OPEN_MS,
-          easing: EASE_LID,
-        }),
+        // Same timing as the lid, so the fold never comes apart from the sheets' bottom.
+        run(body, [{ height: `${fromH}px` }, { height: `${toH}px` }], motion),
+        // The cover is out of flow until it lands; this holds the room it will take.
+        run(shell, [{ paddingBottom: "0px" }, { paddingBottom: `${coverH}px` }], motion),
         // Light: the outside darkens as it turns away, the inside brightens as it lands.
         front &&
-          run(front, [{ opacity: 0 }, { opacity: 0.32, offset: 0.5 }, { opacity: 0.32 }], {
-            duration: OPEN_MS,
-            easing: EASE_LID,
-          }),
+          run(front, [{ opacity: 0 }, { opacity: 0.32, offset: 0.5 }, { opacity: 0.32 }], motion),
         inside &&
-          run(inside, [{ opacity: 0.3 }, { opacity: 0.3, offset: 0.5 }, { opacity: 0 }], {
-            duration: OPEN_MS,
-            easing: EASE_LID,
-          }),
+          run(inside, [{ opacity: 0.3 }, { opacity: 0.3, offset: 0.5 }, { opacity: 0 }], motion),
       ]);
     }
     // Flat on the desk: from here the inside is laid out normally, under the hinge.
-    const fromH = body.offsetHeight;
     drawOpen();
-    if (!still()) {
-      const toH = body.offsetHeight;
-      await run(body, [{ height: `${fromH}px` }, { height: `${toH}px` }], {
-        duration: GROW_MS,
-        easing: EASE,
-      });
-    }
   }
 
   async function swap(from: TabId, to: TabId): Promise<void> {
