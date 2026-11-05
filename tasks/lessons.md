@@ -62,3 +62,10 @@
   framing once it was live and cut it for a plain intro.
 - **Rule:** on the portfolio, present the user's own words plainly. Don't add invented
   personas, jokes or dressing around them unless the user asks for that specific thing.
+
+## Don't give identical actions separate controls (2026-11-05)
+- **What happened:** to make the decorative routing slip useful I proposed keeping its role
+  rows and having each one share the link. The user pointed out that three choices doing the
+  same thing is confusing, and one share button is all it needs.
+- **Rule:** when making a decorative element work, count the distinct outcomes. One outcome
+  gets one control. Don't keep a metaphor's parts if they stop meaning anything.

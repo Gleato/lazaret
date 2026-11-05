@@ -877,7 +877,7 @@ Follow the boards closely; the folder mechanics are ours to design.
       Hint: the cover's corner lifts a few px on a slow loop, plus a small label. A click on
       the cover or any tab opens it. Once open it stays open for the visit.
 - [x] Opening: the cover swings down on a bottom hinge (3D) and lies flat under the back panel,
-      showing its inside (routing slip with contact links). The hinge crease follows the active
+      showing its inside (routing slip with a share button, business card with contact links). The hinge crease follows the active
       sheet's bottom; one expansion score line per page in that tab, like a real folder's
       capacity scores.
 - [x] Tabs: Profile (blue), Projects (green), Edu x Exp (red), positioned and overlapped as on
@@ -2115,3 +2115,15 @@ Never a tier that rejects: a busy honest customer can trip a count.
   Email and LinkedIn are still on the routing slip inside the folder.
   The live check also found the open timeline note squeezed thin after the page
   narrowed (a phone turning upright); fixed with `flex: none` on `.note` and redeployed.
+
+## Routing slip: one share button (2026-11-05)
+- The slip's three role checkboxes were drawn on, not real, and read as broken. Live ones
+  would all have done the same thing, so the user cut them for a single button.
+- [x] `CoverInside.astro`: title and "Please pass along." stay, plus one "Share link" button.
+- [x] `src/lib/share.ts`: share sheet on touch devices, copy elsewhere, always the home page
+      (`SITE_URL`). Closing the sheet stays quiet; a refused clipboard shows the address.
+- [x] `test/share.test.ts`: six cases.
+
+**Review:** unit tests, typecheck and lint pass. Checked in the local dev server with stubbed
+share and clipboard calls: copy, reset, failure, and the 375px layout. Not tried on a
+real phone, and not deployed.
