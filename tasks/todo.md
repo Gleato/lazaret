@@ -2195,3 +2195,8 @@ each time matches its mirror, and the loop's end matches its start. Reduced-moti
 are CSS only and weren't seen in a browser.
 - [x] Folder edges retuned for the dark desk: same-hue 1px edge, one drop shadow, softer highlights, neutral paper and crease shadows (user approved after a browser-only trial)
 - [x] Open folder's edge runs in front of the back tabs (`.shell` z-index; `perspective` had scoped `.body`'s)
+
+Deployed 2026-11-05: `0e7a051`, worker version 559648c9-dabb-433c-8e99-b01827e5623f. Checked on
+gleator.com: network animation present, clock gone, header links correct, folder edge in
+front of the back tabs, no console errors. Not checked live: a demo run (paid, behind the bot
+check) and reduced motion.
