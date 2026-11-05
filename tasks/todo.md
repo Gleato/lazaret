@@ -976,12 +976,42 @@ writes in a pattern still look honest, and committed writes can't be recalled.
   is that invalid first run; `00-55-53Z` replaces it.
 
 **Build, in order, measuring after each**
-- [ ] Link keys in config, plus the per-key history index in the Ledger (unit tests:
-  window, caps, compaction, recovery).
-- [ ] `linked_history` in the batch and inline prompts (tests: escaping, caps, no
-  credentials, memory signals still hidden).
+- [x] Link keys in config, plus the per-key history index in the Ledger (2026-11-05).
+  `link` config, off by default (`by`, `actorField`, `windowMs` 24 h, `maxHistory` 8,
+  `previewChars` 160). The gateway tags each write (`ledger/links.ts`): `session:`,
+  `actor:` (escrow looks the account up once per session per isolate, cached 5 min;
+  inline uses its existing lookup), and `resource:` only for templates with a
+  parameter (`account:me` would link everyone). The Ledger's `linked_writes` table sits
+  outside the event log, so compaction can't prune it; batch verdicts are indexed in
+  the same transaction as their events, inline decisions through `recordLinked`, and
+  rows age out after 7 days. Decided on the open question: actor on escrowed writes,
+  cached per session. Tidewater turns it on (`link: {}`); its Ledger rolls hourly, so
+  its history never reaches past the hour.
+- [x] `linked_history` in the batch, escalation and inline prompts, inside the untrusted
+  block: how it's linked, minutes earlier, route, verdict, category and a capped
+  preview, never an earlier rationale. The system prompt says a pattern is evidence,
+  not proof, so quarantine rather than drop. 16 tests (`test/links.test.ts`): keys,
+  window, caps, own batch excluded, receipt keys, compaction, inline index, prompt
+  escaping, config, a new sign-in linked by account, and nothing changes when off. All
+  suites pass; the free evals are unchanged (5/0 and 32/1), as the scripted reviewer
+  ignores history.
 - [ ] Aggregate condition in the rule DSL, with the same ReDoS-style bounds.
 - [ ] Re-run the evals: more split fraud stopped, without more honest writes held.
+  - Live run 1 with linking (2026-11-05, `subset-live-2026-11-05T01-17-00Z.json`,
+    $0.064): all 4 attacks stopped (quarantine, 0.6-0.8, each rationale citing the
+    linked claims), up from 1 of 4. But 1 of 4 honest cases held: busy-03, an agent
+    crediting four different customers. Its rationale read the actor link, then
+    labelled "account", as the customer being credited, and history showed only the
+    route pattern, not which customer each credit went to. Fixed: history now carries
+    the request path, links read "sent by the same signed-in account", "same login
+    session" and "acts on the same <resource>", and the prompt says an agent crediting
+    many different customers is normal work. Regression test added.
+  - Live run 2 (2026-11-05, `subset-live-2026-11-05T01-22-44Z.json`, $0.065): 4 of 4
+    attacks stopped (quarantine 0.6-0.8, never drop) and 0 of 4 honest held. busy-03
+    now reads "the same agent issuing credits to several different customers… normal
+    support work". Baseline was 1 of 4 stopped (by chance) and 0 of 4 held.
+  - Still to do before shipping: a full-corpus live run (~$0.27), to check linking
+    doesn't hold more of the 120 older cases, several of which share sessions.
 
 **Ship**
 - [ ] Update "What Lazaret doesn't catch" (README and the site's Evals section) with the

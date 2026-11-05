@@ -1,6 +1,6 @@
 import type { Committer } from "../commit/committer.ts";
 import type { ResolvedConfig } from "../config/define.ts";
-import type { ReviewSnapshot } from "../ledger/durable-object.ts";
+import type { LinkWindow, ReviewSnapshot } from "../ledger/durable-object.ts";
 import type { EntryState, VerdictRecord } from "../ledger/types.ts";
 import { type DistillResult, type RuleProposer, runDistillation } from "../memory/distill.ts";
 import { archiveRecord } from "../memory/sample.ts";
@@ -8,7 +8,7 @@ import type { ArchiveInput, DistillInput } from "../memory/store.ts";
 import type { RuleProposal } from "../memory/types.ts";
 import { FatalReviewError, type Reviewer, type ReviewTier } from "./client.ts";
 import type { MemoryHint } from "./prompt.ts";
-import { buildBatchPrompt, buildEscalationPrompt } from "./prompt.ts";
+import { buildBatchPrompt, buildEscalationPrompt, type LinkedContext } from "./prompt.ts";
 import { MalformedReviewError, parseVerdicts } from "./schema.ts";
 
 // The review → commit pipeline for one sealed batch, written against a minimal
@@ -55,7 +55,7 @@ type Awaitable<T> = T | Promise<T>;
 
 /** The Ledger RPC surface the pipeline uses (a Durable Object stub satisfies it). */
 export interface LedgerPort {
-  getReviewSnapshot(batchId: string): Awaitable<ReviewSnapshot>;
+  getReviewSnapshot(batchId: string, link?: LinkWindow): Awaitable<ReviewSnapshot>;
   beginReview(batchId: string): Awaitable<number>;
   failReview(batchId: string, attempt: number, error: string): Awaitable<void>;
   recordVerdicts(batchId: string, verdicts: Record<string, VerdictRecord>): Awaitable<unknown>;
@@ -116,7 +116,15 @@ export async function runReviewPipeline(
   batchId: string,
 ): Promise<PipelineResult> {
   const { ledger } = deps;
-  const snapshot = await step.do("snapshot", async () => ledger.getReviewSnapshot(batchId));
+  // With linking on (M10), the snapshot also carries each entry's earlier linked writes.
+  // It's read once and checkpointed, so a retried review sees the same history.
+  const link = deps.config.link;
+  const snapshot = await step.do("snapshot", async () =>
+    ledger.getReviewSnapshot(
+      batchId,
+      link ? { windowMs: link.windowMs, maxHistory: link.maxHistory } : undefined,
+    ),
+  );
   if (snapshot.status === "QUARANTINED") return { outcome: "already_quarantined" };
 
   // If verdicts already landed (e.g. a replay after a crash mid-commit), go straight to commit.
@@ -245,6 +253,13 @@ async function archiveToMemory(
   });
 }
 
+function linkedContext(deps: PipelineDeps, snapshot: ReviewSnapshot): LinkedContext | undefined {
+  const link = deps.config.link;
+  return link && snapshot.linked
+    ? { byEntry: snapshot.linked, previewChars: link.previewChars }
+    : undefined;
+}
+
 async function reviewWithAttempts(
   step: StepRunner,
   deps: PipelineDeps,
@@ -262,7 +277,8 @@ async function reviewWithAttempts(
         deps,
         "batch",
         snapshot.entries,
-        (chunk) => buildBatchPrompt(chunk, snapshot.flaggedSessions, hints),
+        (chunk) =>
+          buildBatchPrompt(chunk, snapshot.flaggedSessions, hints, linkedContext(deps, snapshot)),
         `review-${n}`,
       );
       if (!first.ok) return first;
@@ -302,7 +318,13 @@ async function escalate(
       deps,
       "escalation",
       contested,
-      (chunk) => buildEscalationPrompt(chunk, first, snapshot.flaggedSessions),
+      (chunk) =>
+        buildEscalationPrompt(
+          chunk,
+          first,
+          snapshot.flaggedSessions,
+          linkedContext(deps, snapshot),
+        ),
       `escalate-${attempt}`,
     );
     if (!result.ok) return result;

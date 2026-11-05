@@ -2,7 +2,7 @@ import type { ResolvedConfig } from "../config/define.ts";
 import type { Actor } from "../gateway/actor.ts";
 import type { EntryState, VerdictRecord } from "../ledger/types.ts";
 import type { Reviewer } from "./client.ts";
-import { buildInlinePrompt } from "./prompt.ts";
+import { buildInlinePrompt, type LinkedContext } from "./prompt.ts";
 import { parseVerdicts } from "./schema.ts";
 
 // Inline review for routes that can't wait for a batch (login, payments). The
@@ -32,6 +32,7 @@ export async function inlineReview(
   reviewer: Reviewer,
   config: ResolvedConfig,
   actor: Actor | null = null,
+  linked?: LinkedContext,
 ): Promise<InlineDecision> {
   const timeoutMs = config.review.inlineTimeoutMs;
   const controller = new AbortController();
@@ -50,7 +51,7 @@ export async function inlineReview(
     const outcome = await Promise.race([
       reviewer.review({
         tier: "inline",
-        prompt: buildInlinePrompt(entry, actor),
+        prompt: buildInlinePrompt(entry, actor, linked),
         signal: controller.signal,
       }),
       deadline,

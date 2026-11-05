@@ -145,6 +145,27 @@ export interface LazaretConfig {
     /** Body characters shown per entry (default 280, max 2000, 0 hides bodies). */
     bodyPreviewChars?: number;
   };
+  /**
+   * Linked history (M10, ledger/links.ts). Off unless set. Each write is tied to earlier
+   * ones by its session, its account (`actor`, from `review.actor`) and the resources
+   * its route names with a parameter (e.g. `account:{id}`), and the reviewer sees the
+   * recent linked writes with their verdicts. It catches abuse split across requests
+   * that each look fine alone, such as several refund claims for one account. It costs
+   * extra prompt tokens (capped by `maxHistory` and `previewChars`), and an escrowed
+   * write with `actor` linking makes one actor lookup per session.
+   */
+  link?: {
+    /** Which keys link writes. Default: session and resource, plus actor when `review.actor` is set. */
+    by?: Array<"session" | "actor" | "resource">;
+    /** The `review.actor` field holding the account id. Default `id`. */
+    actorField?: string;
+    /** How far back history goes. Default 24 h, at most 7 days. */
+    windowMs?: number;
+    /** Earlier writes shown per write. Default 8, at most 20. */
+    maxHistory?: number;
+    /** Body characters shown per earlier write. Default 160, at most 400. */
+    previewChars?: number;
+  };
   memory?: {
     /** Durable Object namespace binding for the Memory. If absent, memory is off. */
     binding?: string;
@@ -202,6 +223,14 @@ export interface ResolvedConfig {
   signing: { secretBinding: string };
   operator: { tokenBinding: string };
   live: { enabled: boolean; bodyPreviewChars: number };
+  /** Null when linked history is off. */
+  link: {
+    by: Array<"session" | "actor" | "resource">;
+    actorField: string;
+    windowMs: number;
+    maxHistory: number;
+    previewChars: number;
+  } | null;
   memory: {
     binding: string;
     name: string;
@@ -366,6 +395,41 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
     }
   }
 
+  // Linked history (M10). Actor linking needs the actor lookup, and the field it names.
+  const linkConfig = config.link;
+  const link = linkConfig
+    ? {
+        by: linkConfig.by ?? (actor ? ["session", "actor", "resource"] : ["session", "resource"]),
+        actorField: linkConfig.actorField ?? "id",
+        windowMs: linkConfig.windowMs ?? 24 * 60 * 60 * 1000,
+        maxHistory: linkConfig.maxHistory ?? 8,
+        previewChars: linkConfig.previewChars ?? 160,
+      }
+    : null;
+  if (link) {
+    const kinds = new Set(["session", "actor", "resource"]);
+    if (!link.by.length || link.by.some((k) => !kinds.has(k))) {
+      problems.push("link.by must list one or more of session, actor, resource");
+    }
+    if (link.by.includes("actor")) {
+      if (!actor) problems.push("link.by actor needs review.actor");
+      else if (!(link.actorField in actor.fields)) {
+        problems.push(`link.actorField "${link.actorField}" is not one of review.actor.fields`);
+      }
+    }
+    if (!(link.windowMs >= 60_000 && link.windowMs <= 7 * 24 * 60 * 60 * 1000)) {
+      problems.push("link.windowMs must be between one minute and 7 days");
+    }
+    if (!(Number.isInteger(link.maxHistory) && link.maxHistory >= 1 && link.maxHistory <= 20)) {
+      problems.push("link.maxHistory must be an integer from 1 to 20");
+    }
+    if (
+      !(Number.isInteger(link.previewChars) && link.previewChars >= 0 && link.previewChars <= 400)
+    ) {
+      problems.push("link.previewChars must be an integer from 0 to 400");
+    }
+  }
+
   const behaviour = {
     store: config.behaviour?.store ?? "memory",
     binding: config.behaviour?.binding ?? "LAZARET_BEHAVIOUR",
@@ -432,6 +496,7 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
     signing: { secretBinding: config.signing?.secretBinding ?? "LAZARET_SIGNING_SECRET" },
     operator: { tokenBinding: config.operator?.tokenBinding ?? "LAZARET_OPERATOR_TOKEN" },
     live: { enabled: config.live?.enabled ?? false, bodyPreviewChars },
+    link: link as ResolvedConfig["link"],
     memory: {
       binding: config.memory?.binding ?? "LAZARET_MEMORY",
       name: config.memory?.name ?? "default",

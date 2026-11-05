@@ -49,9 +49,10 @@ export {
   prunableBatches,
   pruneState,
 } from "./ledger/compaction.ts";
-export type { ReviewDispatch, ReviewSnapshot } from "./ledger/durable-object.ts";
+export type { LinkWindow, ReviewDispatch, ReviewSnapshot } from "./ledger/durable-object.ts";
 export { LazaretLedger } from "./ledger/durable-object.ts";
 export type { LedgerEvent, LedgerEventType, StoredEvent } from "./ledger/events.ts";
+export type { LinkedWrite, LinkKind, LinkRow } from "./ledger/links.ts";
 export { applyEvent, IllegalTransition, initialState, replay } from "./ledger/machine.ts";
 export {
   type LiveFrame,
@@ -148,7 +149,7 @@ export {
   type StepRunner,
 } from "./review/pipeline.ts";
 export { costUsd, PRICES } from "./review/pricing.ts";
-export type { MemoryHint } from "./review/prompt.ts";
+export type { LinkedContext, MemoryHint } from "./review/prompt.ts";
 export {
   buildBatchPrompt,
   buildEscalationPrompt,

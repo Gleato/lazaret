@@ -12,6 +12,14 @@ import {
   writeSnapshot,
 } from "./compaction.ts";
 import type { LedgerEvent, StoredEvent } from "./events.ts";
+import {
+  type LinkedWrite,
+  type LinkRow,
+  migrateLinks,
+  readLinks,
+  recordLinks,
+  validLinkKeys,
+} from "./links.ts";
 import { applyEvent, initialState, nextBatchId } from "./machine.ts";
 import {
   type LiveFrame,
@@ -88,6 +96,14 @@ export interface ReviewSnapshot {
   entries: EntryState[];
   /** Which of those entries' sessions are currently flagged. */
   flaggedSessions: string[];
+  /** Earlier writes linked to each entry (M10), when the caller asked for them. */
+  linked?: Record<string, LinkedWrite[]>;
+}
+
+/** How much linked history to read (ResolvedConfig["link"], minus what the Ledger doesn't need). */
+export interface LinkWindow {
+  windowMs: number;
+  maxHistory: number;
 }
 
 /** An operator action's result. `reason` is safe to show the operator. */
@@ -158,6 +174,10 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
       {
         ...input,
         resources: input.resources.map((r) => r.replaceAll(RECEIPT_PLACEHOLDER, entryId)),
+        // A ticket's link key names the ticket, so its replies link to it.
+        ...(input.links
+          ? { links: input.links.map((k) => k.replaceAll(RECEIPT_PLACEHOLDER, entryId)) }
+          : {}),
       },
       at,
     );
@@ -213,8 +233,11 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
 
   // ── Review protocol (driven by the Review Workflow) ─────────────────────────
 
-  /** What the reviewer needs: the pending entries and which sessions are flagged. */
-  getReviewSnapshot(batchId: string): ReviewSnapshot {
+  /**
+   * What the reviewer needs: the pending entries, which sessions are flagged, and, with
+   * `link`, each entry's recent linked writes from outside this batch (M10).
+   */
+  getReviewSnapshot(batchId: string, link?: LinkWindow): ReviewSnapshot {
     const batch = this.#state.batches[batchId];
     if (!batch) throw new Error(`unknown batch ${batchId}`);
     const entries = batch.entryIds
@@ -224,13 +247,40 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
     const flaggedSessions = [...new Set(entries.map((e) => e.sessionId))].filter((s) =>
       this.#isFlagged(s, now),
     );
-    return {
+    const snapshot: ReviewSnapshot = {
       batchId,
       status: batch.status,
       attempt: batch.reviewAttempts,
       entries: structuredClone(entries),
       flaggedSessions,
     };
+    if (link) {
+      const inBatch = new Set(batch.entryIds);
+      const linked: Record<string, LinkedWrite[]> = {};
+      for (const e of entries) {
+        const found = this.#readLinks(e.links ?? [], e.receivedAt, link, inBatch);
+        if (found.length) linked[e.id] = found;
+      }
+      snapshot.linked = linked;
+    }
+    return snapshot;
+  }
+
+  /** Recent writes linked by any of `keys` (inline review, M10). */
+  getLinked(keys: string[], link: LinkWindow): LinkedWrite[] {
+    if (!validLinkKeys(keys)) throw new TypeError("invalid link keys");
+    return this.#readLinks(keys, this.now(), link);
+  }
+
+  /**
+   * Index a write the gateway decided inline (M10), so later writes see it. Not part of
+   * the event log: inline writes never were (they're telemetry here, like `observe`).
+   */
+  recordLinked(row: LinkRow): void {
+    if (!validLinkKeys(row?.keys) || typeof row.entryId !== "string") {
+      throw new TypeError("invalid linked write");
+    }
+    recordLinks(this.ctx.storage.sql, [{ ...row, at: this.now() }], this.now());
   }
 
   /** Begin (or retry) review of a sealed batch. Returns the attempt number. */
@@ -296,17 +346,38 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
     );
     const taint = applyTaint(pending, verdicts, prior);
     const at = this.now();
-    this.#commit([
-      ...pending.map(
-        (e): LedgerEvent => ({
-          type: "ENTRY_VERDICT",
+    // Linked history (M10) is written in the same transaction as the verdicts, so a
+    // crash can't leave a verdict the next review doesn't know about.
+    const linkRows: LinkRow[] = pending
+      .filter((e) => e.links?.length)
+      .map((e) => {
+        const v = taint.verdicts[e.id] as VerdictRecord;
+        return {
           entryId: e.id,
-          verdict: taint.verdicts[e.id] as VerdictRecord,
-          at,
-        }),
-      ),
-      ...taint.flaggedSessions.map((f): LedgerEvent => ({ type: "SESSION_FLAGGED", ...f, at })),
-    ]);
+          keys: e.links ?? [],
+          at: e.receivedAt,
+          route: e.route,
+          method: e.request.method,
+          path: e.request.path,
+          preview: e.request.bodyEncoding === "utf8" ? e.request.body : null,
+          verdict: v.verdict,
+          category: v.category,
+        };
+      });
+    this.#commit(
+      [
+        ...pending.map(
+          (e): LedgerEvent => ({
+            type: "ENTRY_VERDICT",
+            entryId: e.id,
+            verdict: taint.verdicts[e.id] as VerdictRecord,
+            at,
+          }),
+        ),
+        ...taint.flaggedSessions.map((f): LedgerEvent => ({ type: "SESSION_FLAGGED", ...f, at })),
+      ],
+      linkRows.length ? () => recordLinks(this.ctx.storage.sql, linkRows, at) : undefined,
+    );
     return { applied: true, tainted: taint.tainted, flaggedSessions: taint.flaggedSessions.length };
   }
 
@@ -772,6 +843,15 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
     return out;
   }
 
+  /** Linked writes in the window before `at`. Bodies in history are cut short again on the way out. */
+  #readLinks(keys: string[], at: number, link: LinkWindow, exclude?: Set<string>): LinkedWrite[] {
+    return readLinks(this.ctx.storage.sql, keys, {
+      since: at - link.windowMs,
+      limit: link.maxHistory,
+      ...(exclude ? { exclude } : {}),
+    });
+  }
+
   #isFlagged(sessionId: string, now: number): boolean {
     const flag = this.#state.flaggedSessions[sessionId];
     return flag !== undefined && now - flag.at < SESSION_FLAG_TTL_MS;
@@ -845,9 +925,10 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
    * projection may have been partly mutated by then, so it is rebuilt from the log —
    * the same recovery path used after a crash.
    */
-  #commit(events: LedgerEvent[]): void {
+  #commit(events: LedgerEvent[], alsoInTransaction?: () => void): void {
     try {
       this.ctx.storage.transactionSync(() => {
+        alsoInTransaction?.();
         for (const event of events) {
           applyEvent(this.#state, event);
           this.ctx.storage.sql.exec(
@@ -947,6 +1028,7 @@ export class LazaretLedger<Env = unknown> extends DurableObject<Env> {
       )
     `);
     migrateSnapshot(this.ctx.storage.sql);
+    migrateLinks(this.ctx.storage.sql);
   }
 
   // Replay is the snapshot (if the log was ever compacted) plus the events after it.
@@ -990,6 +1072,9 @@ function validateEntryInput(input: EntryInput): void {
   if (!Array.isArray(input.signals)) throw new TypeError("entry.signals must be an array");
   if (input.params !== undefined && (input.params === null || typeof input.params !== "object")) {
     throw new TypeError("entry.params must be an object");
+  }
+  if (input.links !== undefined && !validLinkKeys(input.links)) {
+    throw new TypeError("entry.links must be up to 16 short strings");
   }
   const { request } = input;
   if (!request || typeof request.method !== "string" || typeof request.path !== "string") {

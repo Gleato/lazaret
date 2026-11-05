@@ -55,6 +55,12 @@ export interface EntryInput {
   signals: GateSignal[];
   /** Route params of the write (used to scope the author's read overlay). */
   params?: Record<string, string>;
+  /**
+   * Link keys (M10, ledger/links.ts): session, account and resource keys that tie this
+   * write to earlier ones, so the reviewer sees fraud split across batches. Set by the
+   * gateway when `link` is configured; `{receipt}` is filled in by the Ledger.
+   */
+  links?: string[];
 }
 
 export interface VerdictRecord {

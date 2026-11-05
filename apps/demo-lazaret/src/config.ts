@@ -98,6 +98,12 @@ export function tidewaterConfig(overrides: Partial<LazaretConfig> = {}): Lazaret
     },
     // The public view behind gleator.com's visualiser (redacted; ledger/public.ts).
     live: { enabled: true, bodyPreviewChars: 280 },
+    // Linked history (M10): each write is tied to earlier ones by session, account
+    // (actor.id, from /api/me) and resource (a credit's `account:{id}`), and the reviewer
+    // sees them. Added after the live "quiet heist" (2026-11-04): five believable
+    // refund claims, each alone in its batch, all allowed. The demo's Ledger rolls over
+    // every hour, so here history never reaches back past the hour.
+    link: {},
     ...overrides,
   };
 }

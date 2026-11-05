@@ -15,6 +15,7 @@ import { inspect } from "../gate/inspect.ts";
 import { compileRule } from "../gate/rules.ts";
 import type { GateSignal } from "../gate/signals.ts";
 import type { LazaretLedger } from "../ledger/durable-object.ts";
+import { type LinkedWrite, linkKeys } from "../ledger/links.ts";
 import type { ObservedInput } from "../ledger/public.ts";
 import type { EntryInput } from "../ledger/types.ts";
 import { archiveRecord } from "../memory/sample.ts";
@@ -25,7 +26,7 @@ import { AnthropicReviewer, type Reviewer } from "../review/client.ts";
 import { inlineReview } from "../review/inline.ts";
 import { fillTemplate, matchPattern } from "../routing/matcher.ts";
 import { encodePath, normalizePath, type PathAnomaly } from "../routing/normalize.ts";
-import { lookupActor } from "./actor.ts";
+import { type Actor, lookupActor } from "./actor.ts";
 import {
   BodyTooLarge,
   forwardableHeaders,
@@ -129,6 +130,36 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
       memoryCache = { at, rules: memoryCache?.rules ?? [] };
     }
     return memoryCache.rules;
+  };
+
+  // Linked history (M10) on escrowed writes needs the account behind each session. One
+  // lookup per session per isolate: an escrowed write answers 202 at once, so it
+  // shouldn't pay an origin round trip every time. Only real answers are cached, and
+  // only briefly, so a timeout is retried and a session that ends is forgotten.
+  const actorCache = new Map<string, { at: number; actor: Actor }>();
+  const ACTOR_CACHE_MS = 5 * 60_000;
+  const ACTOR_CACHE_MAX = 5_000;
+  const cachedActor = async (
+    sessionId: string,
+    lookup: () => Promise<Actor | null>,
+  ): Promise<Actor | null> => {
+    const hit = actorCache.get(sessionId);
+    if (hit && now() - hit.at < ACTOR_CACHE_MS) return hit.actor;
+    const actor = await lookup();
+    if (actor) {
+      if (actorCache.size >= ACTOR_CACHE_MAX) {
+        const oldest = actorCache.keys().next().value;
+        if (oldest !== undefined) actorCache.delete(oldest);
+      }
+      actorCache.set(sessionId, { at: now(), actor });
+    }
+    return actor;
+  };
+  const actorIdOf = (actor: Actor | null): string | null => {
+    const field = config.link?.actorField;
+    if (!actor?.authenticated || !field) return null;
+    const value = actor[field];
+    return typeof value === "string" || typeof value === "number" ? String(value) : null;
   };
 
   const ledgerFor = (env: object) => {
@@ -372,6 +403,33 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
       };
 
       const params = matched?.params ?? {};
+      const resourceTemplates = matched?.compiled.route.resources ?? [];
+      const link = config.link;
+      // This write's link keys (M10). Resources link only when their template names a
+      // parameter: see linkKeys in ledger/links.ts.
+      const linksFor = (actor: Actor | null) =>
+        link
+          ? linkKeys(link.by, {
+              sessionId,
+              actorId: actorIdOf(actor),
+              resourceTemplates,
+              resources: entry.resources,
+            })
+          : [];
+      const actorLookup = () => {
+        const actorConfig = config.review.actor;
+        return actorConfig
+          ? lookupActor(actorConfig, (signal) =>
+              toOrigin(
+                crypto.randomUUID(),
+                "GET",
+                originUrl(config.origin, actorConfig.path, ""),
+                null,
+                signal,
+              ),
+            )
+          : Promise.resolve(null);
+      };
       const entry: EntryInput = {
         sessionId,
         route: routeName,
@@ -399,6 +457,13 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
         }
 
         case "ESCROW": {
+          if (link) {
+            const actor = link.by.includes("actor")
+              ? await cachedActor(sessionId, actorLookup)
+              : null;
+            const links = linksFor(actor);
+            if (links.length) entry.links = links;
+          }
           const receipt = await ledgerFor(env).append(entry);
           return tag(
             json(
@@ -432,18 +497,45 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
               return false;
             });
           // A few ms over a service binding, against the ~1.1 s the model takes to start.
-          const actorConfig = config.review.actor;
-          const actor = actorConfig
-            ? await lookupActor(actorConfig, (signal) =>
-                toOrigin(
-                  crypto.randomUUID(),
-                  "GET",
-                  originUrl(config.origin, actorConfig.path, ""),
-                  null,
-                  signal,
-                ),
-              )
-            : null;
+          // Not cached: the reviewer is told the actor as a fact, so it's always fresh here.
+          const actor = await actorLookup();
+          // Linked history (M10): the writes this one shares a session, account or
+          // resource with. Advisory: if the Ledger can't answer, review goes ahead without.
+          const links = linksFor(actor);
+          const history: LinkedWrite[] =
+            link && links.length && !spent
+              ? await Promise.resolve(
+                  ledgerFor(env).getLinked(links, {
+                    windowMs: link.windowMs,
+                    maxHistory: link.maxHistory,
+                  }),
+                ).catch((err: unknown) => {
+                  console.error(
+                    JSON.stringify({ lazaret: "links_unavailable", error: String(err) }),
+                  );
+                  return [];
+                })
+              : [];
+          // Index this write once it's decided, so the next linked one sees it.
+          const rememberLinked = (verdict: "allow" | "drop" | "quarantine", category: string) => {
+            if (!link || !links.length) return;
+            const recording = Promise.resolve(
+              ledgerFor(env).recordLinked({
+                entryId: requestId,
+                keys: links,
+                at: sample.at,
+                route: routeName,
+                method,
+                path: norm.path,
+                preview: bodyText,
+                verdict,
+                category,
+              }),
+            ).catch((err: unknown) =>
+              console.error(JSON.stringify({ lazaret: "links_record_failed", error: String(err) })),
+            );
+            if (ctx) ctx.waitUntil(recording);
+          };
           const started = Date.now();
           const result = spent
             ? ({ unavailable: "daily review budget spent", cause: "budget" } as const)
@@ -458,6 +550,9 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
                 reviewer,
                 config,
                 actor,
+                history.length && link
+                  ? { byEntry: { [requestId]: history }, previewChars: link.previewChars }
+                  : undefined,
               );
           const latencyMs = spent ? undefined : Date.now() - started;
           // Inline verdicts feed the Memory like batch verdicts do (off the critical path).
@@ -516,6 +611,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
                 }),
               );
               observe({ kind: "inline", outcome: "degraded", cause: result.cause, latencyMs });
+              rememberLinked("allow", "unreviewed");
               const res = await forward();
               res.headers.set("x-lazaret-review", "degraded");
               return res;
@@ -526,6 +622,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
             if (result.cause === "budget") refused.headers.set("x-lazaret-review", "budget");
             return refused;
           }
+          rememberLinked(result.verdict.verdict, result.verdict.category);
           if (result.verdict.verdict !== "allow") {
             setStatus(403);
             observe({
