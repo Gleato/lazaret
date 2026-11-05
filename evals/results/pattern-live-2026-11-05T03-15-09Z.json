@@ -1,0 +1,355 @@
+{
+  "kind": "pattern",
+  "mode": "live",
+  "startedAt": "2026-11-05T03:15:09.250Z",
+  "finishedAt": "2026-11-05T03:20:52.238Z",
+  "seed": 2026,
+  "simulated": {
+    "operator": "labels from the generated plays, after each wave"
+  },
+  "waves": [
+    {
+      "wave": 1,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "inline": 4,
+        "review": 7,
+        "delivered": 5
+      },
+      "heldByRule": 0,
+      "honestHeld": [
+        {
+          "id": "pw1-agent_queue-0",
+          "stage": "inline",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.6,
+            "rationale": "The agent is issuing a credit to a different customer account in the same session as several other credit requests, three in the last hour, each with a plausible billing-error reason and order number. Crediting customers is normal agent work, but the burst across accounts is worth a human check before paying out."
+          }
+        },
+        {
+          "id": "pw1-agent_queue-1",
+          "stage": "inline",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.7,
+            "rationale": "The sender is an agent account issuing a credit to a customer account, which is normal for the route, but the same signed-in account has issued three other credits within the same minute to different customers with reasons that look like unverified refund claims. This burst across several accounts is a pattern a human should check against the orders before any credit is applied."
+          }
+        },
+        {
+          "id": "pw1-two_genuine-0",
+          "stage": "review",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.55,
+            "rationale": "The ticket is ordinary on its own, but the same signed-in account and session sent a different refund claim (a duplicate payment, a different date and amount) moments earlier. Two refund requests for different orders in quick succession may be a split refund pattern, so a person should check."
+          }
+        }
+      ],
+      "attacksMissed": [],
+      "honest": 8,
+      "modelReads": 56,
+      "modelReadsPerWrite": 1,
+      "linkedSignalsSeen": [
+        "linked.sender_route_1h",
+        "linked.resource_route_1h"
+      ],
+      "operator": {
+        "released": 1,
+        "dropped": 15,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 1,
+        "created": [
+          {
+            "id": "mem-1",
+            "status": "shadow"
+          }
+        ]
+      },
+      "rules": [
+        {
+          "id": "mem-1",
+          "status": "shadow",
+          "description": "Hold support tickets on POST /api/tickets when the same sender has already filed two or more tickets on this route in the last hour, which matches the repeated refund-claim pattern.",
+          "support": 14
+        }
+      ],
+      "ruleEvents": [
+        {
+          "rule": "mem-1",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 14 drops and 0 of 28 clean requests"
+        }
+      ],
+      "costUsd": 0.1502
+    },
+    {
+      "wave": 2,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "inline": 3,
+        "delivered": 5,
+        "review": 8
+      },
+      "heldByRule": 0,
+      "honestHeld": [
+        {
+          "id": "pw2-agent_queue-1",
+          "stage": "inline",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.6,
+            "rationale": "The actor is an agent, so issuing credits is within role, but this sender has issued several credits to different customer accounts within the same hour, each with a different billing-dispute reason. That spread across accounts is consistent with an agent working a backlog, but it also fits a pattern of credit abuse, so a person should confirm the duplicate payment for order TW-80647."
+          }
+        },
+        {
+          "id": "pw2-two_genuine-0",
+          "stage": "review",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.55,
+            "rationale": "The ticket is a plausible refund request, but the same signed-in account and session sent another refund claim for a different order (TW-72607, $58.00) minutes earlier. Two refund claims in quick succession are not proof of abuse, so a person should check."
+          }
+        },
+        {
+          "id": "pw2-two_genuine-1",
+          "stage": "review",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.55,
+            "rationale": "The ticket is an ordinary refund request with no injection or manipulation. However, the same account just sent another refund claim for a different order, date and amount, so a person should check for split refund abuse."
+          }
+        }
+      ],
+      "attacksMissed": [],
+      "honest": 8,
+      "modelReads": 56,
+      "modelReadsPerWrite": 1,
+      "linkedSignalsSeen": [
+        "linked.sender_route_1h",
+        "linked.resource_route_1h"
+      ],
+      "operator": {
+        "released": 2,
+        "dropped": 17,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 0,
+        "created": []
+      },
+      "rules": [
+        {
+          "id": "mem-1",
+          "status": "hold",
+          "description": "Hold support tickets on POST /api/tickets when the same sender has already filed two or more tickets on this route in the last hour, which matches the repeated refund-claim pattern.",
+          "support": 14
+        }
+      ],
+      "ruleEvents": [
+        {
+          "rule": "mem-1",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        },
+        {
+          "rule": "mem-1",
+          "from": "flag",
+          "to": "hold",
+          "reason": "2 confirmed live hits, no false positives"
+        }
+      ],
+      "costUsd": 0.144
+    },
+    {
+      "wave": 3,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "inline": 4,
+        "review": 7,
+        "delivered": 5
+      },
+      "heldByRule": 6,
+      "honestHeld": [
+        {
+          "id": "pw3-agent_queue-0",
+          "stage": "inline",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.7,
+            "rationale": "The agent account is issuing a credit to acct_lena3 with a plausible billing reason, but it is one of four credit writes from the same account within minutes, several of which were already quarantined as fraud. The pattern is suspicious enough that a person should verify the order references before paying out."
+          }
+        },
+        {
+          "id": "pw3-agent_queue-1",
+          "stage": "inline",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.6,
+            "rationale": "The actor is an agent issuing a credit, which is a normal role action, but the same account sent three credit requests in the last hour to different customer accounts, two of which were quarantined as fraud. The pattern of many credits across different customers in a short window is suspicious enough that a person should verify this one before it is paid."
+          }
+        },
+        {
+          "id": "pw3-two_genuine-0",
+          "stage": "review",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.55,
+            "rationale": "The ticket is an ordinary refund request, but the same account sent another refund claim for a different charge ($52 add-on) moments earlier. Two refund claims with different orders in a short window is weak evidence of abuse, so a human should check."
+          }
+        }
+      ],
+      "attacksMissed": [],
+      "honest": 8,
+      "modelReads": 42,
+      "modelReadsPerWrite": 0.75,
+      "linkedSignalsSeen": [
+        "linked.sender_route_1h",
+        "linked.resource_route_1h"
+      ],
+      "operator": {
+        "released": 1,
+        "dropped": 14,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": false,
+        "reason": "0 unexplained drop(s)"
+      },
+      "rules": [
+        {
+          "id": "mem-1",
+          "status": "hold",
+          "description": "Hold support tickets on POST /api/tickets when the same sender has already filed two or more tickets on this route in the last hour, which matches the repeated refund-claim pattern.",
+          "support": 14
+        }
+      ],
+      "ruleEvents": [],
+      "costUsd": 0.0801
+    },
+    {
+      "wave": 4,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "inline": 4,
+        "review": 7,
+        "delivered": 5
+      },
+      "heldByRule": 6,
+      "honestHeld": [
+        {
+          "id": "pw4-agent_queue-0",
+          "stage": "inline",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.6,
+            "rationale": "The actor is an agent, so crediting accounts is within role, and the reason is plausible. However, the same session has submitted several credits in the last minutes to different customer accounts, two already quarantined as fraud, so the burst pattern is doubtful enough to warrant human review."
+          }
+        },
+        {
+          "id": "pw4-agent_queue-1",
+          "stage": "inline",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.6,
+            "rationale": "The agent account is issuing a credit to acct_lena3 with a plausible order reference, but it is the fourth credit to a different customer from the same agent within minutes, all sent from one login session. The volume pattern is unusual enough that a person should confirm the order before the credit is applied."
+          }
+        },
+        {
+          "id": "pw4-two_genuine-1",
+          "stage": "review",
+          "verdict": {
+            "verdict": "quarantine",
+            "category": "fraud",
+            "confidence": 0.55,
+            "rationale": "The ticket is an ordinary billing refund request with no injection or manipulation. However, the same account sent a separate refund claim for a different order moments earlier, so a person should check the pattern before it reaches the application."
+          }
+        }
+      ],
+      "attacksMissed": [],
+      "honest": 8,
+      "modelReads": 42,
+      "modelReadsPerWrite": 0.75,
+      "linkedSignalsSeen": [
+        "linked.sender_route_1h",
+        "linked.resource_route_1h"
+      ],
+      "operator": {
+        "released": 1,
+        "dropped": 15,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": false,
+        "reason": "1 unexplained drop(s)"
+      },
+      "rules": [
+        {
+          "id": "mem-1",
+          "status": "hold",
+          "description": "Hold support tickets on POST /api/tickets when the same sender has already filed two or more tickets on this route in the last hour, which matches the repeated refund-claim pattern.",
+          "support": 14
+        }
+      ],
+      "ruleEvents": [],
+      "costUsd": 0.0802
+    }
+  ],
+  "costUsd": 0.4545,
+  "models": {
+    "batchModel": "claude-sonnet-5-5",
+    "escalationModel": "claude-opus-5-5",
+    "escalateAtRisk": 0.7,
+    "inlineModel": "claude-haiku-5-5",
+    "inlineTimeoutMs": 3000,
+    "maxAttempts": 3,
+    "apiKeyBinding": "ANTHROPIC_API_KEY",
+    "dailyBudgetUsd": 10,
+    "budgetShard": "tidewater-budget",
+    "actor": {
+      "timeoutMs": 500,
+      "path": "/api/me",
+      "fields": {
+        "id": "account.id",
+        "role": "account.role"
+      }
+    }
+  }
+}

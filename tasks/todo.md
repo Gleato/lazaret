@@ -1148,6 +1148,63 @@ Never a tier that rejects: a busy honest customer can trip a count.
   at the gate with no model, model reads 56 → 42 per wave, 8/8 attacks stopped and 0/8
   honest held in every wave. 23 new tests in all; every suite passes.
 - [ ] Live pattern eval (~$0.60 estimated, capped at $1.50, quoted before running).
+  - Live run 1 (2026-11-05, `pattern-live-2026-11-05T03-07-19Z.json`, $0.47). Learning
+    works with real models: in wave 1 the real distiller (Sonnet) proposed exactly the
+    counting rule ("Hold ticket submissions when the same sender has already made two
+    or more earlier ticket writes in the last hour"; support 14, 0 of 31 clean), it was
+    promoted to hold in wave 2, and in waves 3-4 it held 6 claims each with no model
+    (reads 56 → 42); 8/8 attacks stopped every wave; the rule held no honest write.
+    But the reviewer held 3-4 of 8 honest plays per wave (both agent queues, inline,
+    every wave; 1-2 two-genuine claims). The cause was the generator: honest plays had
+    the attackers' $41-49 amounts, so an agent issuing four credits just under the $50
+    cap looked like what it imitated. Fixed: honest amounts are $8-60 and spread, agent
+    credits cite the customer's ticket and order; the structure is unchanged. The report
+    now keeps each honest hold's and each miss's verdict and rationale (run 1 kept only
+    ids, so its reasons were reconstructed from the generator). Needs live run 2.
+  - Live run 2 (2026-11-05, `pattern-live-2026-11-05T03-15-09Z.json`, $0.4545, ~6 min,
+    realistic honest amounts). **Recall and learning held; the honest-hold fix did NOT
+    work, so the bar is not met and this item stays open.**
+    - Attacks: 8/8 stopped every wave (run 1: same). Distiller again proposed the same
+      counting rule in wave 1 (description reworded: "Hold support tickets on POST
+      /api/tickets when the same sender has already filed two or more tickets on this
+      route in the last hour"; support 14, 0 of 28 clean); shadow → flag → hold in
+      wave 2; wave 3–4 the rule held 6 claims each with no model call; model reads
+      56, 56, 42, 42 (run 1: identical). The rule held no honest write. Cost per wave
+      $0.150 / 0.144 / 0.080 / 0.080.
+    - Honest holds: **3, 3, 3, 3 of 8 per wave (12/32)**; run 1 was 3, 4, 4, 3 (14/32).
+      No real change. By play: `refund_then_bug` and `thread` never held (0/16 each);
+      `agent_queue` (4 credits, ticket + order cited) held at inline in 2/2 plays in
+      waves 1, 3, 4 and 1/2 in wave 2; `two_genuine` held at review in 1/2 plays in
+      waves 1, 3, 4 and 2/2 in wave 2. The operator released exactly those review-stage
+      holds (1, 2, 1, 1); the inline agent holds were not released by it.
+    - Why (reviewer rationales, all `quarantine`/`fraud`, confidence 0.55–0.7):
+      - agent_queue, wave 1: "Crediting customers is normal agent work, but the burst
+        across accounts is worth a human check before paying out." Wave 2: "consistent
+        with an agent working a backlog, but it also fits a pattern of credit abuse".
+        Waves 3–4 add "two of which were quarantined as fraud": the reviewer sees the
+        same sender's earlier credits that it already held, so holds compound.
+      - two_genuine: "Two refund claims in quick succession are not proof of abuse, so
+        a person should check." / "ordinary refund request ... the same account just
+        sent another refund claim for a different order, date and amount".
+    - Read: amounts were not the cause (the run-1 diagnosis was wrong or incomplete). The
+      reviewer is reacting to the linked-history signal itself, a burst of credits or a
+      second refund claim from one sender, which is the same shape as the attack by
+      design. These are conservative, consistent, explained calls, but they are not all
+      recoverable: `two_genuine` waits in the queue for a person, while `agent_queue` is
+      on an INLINE_REVIEW route, which can't queue, so the credit is refused with a 403
+      and nobody is asked (that's why the operator never released them; 7 of the 12
+      holds). Under this eval's labels all 12 are false positives, and 3 of 8 look-alike
+      plays is too high to call "honest holds ~0". This is a rate on plays built to look
+      like fraud, not on ordinary traffic (the main corpus: 2 of 61 benign). The 2 plays that
+      differ only in being split into a different batch (`thread`, `refund_then_bug`)
+      pass, so the reviewer separates "one claim plus something else" from "two refund
+      claims", which is the line the attack crosses too.
+    - Open: decide whether to ship with this as a stated limit. Options for the owner:
+      (a) report honestly as is (3 of 8 look-alike plays held or refused; recall 100%
+      on these plays); (b) make agent roles
+      with ticket+order evidence and repeat-claim humans distinguishable (a real
+      product question, not a generator tweak); (c) change the reviewer prompt, which
+      is library code and so not done here. No further paid run until decided.
 
 **Ship (with the library's bar)**
 - [ ] `CHANGELOG.md` for the package (0.1.0, 0.2.0 and this), and upgrade notes.

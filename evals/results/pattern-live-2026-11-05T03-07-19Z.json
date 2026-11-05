@@ -1,0 +1,288 @@
+{
+  "kind": "pattern",
+  "mode": "live",
+  "startedAt": "2026-11-05T03:07:19.159Z",
+  "finishedAt": "2026-11-05T03:13:02.744Z",
+  "seed": 2026,
+  "simulated": {
+    "operator": "labels from the generated plays, after each wave"
+  },
+  "waves": [
+    {
+      "wave": 1,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "inline": 4,
+        "review": 7,
+        "delivered": 5
+      },
+      "heldByRule": 0,
+      "honestHeld": [
+        {
+          "id": "pw1-agent_queue-0",
+          "stage": "inline"
+        },
+        {
+          "id": "pw1-agent_queue-1",
+          "stage": "inline"
+        },
+        {
+          "id": "pw1-two_genuine-0",
+          "stage": "review"
+        }
+      ],
+      "honest": 8,
+      "modelReads": 56,
+      "modelReadsPerWrite": 1,
+      "linkedSignalsSeen": [
+        "linked.sender_route_1h",
+        "linked.resource_route_1h"
+      ],
+      "operator": {
+        "released": 1,
+        "dropped": 15,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 1,
+        "created": [
+          {
+            "id": "mem-1",
+            "status": "shadow"
+          }
+        ]
+      },
+      "rules": [
+        {
+          "id": "mem-1",
+          "status": "shadow",
+          "description": "Hold ticket submissions when the same sender has already made two or more earlier ticket writes in the last hour, which is the repeated refund-claim pattern.",
+          "support": 14
+        }
+      ],
+      "ruleEvents": [
+        {
+          "rule": "mem-1",
+          "from": null,
+          "to": "shadow",
+          "reason": "matched 14 drops and 0 of 31 clean requests"
+        }
+      ],
+      "costUsd": 0.1574
+    },
+    {
+      "wave": 2,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "inline": 4,
+        "review": 8,
+        "delivered": 4
+      },
+      "heldByRule": 0,
+      "honestHeld": [
+        {
+          "id": "pw2-agent_queue-1",
+          "stage": "inline"
+        },
+        {
+          "id": "pw2-agent_queue-0",
+          "stage": "inline"
+        },
+        {
+          "id": "pw2-two_genuine-0",
+          "stage": "review"
+        },
+        {
+          "id": "pw2-two_genuine-1",
+          "stage": "review"
+        }
+      ],
+      "honest": 8,
+      "modelReads": 56,
+      "modelReadsPerWrite": 1,
+      "linkedSignalsSeen": [
+        "linked.sender_route_1h",
+        "linked.resource_route_1h"
+      ],
+      "operator": {
+        "released": 2,
+        "dropped": 17,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 0,
+        "created": []
+      },
+      "rules": [
+        {
+          "id": "mem-1",
+          "status": "hold",
+          "description": "Hold ticket submissions when the same sender has already made two or more earlier ticket writes in the last hour, which is the repeated refund-claim pattern.",
+          "support": 14
+        }
+      ],
+      "ruleEvents": [
+        {
+          "rule": "mem-1",
+          "from": "shadow",
+          "to": "flag",
+          "reason": "1 confirmed live hits, no false positives"
+        },
+        {
+          "rule": "mem-1",
+          "from": "flag",
+          "to": "hold",
+          "reason": "2 confirmed live hits, no false positives"
+        }
+      ],
+      "costUsd": 0.1441
+    },
+    {
+      "wave": 3,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "inline": 4,
+        "review": 8,
+        "delivered": 4
+      },
+      "heldByRule": 6,
+      "honestHeld": [
+        {
+          "id": "pw3-agent_queue-0",
+          "stage": "inline"
+        },
+        {
+          "id": "pw3-agent_queue-1",
+          "stage": "inline"
+        },
+        {
+          "id": "pw3-two_genuine-0",
+          "stage": "review"
+        },
+        {
+          "id": "pw3-two_genuine-1",
+          "stage": "review"
+        }
+      ],
+      "honest": 8,
+      "modelReads": 42,
+      "modelReadsPerWrite": 0.75,
+      "linkedSignalsSeen": [
+        "linked.sender_route_1h",
+        "linked.resource_route_1h"
+      ],
+      "operator": {
+        "released": 2,
+        "dropped": 15,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": false,
+        "reason": "1 unexplained drop(s)"
+      },
+      "rules": [
+        {
+          "id": "mem-1",
+          "status": "hold",
+          "description": "Hold ticket submissions when the same sender has already made two or more earlier ticket writes in the last hour, which is the repeated refund-claim pattern.",
+          "support": 14
+        }
+      ],
+      "ruleEvents": [],
+      "costUsd": 0.0809
+    },
+    {
+      "wave": 4,
+      "plays": 16,
+      "writes": 56,
+      "attacksStopped": 8,
+      "attacks": 8,
+      "stoppedAt": {
+        "inline": 4,
+        "review": 7,
+        "delivered": 5
+      },
+      "heldByRule": 6,
+      "honestHeld": [
+        {
+          "id": "pw4-agent_queue-0",
+          "stage": "inline"
+        },
+        {
+          "id": "pw4-agent_queue-1",
+          "stage": "inline"
+        },
+        {
+          "id": "pw4-two_genuine-1",
+          "stage": "review"
+        }
+      ],
+      "honest": 8,
+      "modelReads": 42,
+      "modelReadsPerWrite": 0.75,
+      "linkedSignalsSeen": [
+        "linked.sender_route_1h",
+        "linked.resource_route_1h"
+      ],
+      "operator": {
+        "released": 1,
+        "dropped": 15,
+        "disputesAttack": 0,
+        "disputesBenign": 0,
+        "unknown": 0
+      },
+      "distill": {
+        "ran": true,
+        "proposed": 0,
+        "created": []
+      },
+      "rules": [
+        {
+          "id": "mem-1",
+          "status": "hold",
+          "description": "Hold ticket submissions when the same sender has already made two or more earlier ticket writes in the last hour, which is the repeated refund-claim pattern.",
+          "support": 14
+        }
+      ],
+      "ruleEvents": [],
+      "costUsd": 0.0909
+    }
+  ],
+  "costUsd": 0.4733,
+  "models": {
+    "batchModel": "claude-sonnet-5-5",
+    "escalationModel": "claude-opus-5-5",
+    "escalateAtRisk": 0.7,
+    "inlineModel": "claude-haiku-5-5",
+    "inlineTimeoutMs": 3000,
+    "maxAttempts": 3,
+    "apiKeyBinding": "ANTHROPIC_API_KEY",
+    "dailyBudgetUsd": 10,
+    "budgetShard": "tidewater-budget",
+    "actor": {
+      "timeoutMs": 500,
+      "path": "/api/me",
+      "fields": {
+        "id": "account.id",
+        "role": "account.role"
+      }
+    }
+  }
+}
