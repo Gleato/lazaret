@@ -2108,8 +2108,10 @@ Never a tier that rejects: a busy honest customer can trip a count.
   `PROJECTS.length > 1`, so a second project brings them back. Checked with a temporary
   second project: curl and both arrows turn pages, then reverted. `PageCurl` is now
   always a button, since nothing uses the plain version.
-- **Timeline replaces the resume on Edu x Exp (2026-11-05, live: site `49fc34f3`):** the
+- **Timeline replaces the resume on Edu x Exp (2026-11-05, live: site `0fc9f458`):** the
   user cut the on-page resume: the timeline is quicker to read. The sheet is now the
   timeline, a "Download resume" button for the PDF, and the logo wall. `RESUME` is gone
   from `data/career.ts`, so the PDF is the only copy of the full resume on the site.
   Email and LinkedIn are still on the routing slip inside the folder.
+  The live check also found the open timeline note squeezed thin after the page
+  narrowed (a phone turning upright); fixed with `flex: none` on `.note` and redeployed.
