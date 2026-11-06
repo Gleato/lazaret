@@ -98,3 +98,11 @@
 - **Rule:** a word about the end state describes the end state. In an animation, list the phases
   and decide each one separately.
 
+
+## Model a physical material, not just its colour (2026-11-05)
+- **What happened:** I drew the marker lettering as flat `--ink` to keep the palette to one ink,
+  and rejected a warmer mix for that reason. The user said it was too dark to look real, and it
+  also looked printed: real marker is a translucent dye that darkens at edges and overlaps.
+- **Rule:** when something is meant to look like a real material, list how that material behaves
+  (opacity, edges, overlap, variation) before picking a colour. A palette rule doesn't outrank
+  the realism the user asked for.

@@ -7,6 +7,12 @@
 // Geswein) is bent by a little seeded noise per letter, then tilted and nudged. The output
 // is plain paths: no web font on the page, and no SVG filter for the cover to re-rasterise
 // as it swings open. The seeds are fixed, so a re-run gives the same writing.
+//
+// The ink is meant to look dry, not freshly printed (the user's request, 2026-11-05). Marker is
+// a translucent dye, so each letter is its own see-through path: the card shows through, letters
+// that touch go darker where they cross, and each one takes a slightly different amount of ink.
+// The stroke sits half over the fill, which gives the darker rim dye leaves as it dries and a
+// fainter fringe outside it. The colour itself lives on .sharpie in Folder.astro.
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -57,6 +63,10 @@ const LAYOUTS = [
 ];
 /* Keeps the file small. Half a unit here is well under a pixel on the cover. */
 const TOLERANCE = 1;
+/* How much card shows through a letter: 1 would be opaque. Letters vary inside this range. */
+const INK = { min: 0.85, max: 0.95 };
+/* Separate from the fill, because the rim is what the stroke draws. */
+const RIM = 0.55;
 
 function mulberry(seed) {
   let s = seed;
@@ -134,10 +144,12 @@ function toPath(points) {
 
 function writeLine(font, { text, size, x, y, slope, seed }) {
   const r = mulberry(seed);
+  // Its own stream: drawing from r would change every letter shape after the first.
+  const ink = mulberry(seed + 1000);
   const rise = -Math.atan(slope);
   const glyphs = font.stringToGlyphs(text);
   let pen = x;
-  let d = "";
+  let letters = "";
   glyphs.forEach((glyph, i) => {
     const phase = [r() * 6.3, r() * 6.3, r() * 6.3, r() * 6.3];
     const freq = (2 + r() * 2) / size;
@@ -163,6 +175,7 @@ function writeLine(font, { text, size, x, y, slope, seed }) {
         cy + lx * Math.sin(tilt) + ly * Math.cos(tilt),
       ];
     };
+    let d = "";
     for (const contour of contours(glyph.getPath(0, 0, size).commands)) {
       // A contour ends where it starts, which Douglas-Peucker can't take, so do two halves.
       const placed = contour.map(place);
@@ -172,13 +185,17 @@ function writeLine(font, { text, size, x, y, slope, seed }) {
         ...simplify(placed.slice(mid), TOLERANCE),
       ]);
     }
+    if (d) {
+      const amount = INK.min + ink() * (INK.max - INK.min);
+      letters += `<path fill-opacity="${amount.toFixed(2)}" d="${d}"/>`;
+    }
     const next = glyphs[i + 1];
     const kern = next ? (font.getKerningValue(glyph, next) / font.unitsPerEm) * size : 0;
     // The font's word space is wide for fast writing.
     const space = glyph.unicode === 32 ? -advance * 0.38 : 0;
     pen += advance + kern + space + (r() - 0.5) * size * 0.012;
   });
-  return d;
+  return letters;
 }
 
 const buffer = readFileSync(FONT);
@@ -187,9 +204,9 @@ const font = opentype.parse(
 );
 for (const { file, width, height, lines } of LAYOUTS) {
   const paths = lines
-    .map((line) => `<path stroke-width="${line.pen}" d="${writeLine(font, line)}"/>`)
+    .map((line) => `<g stroke-width="${line.pen}">${writeLine(font, line)}</g>`)
     .join("");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" fill="currentColor" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${paths}</svg>\n`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" fill="currentColor" stroke="currentColor" stroke-opacity="${RIM}" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${paths}</svg>\n`;
   const out = resolve(site, "src/home/parts", file);
   writeFileSync(out, svg);
   console.log(`${out}: ${svg.length} bytes`);

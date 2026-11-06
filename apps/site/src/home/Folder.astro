@@ -422,14 +422,15 @@ const SCORES = 6;
   }
 
   /* Written straight on the card in marker (the user's call, 2026-11-05: no paper label).
-     Same --ink as the tab labels and the hint: ink is the only colour on the frame besides
-     the card's own, so a warmer "soaked in" mix read as a second, brownish black. */
+     Dried marker, not --ink (the user's call, 2026-11-05: --ink looked too dark to be real).
+     The letters are translucent, see scripts/sharpie-cover.mjs, so the card tints this on
+     every tab. It leans cool because a warm grey over coral turns into a brownish black. */
   .sharpie {
     position: absolute;
     top: clamp(24px, 9%, 60px);
     left: clamp(18px, 6.5%, 72px);
-    width: min(64%, 680px);
-    color: var(--ink);
+    width: min(54%, 580px);
+    color: #25232b;
     pointer-events: none;
   }
   .sharpie :global(svg) {
@@ -559,7 +560,7 @@ const SCORES = 6;
       display: block;
       /* Height left above the hint, turned into a width by the drawing's 800:880 shape. */
       top: clamp(14px, 5%, 40px);
-      width: min(80%, 320px, calc((var(--closed-h) - 170px) / 1.1));
+      width: min(68%, 272px, calc((var(--closed-h) - 170px) / 1.1));
     }
   }
 </style>

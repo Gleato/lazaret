@@ -2257,3 +2257,16 @@ down the whole page. The user corrected that: he belongs on the part that folds.
   That is the pane, not the page. Use headless Playwright for timing.
 - Checks run: vitest, tsc, biome, build. `astro check` doesn't support this repo's TypeScript 7, so
   the `.astro` files were only covered by the build.
+
+## Dried marker ink on the folder cover (2026-11-05, not committed or deployed)
+The user said the lettering was too dark to look real: Sharpie dries lighter than the color on
+the cover. The color was part of it. The rest was that flat opaque ink with perfect edges looks
+printed, so the ink now behaves like a dye.
+
+- [x] `.sharpie` moved off `--ink` to a cool dried charcoal, `#25232b` (one step darker than the first pass; the user also tried `#1f1d24` at 88 to 97% ink and came back to this)
+- [x] `sharpie-cover.mjs` writes one translucent path per letter (85 to 95% ink, seeded), so the card shows through and touching letters darken where they cross
+- [x] The stroke sits half over the fill at 55%, which gives a darker rim and a faint fringe
+- [x] Letter shapes unchanged: the ink amounts use their own random stream
+- [x] Lettering about 15% smaller (the user's follow-up): `min(54%, 580px)` wide, `min(68%, 272px, ...)` tall. Its gap to the hint: 107px at 375x812, 22px on the smallest phone tried, 155px at 1920x1080
+
+Review: 61 unit tests, typecheck and Biome on the script pass. Checked in the browser on coral, yellow and periwinkle, at retina-scale enlargement, on the 375x812 phone layout (65px clear of the hint), and early in the opening animation; the folder finishes opening with no console errors. Ink contrast against the card is 4.6 to 8.6:1. The lettering is `aria-hidden`; the button's aria-label carries the name. The build and the e2e suite weren't run.
