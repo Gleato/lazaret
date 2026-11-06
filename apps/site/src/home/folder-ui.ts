@@ -7,15 +7,18 @@ import {
   type TabId,
   tabFromHash,
 } from "../lib/folder";
+import { initBungee } from "./bungee-ui";
 
 // The DOM half of the folder (Folder.astro). The rules live in lib/folder.ts; this
 // file only draws a state and runs the two motions: the cover opening, and one divider
 // coming forward over another.
 
-const OPEN_MS = 950;
+// The fall that opens the folder: quick, and accelerating like a body in free fall. It used
+// to be a calm 950ms swing; now the man on the ledge is pulling it down (Bungee.astro).
+const FALL_MS = 700;
+const EASE_FALL = "cubic-bezier(0.5, 0, 0.85, 0.75)";
 const SWAP_OUT_MS = 170;
 const SWAP_IN_MS = 340;
-const EASE_LID = "cubic-bezier(0.5, 0, 0.18, 1)";
 const EASE = "cubic-bezier(0.25, 0.8, 0.25, 1)";
 
 export function initFolder(root: HTMLElement): void {
@@ -36,6 +39,7 @@ export function initFolder(root: HTMLElement): void {
   const pages = JSON.parse(root.dataset.pages ?? "{}") as Record<TabId, number>;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)");
   const still = () => reduce.matches;
+  const jumper = initBungee(root);
 
   let state: FolderState = initialState(location.hash);
   let busy: Promise<void> = Promise.resolve();
@@ -75,12 +79,17 @@ export function initFolder(root: HTMLElement): void {
   // The sheets are taller than the cover, so the open layout is measured first and the
   // hinge travels to its real place below them while the cover swings over it.
   async function open(): Promise<void> {
+    // A hidden page gets no animation frames, and the leap runs on them.
+    const moving = !still() && !document.hidden;
+    // He jumps with the folder still closed: the cover only starts to move once the cord
+    // comes taut, because his weight is what brings it down.
+    if (moving) await jumper?.leap();
     // Hover and the nudge leave the cover tilted; start from there, not from flat.
     const { m22, m23 } = new DOMMatrix(getComputedStyle(cover).transform);
     const tilt = (Math.atan2(m23, m22) * 180) / Math.PI;
     root.dataset.state = "opening";
     cover.inert = true;
-    if (!still()) {
+    if (moving) {
       const fromH = body.offsetHeight;
       // The real open layout, read and undone before anything paints.
       root.dataset.state = "open";
@@ -90,7 +99,8 @@ export function initFolder(root: HTMLElement): void {
       const hingeH = Number.parseFloat(getComputedStyle(root).getPropertyValue("--hinge-h")) || 18;
       const front = cover.querySelector(".cover-front .shade");
       const inside = cover.querySelector(".cover-inside .shade");
-      const motion = { duration: OPEN_MS, easing: EASE_LID };
+      const motion = { duration: FALL_MS, easing: EASE_FALL };
+      jumper?.fall(tilt, motion);
       await Promise.all([
         // The lid swings toward the reader and lands one hinge-width below the sheets.
         run(
@@ -114,6 +124,9 @@ export function initFolder(root: HTMLElement): void {
     }
     // Flat on the desk: from here the inside is laid out normally, under the hinge.
     drawOpen();
+    // After drawOpen, so his bounce starts from the open pose. Not awaited: a tab click
+    // shouldn't have to sit through the bounce.
+    if (moving) jumper?.bounce();
   }
 
   async function swap(from: TabId, to: TabId): Promise<void> {

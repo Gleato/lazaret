@@ -2221,3 +2221,39 @@ The user asked to drop the white paper label and have the name look written fast
 Review: 53 unit tests, typecheck, Biome and the build pass. Lettering clears the hint at 320x568, 360x640, 640x800, 768x1024, 844x390 and 1920x1080 (measured). No console errors at desktop or phone. The e2e suite wasn't run.
 
 Deployed 2026-11-05: `db73f5f`, worker version 5cf868ee-0bd8-4f62-877d-4a708e4df20b. Checked on gleator.com at desktop width: lettering in place, paper label gone, logo colors and srcset live, folder opens, no console errors. Phone layout was checked locally, not on the live site.
+
+## Bungee jumper on the folder (2026-11-05, not committed or deployed)
+The closed folder's invitation gets a character: a little man on a ledge clipped to the top edge
+of the front flap. He jumps on a cord tied to that ledge, his weight pulls the flap down, and the
+ledge rides it. At the bottom the flap has turned over, so the ledge sits upside down under the
+folder and he hangs a little way below it.
+
+The first version put the ledge on the back panel, with him carrying the flap's edge and a cord
+down the whole page. The user corrected that: he belongs on the part that folds.
+
+- [x] `Bungee.astro`, inside `.cover`: clip, plank, man and cord; rest poses are CSS only
+- [x] `bungee-ui.ts`, `folder-ui.ts`, `lib/bungee.ts`: leap, fall and bounce; the fall is 700ms, not 950ms
+- [x] He rides the flap's real 3D. `.drop` counter-rotates about the cord's ring on the lid's own
+      timing, so he hangs straight down and needs no projection maths
+- [x] Room below the folder so the bounce can't change the page height
+- [x] A 300px cord on the way down that recoils to a short hang (the user's follow-up): `fallCord`
+- [x] The rig 30% smaller, rope length unchanged (the user's follow-up): `--size` on `.bungee`
+
+### Review
+- Headless Chromium at 1280x800: he free-falls until the long cord comes taut at about 440ms, then
+  the flap comes down and lands at about 1130ms. He ends 41 to 87px below the folder. Page height
+  is constant through the landing and bounce.
+- The long cord swings him past the screen edge mid-fall, so `body.home` now has `overflow-x: clip`.
+  `scrollWidth` still reads 1294 at 1280 because it counts clipped content. Tested directly instead:
+  sideways scrolling stays at 0 and no scrollbar appears, at 1280 and 1024.
+- Opening by cover click, closed tab click and Enter all jump. A tab click during the bounce works
+  and he stays attached. `#projects` shows him already hanging. Reduced motion opens at once, with
+  no animation. No console errors.
+- 375px: the rig is smaller and overhangs the flap to stay off the last tab's label. No sideways
+  overflow.
+- Known: at 375px the open cover is 35px taller than the closed flap, so the flap's edge, and now
+  the ledge, jump 35px in the landing frame. The folder already did this; only phones are affected.
+- Trap for the next check: a hidden browser pane throttles rAF, so the leap appears to hang there.
+  That is the pane, not the page. Use headless Playwright for timing.
+- Checks run: vitest, tsc, biome, build. `astro check` doesn't support this repo's TypeScript 7, so
+  the `.astro` files were only covered by the build.

@@ -45,6 +45,9 @@ body.home {
   font-variant-numeric: proportional-nums;
   /* The site root is 112.5% for the long page's 18px text; the folder sets 16px type. */
   font-size: 0.889rem;
+  /* The opening cover and the jumper on his long cord swing toward the viewer and past the screen
+     edge for a moment; without this that would flash a sideways scrollbar. */
+  overflow-x: clip;
 }
 
 /* :has() rather than a class from the script, so the deep-link pre-open gets it for free. */

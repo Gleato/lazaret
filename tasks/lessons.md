@@ -82,3 +82,19 @@
   the tabs. I blamed the edge's shade first, and my added shadow was hidden the same way.
 - **Rule:** when a line or shadow "isn't showing", check what's on top with `elementFromPoint`
   before tuning colour. Read what the user circles literally, too.
+
+## Work out what a prop is attached to before building it (2026-11-05)
+- **What happened:** the user asked for a bungee ledge on the folder's top edge and for the man to
+  bring the folder open with him. I put the ledge on the back panel, which stays still, and ran a
+  cord down the whole page. The user meant the front flap: the ledge rides it, and his weight on
+  the cord is what pulls it down. The plan said "back panel", but one line in a plan isn't a check.
+- **Rule:** when a request describes something physical, trace the cause and effect ("what is
+  pulling what?") and put the thing on the part that moves. If a design decision changes the story
+  of the animation, name it as an open question rather than a detail.
+
+## Apply a size or amount only to the moment it describes (2026-11-05)
+- **What happened:** the user said he should hang at the bottom "a small amount". I made the cord
+  short for the whole animation, so the jump lost its drama. They wanted a long cord on the way down.
+- **Rule:** a word about the end state describes the end state. In an animation, list the phases
+  and decide each one separately.
+

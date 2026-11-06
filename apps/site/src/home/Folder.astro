@@ -6,6 +6,8 @@
 // - Opening swings the cover down on its bottom hinge while the back panel grows to fit
 //   the sheet, so the cover lies flat below the sheet, inside up, in one motion. From
 //   then on it stays open for the visit.
+// - A little man on a ledge clipped to the cover (Bungee.astro) does the opening: he jumps on
+//   a cord tied to it, and his weight pulls the cover down.
 // - The fold between them is a real crease, plus one expansion score per page in the
 //   open tab (a real folder is scored so it can fold flat around a thicker stack).
 //   The crease rides the bottom of whichever sheet is in front.
@@ -14,6 +16,7 @@
 // State and keyboard rules: src/lib/folder.ts (unit-tested). Motion is WAAPI so it
 // can be skipped outright under prefers-reduced-motion.
 import type { TabId } from "../lib/folder";
+import Bungee from "./Bungee.astro";
 import PREOPEN from "./folder-preopen.js?raw";
 // "Ridge Gleaton / Software engineer, Charleston, SC / File no. 001", written on the cover
 // in marker. Baked paths, so to change the words see scripts/sharpie-cover.mjs. The button's
@@ -102,6 +105,7 @@ const SCORES = 6;
         <slot name="inside" />
         <span class="shade"></span>
       </div>
+      <Bungee />
     </div>
   </div>
 </div>
@@ -130,6 +134,12 @@ const SCORES = 6;
        silhouette. */
     filter: drop-shadow(0 22px 34px rgb(0 0 0 / 50%));
     margin-inline: clamp(0px, 3.5vw, 56px);
+  }
+  /* Room for the jumper below the open folder, so his bounce never changes the page height
+     (his deepest point is about 110px down; .home-main adds 48 to 96px of its own). */
+  .folder[data-state="opening"],
+  .folder[data-state="open"] {
+    margin-bottom: 76px;
   }
 
   /* ── Colour ─────────────────────────────────────────────────────────────────

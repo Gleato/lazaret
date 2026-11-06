@@ -1,0 +1,369 @@
+---
+// A bungee jumper on the closed folder (the user's idea, 2026-11-05). The ledge is clipped to
+// the top edge of the front flap, the part that folds down, and rides it. He jumps with his cord
+// tied to that ledge, so his weight is what pulls the flap open (the user's correction: it was
+// first on the back panel with a cord down the whole page). At the bottom the flap has turned
+// over, so the ledge sits upside down under the folder and he hangs a little way below it. The
+// cord is long on the way down and recoils to a short hang at the bottom (the user's call).
+//
+// - This lives inside .cover, in the flap's own 3D space, so the perspective is real and there
+//   is no projection maths. .drop turns the opposite way to the flap, about the cord's ring, so
+//   gravity stays straight down the screen: see fall() in bungee-ui.ts.
+// - Rest poses are CSS only, built on --ax and --ay (his ankles, measured from the ring), so
+//   the deep-link pre-open needs nothing extra. The motion is bungee-ui.ts, the numbers
+//   lib/bungee.ts.
+// - Decorative: hidden from assistive tech, and it never takes a click from the folder.
+---
+
+<div class="bungee" data-bungee aria-hidden="true">
+  <svg class="ledge" viewBox="0 0 92 42" width="92" height="42">
+    <!-- The clip: its spring-steel body grips the edge, its two wire handles hold the plank. -->
+    <path class="wire" d="M42 26 C42 21 44 19 46 18 M58 26 C58 21 56 19 54 18"></path>
+    <path class="clip" d="M40 25.5 h20 q1.6 0 2 1.6 l2.6 12.4 q.3 1.5 -1.2 1.5 h-26.8 q-1.5 0 -1.2 -1.5 l2.6 -12.4 q.4 -1.6 2 -1.6 z"></path>
+    <path class="clip-shine" d="M40.5 28 h19"></path>
+
+    <rect class="plank" x="1" y="14" width="88" height="5" rx="1.6"></rect>
+    <path class="grain" d="M8 16.5 h17 M34 15.8 h22 M62 17 h20"></path>
+    <circle class="ring" cx="88.75" cy="20.5" r="2"></circle>
+
+    <!-- Paid out once he jumps. -->
+    <g class="slack">
+      <ellipse class="coil-edge" cx="13" cy="11.6" rx="8" ry="2.3"></ellipse>
+      <ellipse class="coil" cx="13" cy="11.6" rx="8" ry="2.3"></ellipse>
+      <ellipse class="coil-edge" cx="13" cy="8.6" rx="7.4" ry="2.3"></ellipse>
+      <ellipse class="coil" cx="13" cy="8.6" rx="7.4" ry="2.3"></ellipse>
+      <ellipse class="coil-edge" cx="13" cy="5.6" rx="6.6" ry="2.2"></ellipse>
+      <ellipse class="coil" cx="13" cy="5.6" rx="6.6" ry="2.2"></ellipse>
+      <path class="line" d="M19 6 C30 3 33 12.8 42 12.8 S 58 12.8 63 8"></path>
+      <path class="line-dash" d="M19 6 C30 3 33 12.8 42 12.8 S 58 12.8 63 8"></path>
+    </g>
+  </svg>
+
+  <div class="drop" data-drop>
+    <span class="cord"></span>
+
+    <span class="man">
+      <!-- His ankles are the bottom centre of the box: the pivot for every turn, and the cord's end. -->
+      <svg class="man-art" viewBox="0 0 30 46" width="30" height="46">
+        <g class="arm arm-l">
+          <path class="limb-edge" d="M10.5 26.5 L6 34"></path>
+          <path class="limb" d="M10.5 26.5 L6 34"></path>
+        </g>
+        <g class="arm arm-r">
+          <path class="limb-edge" d="M19.5 26.5 L24 34"></path>
+          <path class="limb" d="M19.5 26.5 L24 34"></path>
+        </g>
+
+        <path class="limb-edge" d="M12 36 V43 M18 36 V43"></path>
+        <path class="limb" d="M12 36 V43 M18 36 V43"></path>
+        <ellipse class="shoe" cx="11.2" cy="44.2" rx="3.2" ry="1.7"></ellipse>
+        <ellipse class="shoe" cx="18.8" cy="44.2" rx="3.2" ry="1.7"></ellipse>
+
+        <rect class="torso" x="9" y="23" width="12" height="15" rx="5"></rect>
+        <path class="harness" d="M9.7 32.8 H20.3"></path>
+
+        <circle class="head" cx="15" cy="13.5" r="10.8"></circle>
+        <g class="face">
+          <circle class="blush" cx="8.6" cy="19.4" r="1.7"></circle>
+          <circle class="blush" cx="21.4" cy="19.4" r="1.7"></circle>
+          <circle class="eye" cx="10.8" cy="16.6" r="1.45"></circle>
+          <circle class="eye" cx="19.2" cy="16.6" r="1.45"></circle>
+          <path class="smile" d="M12.8 19.6 Q15 22 17.2 19.6"></path>
+        </g>
+        <path class="helmet" d="M4.3 12.2 A10.8 10.8 0 0 1 25.7 12.2 Q15 8.6 4.3 12.2 Z"></path>
+      </svg>
+    </span>
+  </div>
+</div>
+
+<style>
+  .bungee {
+    /* How far in from the flap's right edge the cord's ring sits. */
+    --band: calc(clamp(12px, 5.6vw, 64px) / 2);
+    /* The whole rig is drawn at full size and scaled here (the user's call: 30% smaller). The
+       scale would shrink the rope too, and its length has to stay put, so every rope length is
+       divided by this: see --cord below and rope() in bungee-ui.ts. */
+    --size: 0.7;
+    /* Keep the 30px in step with CORD in lib/bungee.ts. */
+    --cord: calc(30px / var(--size));
+
+    /* Standing on the plank, along from the ring. */
+    --ax: -24px;
+    --ay: -7px;
+    --turn: 0deg;
+    --cord-len: var(--ay);
+    --cord-turn: 0rad;
+
+    /* A zero-height strip along the flap's top edge. A hair in front of the card, so the clip
+       doesn't fight the flap for the same plane. */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    transform: translateZ(1px) scale(var(--size));
+    /* The ring and the flap's edge stay where they are as it shrinks. */
+    transform-origin: calc(100% - var(--band)) 0;
+    transform-style: preserve-3d;
+    pointer-events: none;
+  }
+  /* Open: the flap has turned over, so its top edge is the folder's bottom edge. He hangs from
+     the upturned ledge by his ankles. */
+  :global(.folder[data-state="open"]) .bungee {
+    top: 100%;
+    --ax: 0px;
+    --ay: calc(var(--cord) + var(--bob, 0px) / var(--size));
+    --turn: 180deg;
+  }
+  :global(.folder[data-state="open"]) .ledge {
+    transform: scaleY(-1);
+  }
+  :global(.folder[data-state="open"]) .drop {
+    top: 10.5px;
+  }
+
+  /* ── The ledge ─────────────────────────────────────────────────────────────── */
+  .ledge {
+    position: absolute;
+    right: calc(var(--band) - 3px);
+    /* The drawing's y=31 is the flap's edge, where the clip bites. */
+    top: -31px;
+    overflow: visible;
+    transform-origin: 50% 31px;
+  }
+  .clip {
+    fill: #62676d;
+    stroke: var(--ink);
+    stroke-width: 1;
+  }
+  .clip-shine {
+    fill: none;
+    stroke: #a7adb3;
+    stroke-width: 1;
+    stroke-linecap: round;
+  }
+  .wire {
+    fill: none;
+    stroke: #c9cdd1;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+  }
+  .plank {
+    fill: #cf9558;
+    stroke: var(--ink);
+    stroke-width: 1;
+  }
+  .grain {
+    fill: none;
+    stroke: #9b6a38;
+    stroke-width: 0.8;
+    stroke-linecap: round;
+  }
+  .ring {
+    fill: none;
+    stroke: #c9cdd1;
+    stroke-width: 1.3;
+  }
+  .coil,
+  .line {
+    fill: none;
+    stroke: var(--on-desk);
+    stroke-width: 2.2;
+  }
+  /* An ink edge rather than the cord's dashes, which turn to noise on rings this small. */
+  .coil-edge {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 3.4;
+  }
+  .line-dash {
+    fill: none;
+    stroke: var(--ink-3);
+    stroke-width: 2.2;
+    stroke-dasharray: 3 7;
+  }
+  .bungee[data-pose] .slack,
+  :global(.folder:not([data-state="closed"])) .slack {
+    visibility: hidden;
+  }
+
+  /* ── The cord ──────────────────────────────────────────────────────────────── */
+  /* A point on the ring: everything that hangs from it is measured from here. */
+  .drop {
+    position: absolute;
+    right: var(--band);
+    top: -10.5px;
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+  }
+  .cord {
+    position: absolute;
+    left: -1.25px;
+    top: 0;
+    width: 2.5px;
+    height: var(--cord-len);
+    /* Off-white with mid-grey dashes, to read on the desk and all three colours. Ink dashes
+       vanished on the desk and left gaps, which looked like the cord had come off him. */
+    background: repeating-linear-gradient(var(--on-desk) 0 10px, var(--ink-3) 10px 14px);
+    transform: rotate(var(--cord-turn));
+    transform-origin: 50% 0;
+    visibility: hidden;
+  }
+  .bungee[data-pose] .cord,
+  :global(.folder:not([data-state="closed"])) .cord {
+    visibility: visible;
+  }
+
+  /* ── The man ───────────────────────────────────────────────────────────────── */
+  .man {
+    position: absolute;
+    left: calc(var(--ax) - 15px);
+    top: calc(var(--ay) - 46px);
+    width: 30px;
+    height: 46px;
+    transform: rotate(var(--turn));
+    transform-origin: 50% 100%;
+  }
+  .man-art {
+    display: block;
+    overflow: visible;
+    transform-origin: 50% 100%;
+    transition: transform 0.12s ease-out;
+  }
+  .limb-edge,
+  .limb {
+    fill: none;
+    stroke-linecap: round;
+  }
+  .limb-edge {
+    stroke: var(--ink);
+    stroke-width: 5.6;
+  }
+  .limb {
+    stroke: var(--on-desk);
+    stroke-width: 3.2;
+  }
+  .torso,
+  .head {
+    stroke: var(--ink);
+    stroke-width: 1.4;
+  }
+  .torso {
+    fill: var(--on-desk);
+  }
+  .head {
+    fill: var(--paper);
+  }
+  /* The helmet, harness and shoes take the folder's colour, so he changes with the tabs. */
+  .helmet,
+  .shoe {
+    fill: var(--fold);
+    stroke: var(--ink);
+    stroke-width: 1.2;
+    stroke-linejoin: round;
+  }
+  .harness {
+    fill: none;
+    stroke: var(--fold);
+    stroke-width: 2.4;
+  }
+  .eye {
+    fill: var(--ink);
+  }
+  .blush {
+    fill: #f7a68f;
+  }
+  .smile {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1.3;
+    stroke-linecap: round;
+  }
+
+  .arm {
+    transition: transform 0.14s ease-out;
+  }
+  .arm-l {
+    transform-origin: 10.5px 26.5px;
+  }
+  .arm-r {
+    transform-origin: 19.5px 26.5px;
+  }
+  .face {
+    transform-origin: 15px 17.6px;
+  }
+  /* Upside down a smile reads as a frown, so the face turns to stay the right way up. */
+  :global(.folder[data-state="open"]) .face {
+    transform: rotate(180deg);
+  }
+
+  /* Arms flung out as he goes. */
+  .bungee[data-pose="dive"] .arm-l {
+    transform: rotate(125deg) scaleY(1.5);
+  }
+  .bungee[data-pose="dive"] .arm-r {
+    transform: rotate(-125deg) scaleY(1.5);
+  }
+  /* Hanging: arms out past his big head. Any closer in and it hides them. */
+  :global(.folder[data-state="open"]) .arm-l {
+    transform: rotate(105deg) scaleY(1.5);
+  }
+  :global(.folder[data-state="open"]) .arm-r {
+    transform: rotate(-105deg) scaleY(1.5);
+  }
+  .bungee[data-pose="crouch"] .man-art {
+    transform: scale(1.12, 0.78);
+    transition-duration: 0.06s;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    /* The ledge already tilts with the flap when it nudges. He adds a teeter on top, on the
+       same 6s cycle as Folder.astro's nudge. */
+    :global(.folder[data-state="closed"]) .bungee:not([data-pose]) .man-art {
+      animation: teeter 6s 1.6s ease-in-out infinite;
+    }
+    /* Hovering the folder: ready to go. */
+    :global(.folder[data-state="closed"]:has(.cover-front:hover)) .bungee:not([data-pose]) .man-art {
+      animation: none;
+      transform: scale(1.06, 0.9);
+    }
+    /* Hanging: a slow small sway from his ankles, nothing more. */
+    :global(.folder[data-state="open"]) .man-art {
+      animation: sway 3.4s ease-in-out infinite alternate;
+    }
+  }
+  @keyframes teeter {
+    0%,
+    80%,
+    100% {
+      transform: rotate(0);
+    }
+    86% {
+      transform: rotate(11deg);
+    }
+    91% {
+      transform: rotate(3deg);
+    }
+    95% {
+      transform: rotate(6deg);
+    }
+  }
+  @keyframes sway {
+    from {
+      transform: rotate(-4deg);
+    }
+    to {
+      transform: rotate(4deg);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .bungee {
+      /* The tabs fill the top edge here, so he stands in front of the last one. Overhanging
+         the flap and a smaller rig keep him and the coil off its label. */
+      --band: -3px;
+      --size: 0.574;
+    }
+  }
+</style>
