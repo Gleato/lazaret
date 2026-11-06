@@ -106,3 +106,14 @@
 - **Rule:** when something is meant to look like a real material, list how that material behaves
   (opacity, edges, overlap, variation) before picking a colour. A palette rule doesn't outrank
   the realism the user asked for.
+
+
+## Keep what the user fixed, and use the real physics for physical things (2026-11-05)
+- **What happened:** the user said the net connects to the r and the n, then described how it hangs
+  on mobile. I moved the mobile plugs to the feet of the letters for my own "held from underneath"
+  reasoning, and drew the hang as a hand-tuned bezier flared out past the anchors. It connected in
+  the wrong places and hung at angles no cable would. I looked at it, called it good, and shipped it.
+- **Rule:** what a request pins down stays pinned in every breakpoint unless the user says it changes.
+  Only the thing they described as changing may change. And when something should move or hang like
+  a real object, use the equation for it (a catenary, a spring) rather than tuning a curve to look
+  close: a tuned curve can pass a screenshot and still read as wrong to the person who asked.

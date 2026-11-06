@@ -2272,3 +2272,25 @@ printed, so the ink now behaves like a dye.
 Review: 61 unit tests, typecheck and Biome on the script pass. Checked in the browser on coral, yellow and periwinkle, at retina-scale enlargement, on the 375x812 phone layout (65px clear of the hint), and early in the opening animation; the folder finishes opening with no console errors. Ink contrast against the card is 4.6 to 8.6:1. The lettering is `aria-hidden`; the button's aria-label carries the name. The build and the e2e suite weren't run.
 
 Deployed 2026-11-05: `9f84f8a` (bungee in `2e0784c`, marker in `9f84f8a`), worker version 18997b2f-9201-482d-9bb4-4eca1eddcfa1. Checked on gleator.com at desktop width: new ink and size live, bungee rig on the cover, a cover click ends with the folder open and no console errors. The jump itself was not timed on the live site, and the phone layout was checked locally only.
+
+## Header network wired into the logos (2026-11-05)
+The header's network now runs from the wordmark's r to the n of the npm logo. On desktop it's pulled
+straight between them. On phones it hangs slack from the same two points, in the row it already had.
+- The user rejected the first phone version (plugs at the feet of the letters, a tuned bezier). Now
+  `taut()` and `hanging()` in `src/lib/neural-flow.ts` take the same diagram, and each hanging strand
+  is a true catenary with its own slack. `wire(..., flowing)` eases links so lines pass through nodes
+  with no corner, and the signals' routes show as resting wires on phones.
+- Added a one-node layer at each end (the plugs), so a signal leaves one letter and arrives at the other.
+- `SiteHeader.astro` measures the anchors at runtime, on resize and when the font arrives. Without
+  JavaScript the header just goes without the network.
+- Also fixed: the header's top row needed about 32px more than a 320px screen has.
+- Checked: production build with CSP on (no console errors), 320/390/800/1000/1440 widths, live resize
+  across the breakpoint, logos clickable under the overlay, flashes in step with the pulse on the curve.
+  Reduced motion: the still paths are populated, but it wasn't viewed with the setting on.
+
+### Signal comets (2026-11-05)
+The user said the signals looked like plain moving lines. Each is now a comet: stacked dashes with one
+shared leading edge (`COMET` in `src/lib/neural-flow.ts`) give a white-hot head, a tapering fade and a
+soft bloom, with no blur filter. The dashes re-align during the holds so the head leads on both passes.
+Signals fire 0.24s apart, and nodes flare fast and die away slowly, once per signal.
+

@@ -7,80 +7,143 @@
 // attributes needs no script or inline stylesheet, so the CSP stays as it is. Reduced
 // motion shows the finished decision, standing still. Decorative, so hidden from screen
 // readers. Geometry and timing are in src/lib/neural-flow.ts, which the tests cover.
+//
+// This markup is the network's parts, and a placeholder layout for them. SiteHeader.astro
+// measures the wordmark and the npm logo and rewrites every coordinate here, so the SVG has
+// no viewBox: its user units are the header's CSS pixels. Stays hidden until that's done
+// (`.wired`), so a visitor never sees the placeholder jump into place. With no script the
+// header just goes without it. The <animate> children keep running through the rewrite:
+// pathLength="1" means the pulse never needs to know how long the path became.
 import {
-  EDGES,
-  GLOWS,
+  beginOf,
+  COMET,
   glowTrack,
-  HEIGHT,
-  NODES,
   PERIOD_S,
-  PULSE_DASH,
   PULSE_SPLINES,
+  pulseDash,
   pulseTrack,
-  SIGNALS,
-  WIDTH,
+  taut,
+  wire,
 } from "../lib/neural-flow";
 
+const { edges, leads, nodes, signals, glows } = wire(taut({ x: 0, y: 0 }, { x: 200, y: 0 }), 7);
 const dur = `${PERIOD_S}s`;
 const list = (ns: number[]) => ns.join(";");
 ---
 
-<svg class="net" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width={WIDTH} height={HEIGHT} aria-hidden="true">
-  <path class="edges" d={EDGES}></path>
-  <g class="nodes">{NODES.map((n) => <circle cx={n.x} cy={n.y} r="1.5" />)}</g>
+<svg class="net" aria-hidden="true">
+  <path class="edges" d={edges}></path>
+  <path class="leads" d={leads}></path>
+  <g class="wires">{signals.map((d, path) => <path data-signal={path} d={d} />)}</g>
+  <g class="nodes">{nodes.map((n) => <circle cx={n.x} cy={n.y} r="1.5" />)}</g>
 
   <g class="live">
     {
-      SIGNALS.map((d) => (
-        <path class="signal" d={d} pathLength="1" stroke-dasharray={PULSE_DASH}>
-          <animate
-            attributeName="stroke-dashoffset"
-            dur={dur}
-            repeatCount="indefinite"
-            calcMode="spline"
-            keyTimes={list(pulseTrack.times)}
-            keySplines={PULSE_SPLINES}
-            values={list(pulseTrack.values)}
-          />
-        </path>
+      signals.map((d, path) => (
+        <g class="comet">
+          {COMET.map(({ length, width, opacity, hot }) => {
+            const t = pulseTrack(length);
+            return (
+              <path
+                class:list={["signal", { hot }]}
+                data-signal={path}
+                d={d}
+                pathLength="1"
+                stroke-dasharray={pulseDash(length)}
+                stroke-width={width}
+                stroke-opacity={opacity}
+              >
+                <animate
+                  attributeName="stroke-dashoffset"
+                  dur={dur}
+                  begin={beginOf(path)}
+                  repeatCount="indefinite"
+                  calcMode="spline"
+                  keyTimes={list(t.times)}
+                  keySplines={PULSE_SPLINES}
+                  values={list(t.values)}
+                />
+              </path>
+            );
+          })}
+        </g>
       ))
     }
     {
-      GLOWS.map((g) => {
+      glows.map((g) => {
         const t = glowTrack(g.col);
         return (
-          <circle class="glow" cx={g.x} cy={g.y} r="2.1" opacity="0">
+          <g opacity="0">
+            <circle class="halo" cx={g.x} cy={g.y} r="5"></circle>
+            <circle class="glow" cx={g.x} cy={g.y} r="2.1"></circle>
             <animate
               attributeName="opacity"
               dur={dur}
+              begin={beginOf(g.path)}
               repeatCount="indefinite"
               keyTimes={list(t.times)}
               values={list(t.values)}
             />
-          </circle>
+          </g>
         );
       })
     }
   </g>
 
   <g class="still">
-    {SIGNALS.map((d) => <path class="signal" d={d} />)}
-    {GLOWS.map((g) => <circle class="glow" cx={g.x} cy={g.y} r="2.1" />)}
+    {signals.map((d, path) => <path class="signal" data-signal={path} d={d} />)}
+    {glows.map((g) => <circle class="glow" cx={g.x} cy={g.y} r="2.1" />)}
   </g>
 </svg>
 
 <style>
+  /* Laid over the whole header, in its pixels, and click-through: the logos under each
+     end are links. */
   .net {
-    display: block;
-    max-width: 100%;
-    height: auto;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     overflow: visible;
+    pointer-events: none;
+    visibility: hidden;
+  }
+  .net:global(.wired) {
+    visibility: visible;
   }
   .edges {
     fill: none;
     stroke: var(--on-desk);
     stroke-width: 0.5;
     opacity: 0.12;
+  }
+  /* Brighter than the mesh, or the plugs look like they're floating near the letters. */
+  .leads {
+    fill: none;
+    stroke: var(--on-desk);
+    stroke-width: 0.7;
+    opacity: 0.45;
+  }
+  /* The signals' own routes, at rest. On a phone the bundle is small enough that the mesh
+     alone reads as a net bag, so these are what make it cable. Desktop doesn't need them. */
+  .wires {
+    display: none;
+    fill: none;
+    stroke: var(--on-desk);
+    stroke-width: 0.6;
+    opacity: 0.38;
+  }
+  @media (max-width: 700px) {
+    .wires {
+      display: inline;
+    }
+    .edges {
+      opacity: 0.07;
+    }
+    .leads {
+      stroke-width: 0.6;
+      opacity: 0.38;
+    }
   }
   .nodes {
     fill: var(--on-desk);
@@ -89,12 +152,24 @@ const list = (ns: number[]) => ns.join(";");
   .signal {
     fill: none;
     stroke: var(--fold);
-    stroke-width: 1.1;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
+  /* The head and a firing node burn close to white, tinted so they still belong to the tab. */
+  .signal.hot,
   .glow {
+    stroke: color-mix(in srgb, var(--fold) 35%, white);
+    fill: color-mix(in srgb, var(--fold) 35%, white);
+  }
+  .signal.hot {
+    fill: none;
+  }
+  .glow {
+    stroke: none;
+  }
+  .halo {
     fill: var(--fold);
+    opacity: 0.2;
   }
   .still {
     display: none;
@@ -105,6 +180,12 @@ const list = (ns: number[]) => ns.join(";");
     }
     .still {
       display: inline;
+    }
+    .still .signal {
+      stroke-width: 1.1;
+    }
+    .still .glow {
+      fill: var(--fold);
     }
   }
 </style>

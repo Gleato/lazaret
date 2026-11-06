@@ -1,5 +1,5 @@
 ---
-// The home page header: the Gleator wordmark, the neural network animation in the middle,
+// The home page header: the Gleator wordmark, the neural network animation strung from it,
 // and the official npm and GitHub lockups (the user's own logo files, inverted for the
 // charcoal desk). GitHub goes to Ridge's profile, npm to the published package. LinkedIn
 // isn't here because the user doesn't use it.
@@ -12,7 +12,7 @@ import NeuralFlow from "./NeuralFlow.astro";
 
 <header class="site-head">
   <a class="wordmark on-desk" href="/" aria-label="Gleator, home">Gleator</a>
-  <div class="net-slot"><NeuralFlow /></div>
+  <div class="net-slot" aria-hidden="true"><NeuralFlow /></div>
   <nav class="links on-desk" aria-label="Elsewhere">
     <a href={NPM_URL} class="brand-link" aria-label="@gleator/lazaret on npm">
       <Image src={npm} alt="" height={17} densities={[1, 2, 3]} class="logo npm" loading="eager" />
@@ -25,10 +25,11 @@ import NeuralFlow from "./NeuralFlow.astro";
 
 <style>
   .site-head {
+    position: relative; /* The network's coordinates are measured from here. */
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: 1fr auto;
     align-items: center;
-    gap: 16px;
+    column-gap: 16px;
     padding-block: clamp(20px, 3.4vw, 44px) clamp(24px, 3.6vw, 48px);
   }
   .wordmark {
@@ -39,9 +40,11 @@ import NeuralFlow from "./NeuralFlow.astro";
     /* Optical alignment: the G's bowl overshoots the folder's left edge otherwise. */
     margin-left: -0.04em;
   }
+  /* The net is laid over the whole header, so all this does is hold room for it to hang
+     in. Taut on desktop, it needs none. */
   .net-slot {
-    justify-self: center;
-    min-width: 0;
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
   .links {
     justify-self: end;
@@ -73,15 +76,10 @@ import NeuralFlow from "./NeuralFlow.astro";
     height: 22px;
   }
 
-  /* Phones: wordmark and links share the top row, the network sits under them. */
+  /* Phones: wordmark and links share the top row, the network hangs in the space under them. */
   @media (max-width: 700px) {
-    .site-head {
-      grid-template-columns: 1fr auto;
-      row-gap: 14px;
-    }
     .net-slot {
-      grid-column: 1 / -1;
-      grid-row: 2;
+      height: 48px;
     }
     .npm {
       height: 14px;
@@ -90,4 +88,121 @@ import NeuralFlow from "./NeuralFlow.astro";
       height: 19px;
     }
   }
+
+  /* The smallest phones: the top row needs about 32px more than a 320px screen has, and the
+     network hangs in whatever's left between the r and the n, so it needs a real gap too. */
+  @media (max-width: 360px) {
+    .site-head {
+      column-gap: 8px;
+    }
+    .wordmark {
+      font-size: 2.1rem;
+    }
+    .links {
+      gap: 12px;
+    }
+    .npm {
+      height: 12px;
+    }
+    .gh {
+      height: 16px;
+    }
+  }
 </style>
+
+<script>
+  // Plugs the network into the header. The r and the n move with the font and the viewport,
+  // so they're measured, not hard-coded, and measured again whenever the header changes.
+  import { hanging, taut, wire } from "../lib/neural-flow";
+
+  // Where the plugs sit, as a share of each glyph's box. The same on every screen: the
+  // network connects to these two points, and only how it hangs between them changes. The
+  // n's numbers are the logo file's own geometry: 1560 x 500, with the n in its first 400.
+  const R_ARM = { x: 0.97, y: 0.49 }; // The tip of the r's arm.
+  const N_SIDE = { x: 0, y: 200 / 500 }; // The middle of the n's left side.
+  // A phone's bundle. The sag scales with the gap between the letters, which shrinks with
+  // the screen: past about half the span, a catenary's sides straighten into a V. Spread is
+  // a share of it, so strands keep their proportions. Dots are finer than desktop's, because
+  // the strands bunch here and need daylight.
+  const HANG = {
+    maxSag: 22,
+    minSag: 12,
+    sagOfSpan: 0.4,
+    spreadOfSag: 0.2,
+    node: 1.1,
+    glow: 1.5,
+    halo: 3.6,
+  };
+  const TAUT = { spread: 8, node: 1.5, glow: 2.1, halo: 5 };
+
+  const head = document.querySelector<HTMLElement>(".site-head");
+  const svg = head?.querySelector<SVGSVGElement>(".net");
+  const word = head?.querySelector(".wordmark")?.firstChild;
+  const npm = head?.querySelector(".logo.npm");
+  // Same breakpoint as this component's CSS.
+  const phone = matchMedia("(max-width: 700px)");
+
+  if (head && svg && word && npm) {
+    const glyph = document.createRange();
+    const length = word.textContent?.length ?? 0;
+    glyph.setStart(word, length - 1);
+    glyph.setEnd(word, length);
+
+    const edges = svg.querySelector(".edges");
+    const leads = svg.querySelector(".leads");
+    const nodes = svg.querySelectorAll(".nodes circle");
+    const signals = svg.querySelectorAll("[data-signal]");
+    const glows = svg.querySelectorAll(".glow");
+    const halos = svg.querySelectorAll(".halo");
+
+    const wireUp = () => {
+      const box = head.getBoundingClientRect();
+      const r = glyph.getBoundingClientRect();
+      const n = npm.getBoundingClientRect();
+      const on = (rect: DOMRect, at: { x: number; y: number }) => ({
+        x: rect.left - box.left + rect.width * at.x,
+        y: rect.top - box.top + rect.height * at.y,
+      });
+
+      const from = on(r, R_ARM);
+      const to = on(n, N_SIDE);
+      const look = phone.matches ? HANG : TAUT;
+      const sag = Math.max(HANG.minSag, Math.min(HANG.maxSag, (to.x - from.x) * HANG.sagOfSpan));
+      const laid = phone.matches
+        ? wire(hanging(from, to, sag), sag * HANG.spreadOfSag, true)
+        : wire(taut(from, to), TAUT.spread);
+
+      edges?.setAttribute("d", laid.edges);
+      leads?.setAttribute("d", laid.leads);
+      nodes.forEach((c, i) => {
+        c.setAttribute("cx", String(laid.nodes[i]?.x));
+        c.setAttribute("cy", String(laid.nodes[i]?.y));
+        c.setAttribute("r", String(look.node));
+      });
+      // Every layer of a comet, the still version and the resting wire share a signal's path.
+      signals.forEach((p) => {
+        p.setAttribute("d", laid.signals[Number(p.getAttribute("data-signal"))] ?? "");
+      });
+      // Flares are in the DOM twice, animated and still for reduced motion.
+      glows.forEach((c, i) => {
+        const g = laid.glows[i % laid.glows.length];
+        c.setAttribute("cx", String(g?.x));
+        c.setAttribute("cy", String(g?.y));
+        c.setAttribute("r", String(look.glow));
+      });
+      halos.forEach((c, i) => {
+        const g = laid.glows[i];
+        c.setAttribute("cx", String(g?.x));
+        c.setAttribute("cy", String(g?.y));
+        c.setAttribute("r", String(look.halo));
+      });
+      svg.classList.add("wired");
+    };
+
+    // The observer fires once on its own, and again for every size change, which covers
+    // both the breakpoint and the logo arriving. The font changes the r without resizing
+    // the header, so that gets its own call.
+    new ResizeObserver(wireUp).observe(head);
+    document.fonts.ready.then(wireUp);
+  }
+</script>
