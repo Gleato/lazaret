@@ -2222,7 +2222,7 @@ Review: 53 unit tests, typecheck, Biome and the build pass. Lettering clears the
 
 Deployed 2026-11-05: `db73f5f`, worker version 5cf868ee-0bd8-4f62-877d-4a708e4df20b. Checked on gleator.com at desktop width: lettering in place, paper label gone, logo colors and srcset live, folder opens, no console errors. Phone layout was checked locally, not on the live site.
 
-## Bungee jumper on the folder (2026-11-05, not committed or deployed)
+## Bungee jumper on the folder (2026-11-05)
 The closed folder's invitation gets a character: a little man on a ledge clipped to the top edge
 of the front flap. He jumps on a cord tied to that ledge, his weight pulls the flap down, and the
 ledge rides it. At the bottom the flap has turned over, so the ledge sits upside down under the
@@ -2258,7 +2258,7 @@ down the whole page. The user corrected that: he belongs on the part that folds.
 - Checks run: vitest, tsc, biome, build. `astro check` doesn't support this repo's TypeScript 7, so
   the `.astro` files were only covered by the build.
 
-## Dried marker ink on the folder cover (2026-11-05, not committed or deployed)
+## Dried marker ink on the folder cover (2026-11-05)
 The user said the lettering was too dark to look real: Sharpie dries lighter than the color on
 the cover. The color was part of it. The rest was that flat opaque ink with perfect edges looks
 printed, so the ink now behaves like a dye.
@@ -2270,3 +2270,5 @@ printed, so the ink now behaves like a dye.
 - [x] Lettering about 15% smaller (the user's follow-up): `min(54%, 580px)` wide, `min(68%, 272px, ...)` tall. Its gap to the hint: 107px at 375x812, 22px on the smallest phone tried, 155px at 1920x1080
 
 Review: 61 unit tests, typecheck and Biome on the script pass. Checked in the browser on coral, yellow and periwinkle, at retina-scale enlargement, on the 375x812 phone layout (65px clear of the hint), and early in the opening animation; the folder finishes opening with no console errors. Ink contrast against the card is 4.6 to 8.6:1. The lettering is `aria-hidden`; the button's aria-label carries the name. The build and the e2e suite weren't run.
+
+Deployed 2026-11-05: `9f84f8a` (bungee in `2e0784c`, marker in `9f84f8a`), worker version 18997b2f-9201-482d-9bb4-4eca1eddcfa1. Checked on gleator.com at desktop width: new ink and size live, bungee rig on the cover, a cover click ends with the folder open and no console errors. The jump itself was not timed on the live site, and the phone layout was checked locally only.
