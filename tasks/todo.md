@@ -2294,3 +2294,4 @@ shared leading edge (`COMET` in `src/lib/neural-flow.ts`) give a white-hot head,
 soft bloom, with no blur filter. The dashes re-align during the holds so the head leads on both passes.
 Signals fire 0.24s apart, and nodes flare fast and die away slowly, once per signal.
 
+Deployed 2026-11-06: `ea78619`, worker version d9259a34-01e7-4022-b2f7-77d7fe5bde2c. Checked on gleator.com at 390 and 1000 wide: network wired, plugs on the letters, cables hanging on the phone width, stretched on desktop, no console errors. Live HTML has no `localhost` and has the production demo origin. Reduced motion has not been viewed with the setting on.
