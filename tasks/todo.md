@@ -2313,3 +2313,5 @@ Deployed 2026-11-06: `c822c84`, worker version 3bceb3ca-aacc-4a30-8487-586670b31
 - [x] Badge masters moved from a scratch workspace to `apps/site/brand/source/gg`, because that workspace gets deleted
 - [x] `apps/site/brand/favicons.py` builds the icons with only `rsvg-convert`; the raster G code left `build.py`
 - [x] Tab sizes use the favicon cut, 180 and 192 use the full badge, as the badge's README says
+
+Deployed 2026-11-06: `7586d50`, worker version 91491484-2b89-481a-b4d7-3c9aaaec24e9. All three icon files on gleator.com match the repo byte for byte, and the live HTML has no `localhost`. Not seen in a real browser tab on the live site; tab rendering was checked locally.
