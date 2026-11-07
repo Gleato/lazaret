@@ -2295,3 +2295,13 @@ soft bloom, with no blur filter. The dashes re-align during the holds so the hea
 Signals fire 0.24s apart, and nodes flare fast and die away slowly, once per signal.
 
 Deployed 2026-11-06: `ea78619`, worker version d9259a34-01e7-4022-b2f7-77d7fe5bde2c. Checked on gleator.com at 390 and 1000 wide: network wired, plugs on the letters, cables hanging on the phone width, stretched on desktop, no console errors. Live HTML has no `localhost` and has the production demo origin. Reduced motion has not been viewed with the setting on.
+
+
+## Cover slips: one light, real pocket edge (2026-11-06)
+- [x] Slip and card shadows mixed from `--fold-edge` instead of black, with a lit top edge, so they read on all three tabs
+- [x] Slip and card share the sheets' grain (`--paper-grain`, moved out of `.paper`)
+- [x] Pocket drawn as SVG: `clip-path` removed the border and shadow on the slanted lip, the edge that shows the card going in
+- [x] Pocket highlight moved from the bottom edge to the lip, and its fill no longer starts from the greyer `--fold-mid`
+- [x] Card has more bottom padding so its last line clears the lip
+
+Review: checked in the browser at 1024 wide on coral, yellow and periwinkle, and at 375x812 on coral. No horizontal overflow.

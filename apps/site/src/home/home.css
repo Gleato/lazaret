@@ -29,6 +29,8 @@ body.home {
   --fold-experience: #7d9dff;
   --paper: #fffcf9;
   --paper-edge: #e9e1d6;
+  /* The sheets and the loose slips inside the cover are the same stock, so they share it. */
+  --paper-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35  0 0 0 0 .28  0 0 0 0 .18  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   --tint: #f5efe4;
   --ok: var(--ink);
   --ok-soft: var(--tint);
@@ -114,9 +116,7 @@ body.home .skip:focus {
    soft neutral shadow where it lifts off the folder, and a grain you only notice up close. */
 .paper {
   position: relative;
-  background:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35  0 0 0 0 .28  0 0 0 0 .18  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
-    var(--paper);
+  background: var(--paper-grain), var(--paper);
   border-radius: 2px;
   padding: clamp(26px, 5vw, 60px) clamp(18px, 5.4vw, 64px) clamp(30px, 5vw, 60px);
   box-shadow:

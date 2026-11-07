@@ -29,7 +29,22 @@ import { EMAIL, GITHUB_PROFILE_URL, SITE_URL } from "./data/links";
         <li><a href={GITHUB_PROFILE_URL}>github.com/Gleato</a></li>
       </ul>
     </div>
-    <div class="pocket" aria-hidden="true"></div>
+    <!-- Drawn, not clipped: clip-path cut off the border and shadow along the slanted lip,
+         the one edge that shows the card going in. The viewBox matches the pocket's largest
+         size; the stretch on phones is too small to see in the corners. -->
+    <svg class="pocket" viewBox="0 0 420 96" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="pocket-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" />
+          <stop offset="1" />
+        </linearGradient>
+      </defs>
+      <path
+        class="pocket-body"
+        d="M.5 22Q.5 17.8 4.5 17.6L413 .7Q419.5.4 419.5 7V84Q419.5 95.5 408 95.5H12Q.5 95.5.5 84Z"
+      />
+      <path class="pocket-lip" d="M.5 23Q.5 18.8 4.5 18.6L413 1.7Q419.5 1.4 419.5 8" />
+    </svg>
   </div>
 
   <p class="property">
@@ -50,16 +65,25 @@ import { EMAIL, GITHUB_PROFILE_URL, SITE_URL } from "./data/links";
     gap: clamp(20px, 4vw, 48px);
     min-height: calc(var(--closed-h) - 14px - clamp(36px, 6.8vw, 80px));
     align-items: start;
+    /* One light, from above, for everything on the cover. Shadows are mixed from the folder's
+       own colour because black on these saturated stocks reads as a grey smudge, and being
+       derived from --fold they follow the tab. */
+    --lay-edge: color-mix(in srgb, var(--fold-edge) 28%, transparent);
+    --lay-shade: color-mix(in srgb, var(--fold-edge) 48%, transparent);
+    --lay-lit: inset 0 1px 0 rgb(255 255 255 / 85%);
   }
   .slip {
     align-self: start;
     max-width: 260px;
     padding: 16px 18px 14px;
-    background: var(--paper);
+    background: var(--paper-grain), var(--paper);
     border-radius: 2px;
+    /* Thin paper: it lies almost flat, so the shadow is tight. */
     box-shadow:
-      0 0 0 1px rgb(0 0 0 / 6%),
-      0 3px 5px -2px rgb(0 0 0 / 22%);
+      var(--lay-lit),
+      0 0 0 1px var(--lay-edge),
+      0 1px 1px var(--lay-shade),
+      0 7px 10px -6px var(--lay-shade);
     transform: rotate(-1.4deg);
   }
   .slip-title {
@@ -130,12 +154,17 @@ import { EMAIL, GITHUB_PROFILE_URL, SITE_URL } from "./data/links";
   .card {
     position: relative;
     width: min(88%, 340px);
-    padding: 18px 20px;
-    background: #fff;
+    /* The extra at the bottom is what sinks behind the lip, so the last line stays clear
+       of it: the card and the lip slope opposite ways and close up towards the right. */
+    padding: 18px 20px 30px;
+    background: var(--paper-grain), #fff;
     border-radius: 4px;
+    /* Heavier stock than the slip, so it stands a little prouder of the cover. */
     box-shadow:
-      0 0 0 1px rgb(0 0 0 / 7%),
-      0 4px 10px -4px rgb(0 0 0 / 30%);
+      var(--lay-lit),
+      0 0 0 1px var(--lay-edge),
+      0 1px 2px var(--lay-shade),
+      0 12px 16px -10px var(--lay-shade);
     transform: rotate(2.2deg);
   }
   .card p {
@@ -169,15 +198,38 @@ import { EMAIL, GITHUB_PROFILE_URL, SITE_URL } from "./data/links";
   }
   .pocket {
     position: relative;
+    display: block;
     width: 100%;
     height: 96px;
     margin-top: -30px;
-    background: linear-gradient(var(--fold-mid), color-mix(in srgb, var(--fold-mid) 85%, var(--fold-deep)));
-    border: 1px solid var(--fold-edge);
-    border-radius: 4px 4px 12px 12px;
-    clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 100%);
-    box-shadow: 0 -2px 0 rgb(255 255 255 / 50%) inset;
+    overflow: visible;
     pointer-events: none;
+    /* Follows the drawn outline, unlike box-shadow. The upward one is the dark line where the
+       card disappears into the slot; the downward one seats the pocket on the cover. */
+    filter: drop-shadow(0 -1px 2px var(--lay-shade)) drop-shadow(0 2px 2px var(--lay-shade));
+  }
+  /* Same stock as the cover, so only a touch deeper. It read as a separate grey panel when
+     it started from --fold-mid. */
+  .pocket stop:first-child {
+    stop-color: color-mix(in srgb, var(--fold) 96%, var(--ink));
+  }
+  .pocket stop:last-child {
+    stop-color: var(--fold-mid);
+  }
+  .pocket-body {
+    fill: url(#pocket-fill);
+    stroke: var(--fold-edge);
+    stroke-opacity: 0.4;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  /* The cut edge catches the light along the top, never the bottom. */
+  .pocket-lip {
+    fill: none;
+    stroke: rgb(255 255 255 / 50%);
+    stroke-width: 1;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
   }
   .property {
     grid-column: 1 / -1;
