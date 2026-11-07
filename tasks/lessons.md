@@ -117,3 +117,11 @@
   Only the thing they described as changing may change. And when something should move or hang like
   a real object, use the equation for it (a catenary, a spring) rather than tuning a curve to look
   close: a tuned curve can pass a screenshot and still read as wrong to the person who asked.
+
+
+## A logo's shape is part of the logo (2026-11-06)
+- **What happened:** the user asked for the gg badge as the favicon. The badge is round, but I used
+  the favicon cut as supplied, a square, because its README said to, and I judged it only on
+  whether the mark read at 16px. They had to ask for the circle.
+- **Rule:** when a request names a design, check the result still looks like that design as well
+  as following the file notes. If a supplied cut changes the shape, say so before shipping.

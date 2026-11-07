@@ -9,7 +9,7 @@ Every curve is a true circular arc or straight line. Regenerate the SVGs with
 | Primary (round, for avatars and stickers) | `svg/gg-badge-round.svg` |
 | Mark alone on light / dark backgrounds | `svg/gg-mark-dark.svg`, `svg/gg-mark-light.svg` |
 | Displayed at 48–96px | `svg/gg-small.svg` (solid crossings, no keyline, larger star) |
-| Favicon, under 48px | `svg/gg-favicon.svg` |
+| Favicon, under 48px | `gg-favicon-round.svg` (the site uses this), `gg-favicon.svg` (square) |
 
 Colours, sampled from the original: ink `#222020`, paper `#fefafa`.
 The woven gaps and keyline need at least 96px on screen, so switch to the small master below that.

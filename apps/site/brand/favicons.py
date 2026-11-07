@@ -6,7 +6,10 @@ Separate from build.py because that one needs a venv and a local font for the La
 and these are plain SVG renders.
 
 Which cut goes where follows source/gg/README.md: the badge's woven gaps and keyline need
-96px or more, so tab sizes use the favicon cut, with solid crossings and no ring.
+96px or more, so tab sizes use the round favicon cut, with solid crossings.
+
+The icon is round by the user's choice (2026-11-06). Its corners are transparent, and the dark
+ring is what keeps it reading as a circle on a white tab, where the paper would vanish.
 """
 import pathlib
 import struct
@@ -36,7 +39,8 @@ def ico(path, images):
     path.write_bytes(head + entries + b"".join(blob for _, blob in images))
 
 
-ico(PUBLIC / "favicon.ico", [(s, png("gg-favicon.svg", s)) for s in (16, 32, 48)])
-(PUBLIC / "icon-192.png").write_bytes(png("gg-badge-square.svg", 192))
-# Opaque, because iOS fills transparency with black and rounds the corners itself.
+ico(PUBLIC / "favicon.ico", [(s, png("gg-favicon-round.svg", s)) for s in (16, 32, 48)])
+(PUBLIC / "icon-192.png").write_bytes(png("gg-badge-round.svg", 192))
+# Stays square: iOS fills transparency with black and applies its own rounded-square mask, so
+# the most it can show is this circle on a dark tile.
 (PUBLIC / "apple-touch-icon.png").write_bytes(png("gg-badge-square.svg", 180))

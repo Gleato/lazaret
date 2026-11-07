@@ -2315,3 +2315,5 @@ Deployed 2026-11-06: `c822c84`, worker version 3bceb3ca-aacc-4a30-8487-586670b31
 - [x] Tab sizes use the favicon cut, 180 and 192 use the full badge, as the badge's README says
 
 Deployed 2026-11-06: `7586d50`, worker version 91491484-2b89-481a-b4d7-3c9aaaec24e9. All three icon files on gleator.com match the repo byte for byte, and the live HTML has no `localhost`. Not seen in a real browser tab on the live site; tab rendering was checked locally.
+
+Round icon (2026-11-06): `gg-favicon-round.svg` added, used for `favicon.ico`, and `icon-192.png` now uses the round badge. Both have transparent corners. `apple-touch-icon.png` stays square because iOS fills transparency with black and applies its own mask. Checked on dark and light tabs locally.
