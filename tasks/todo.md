@@ -2307,3 +2307,9 @@ Deployed 2026-11-06: `ea78619`, worker version d9259a34-01e7-4022-b2f7-77d7fe5bd
 Review: checked in the browser at 1024 wide on coral, yellow and periwinkle, and at 375x812 on coral. No horizontal overflow.
 
 Deployed 2026-11-06: `c822c84`, worker version 3bceb3ca-aacc-4a30-8487-586670b31fd5. Checked on gleator.com on coral at desktop width: new pocket and slip shadows live, no console errors, no `localhost` in the HTML. Yellow and periwinkle were checked locally before the outlines were softened. The phone layout was checked locally, and the folder was set open by script because the app's browser pane was hidden.
+
+
+## Site icon: the double G badge (2026-11-06)
+- [x] Badge masters moved from a scratch workspace to `apps/site/brand/source/gg`, because that workspace gets deleted
+- [x] `apps/site/brand/favicons.py` builds the icons with only `rsvg-convert`; the raster G code left `build.py`
+- [x] Tab sizes use the favicon cut, 180 and 192 use the full badge, as the badge's README says

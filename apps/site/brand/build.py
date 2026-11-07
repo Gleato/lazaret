@@ -1,20 +1,17 @@
-"""Builds every brand file from the two source images in ./source (the user's, 2026-11-05).
+"""Builds the Lazaret logo files from source/lazaret-flag.webp (the user's, 2026-11-05).
 
-  venv/bin/python apps/site/brand/build.py      (needs: numpy opencv-python-headless fonttools)
+  venv/bin/python apps/site/brand/build.py      (needs: fonttools)
 
-- The G is a textured render, so it stays raster: its white ground is cut away and it is
-  sized down into the favicon set in apps/site/public.
+The site's icons moved to favicons.py when the double G badge replaced the raster G.
+
 - The flag is flat geometry, so it is redrawn as a vector (vertices and gradients measured
   from source/lazaret-flag.webp) instead of cut out, which would leave a white fringe.
 - "Lazaret" is set in Solitus (SIL OFL 1.1) and converted to outlines, so no font ships.
 - rsvg-convert renders the PNGs. Blue #008CFF is the ground the user chose for the flag.
 """
 import pathlib
-import struct
 import subprocess
 
-import cv2
-import numpy as np
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.ttLib import TTFont
@@ -114,62 +111,4 @@ def build_lazaret():
     png(HERE / "lazaret-banner.svg", BRAND / "lazaret-banner.png", 1280, 640)
 
 
-def cut_g():
-    """The G on transparency. Only white reachable from the image's edge goes, so the pale
-    bevels, which are nearly white too, stay part of the G."""
-    bgr = cv2.imread(str(HERE / "source/gleator-g.webp"))
-    near_white = (bgr.min(2) >= 250).astype("uint8")
-    _, labels = cv2.connectedComponents(near_white, connectivity=4)
-    edge = np.unique(np.r_[labels[0], labels[-1], labels[:, 0], labels[:, -1]])
-    ground = np.isin(labels, edge[edge != 0])
-    # Pull the edge in past the white fringe, then soften it.
-    alpha = cv2.erode((~ground).astype("uint8") * 255, np.ones((5, 5), "uint8"))
-    alpha = cv2.GaussianBlur(alpha, (0, 0), 1.2)
-    x, y, w, h = cv2.boundingRect(alpha)
-    side = max(w, h)
-    canvas = np.zeros((side, side, 4), "float32")
-    ox, oy = (side - w) // 2, (side - h) // 2
-    a = alpha[y : y + h, x : x + w, None].astype("float32") / 255
-    # Premultiplied, so shrinking doesn't drag transparent pixels' colour into the edge.
-    canvas[oy : oy + h, ox : ox + w, :3] = bgr[y : y + h, x : x + w].astype("float32") * a
-    canvas[oy : oy + h, ox : ox + w, 3] = a[:, :, 0] * 255
-    return canvas
-
-
-def sized(canvas, size, pad=0.0):
-    inner = round(size * (1 - 2 * pad))
-    small = cv2.resize(canvas, (inner, inner), interpolation=cv2.INTER_AREA)
-    out = np.zeros((size, size, 4), "float32")
-    o = (size - inner) // 2
-    out[o : o + inner, o : o + inner] = small
-    a = out[:, :, 3:] / 255
-    rgb = np.divide(out[:, :, :3], a, out=np.zeros_like(out[:, :, :3]), where=a > 0)
-    return np.clip(np.dstack([rgb, out[:, :, 3]]), 0, 255).astype("uint8")
-
-
-def ico(path, images):
-    """A .ico is a directory of PNGs; browsers ask for /favicon.ico whatever the HTML says."""
-    blobs = [cv2.imencode(".png", im)[1].tobytes() for im in images]
-    head = struct.pack("<HHH", 0, 1, len(blobs))
-    offset = 6 + 16 * len(blobs)
-    entries = b""
-    for im, blob in zip(images, blobs):
-        s = im.shape[0]
-        entries += struct.pack("<BBBBHHII", s, s, 0, 0, 1, 32, len(blob), offset)
-        offset += len(blob)
-    path.write_bytes(head + entries + b"".join(blobs))
-
-
-def build_favicons():
-    g = cut_g()
-    ico(PUBLIC / "favicon.ico", [sized(g, 16), sized(g, 32), sized(g, 48)])
-    cv2.imwrite(str(PUBLIC / "icon-192.png"), sized(g, 192))
-    # iOS fills transparency with black and rounds the corners itself: a light tile and margin.
-    apple = sized(g, 180, pad=0.12)
-    a = apple[:, :, 3:] / 255
-    tile = apple[:, :, :3] * a + 245 * (1 - a)
-    cv2.imwrite(str(PUBLIC / "apple-touch-icon.png"), tile.astype("uint8"))
-
-
 build_lazaret()
-build_favicons()
