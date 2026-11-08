@@ -1,8 +1,8 @@
 import { env } from "cloudflare:test";
 import { AnthropicReviewer, AnthropicRuleProposer } from "@gleator/lazaret";
-import { config } from "@gleator/tidewater-lazaret/config";
-import { scriptedReviewer } from "@gleator/tidewater-lazaret/scripted-reviewer";
 import { describe, expect, it, type TestContext } from "vitest";
+import { config } from "../src/fixture/config";
+import { scriptedReviewer } from "../src/fixture/scripted-reviewer";
 import { patternAwareReviewer, runPatternEval, waveCases } from "../src/pattern";
 import { callCostUsd } from "../src/pricing";
 import { scriptedProposer } from "../src/proposer";

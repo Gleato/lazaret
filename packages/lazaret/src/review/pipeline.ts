@@ -3,7 +3,7 @@ import type { ResolvedConfig } from "../config/define.ts";
 import type { LinkWindow, ReviewSnapshot } from "../ledger/durable-object.ts";
 import type { EntryState, VerdictRecord } from "../ledger/types.ts";
 import { type DistillResult, type RuleProposer, runDistillation } from "../memory/distill.ts";
-import { archiveRecord } from "../memory/sample.ts";
+import { archiveRecord, learnsFromEntry, TASK_UNKNOWN_RULE } from "../memory/sample.ts";
 import type { ArchiveInput, DistillInput } from "../memory/store.ts";
 import type { RuleProposal } from "../memory/types.ts";
 import { FatalReviewError, type Reviewer, type ReviewTier } from "./client.ts";
@@ -255,7 +255,10 @@ async function archiveToMemory(
       // Writes a rule held (M11) have no reviewer verdict, so they stay out: the archive
       // is the reviewer's independent judgement, which is what rules are scored against.
       // An operator's decision on them is archived as a label when it comes.
-      const entries = (await deps.ledger.getReviewedEntries(batchId)).filter((e) => !e.hold);
+      // Agent writes stay out too, for good (see `learnsFromEntry`).
+      const entries = (await deps.ledger.getReviewedEntries(batchId)).filter(
+        (e) => !e.hold && learnsFromEntry(e),
+      );
       const at = Date.now();
       // Archive is idempotent per entry id, so a replay of this step can't double-count.
       await memory.archive(entries.map((e) => archiveRecord(e, "batch", at)));
@@ -272,6 +275,14 @@ async function archiveToMemory(
 /** The verdict for a write a rule held (M11): quarantine, for a person, no model. */
 export function heldVerdict(e: EntryState): VerdictRecord {
   const hold = e.hold as NonNullable<EntryState["hold"]>;
+  if (hold.ruleId === TASK_UNKNOWN_RULE) {
+    return {
+      verdict: "quarantine",
+      category: hold.category,
+      confidence: 1,
+      rationale: hold.description,
+    };
+  }
   return {
     verdict: "quarantine",
     category: hold.category,
@@ -433,7 +444,11 @@ async function reviewChunk(
     name,
     async (): Promise<ChunkResult> => {
       try {
-        const outcome = await deps.reviewer.review({ tier, prompt: prompt(chunk) });
+        const outcome = await deps.reviewer.review({
+          tier,
+          prompt: prompt(chunk),
+          ...(chunk.some((e) => e.agent) ? { agent: true } : {}),
+        });
         if (outcome.kind === "refusal") {
           return {
             declined: `reviewer refused (${outcome.category ?? "unspecified"})`,
@@ -514,7 +529,11 @@ export function chunkEntries(entries: EntryState[]): EntryState[][] {
   let current: EntryState[] = [];
   let size = 0;
   for (const entry of entries) {
-    const cost = 600 + Math.min(entry.request.body?.length ?? 0, 6000);
+    const agentChars = entry.agent
+      ? entry.agent.task.length +
+        (entry.agent.toolResults ?? []).reduce((n, r) => n + r.result.length, 0)
+      : 0;
+    const cost = 600 + Math.min(entry.request.body?.length ?? 0, 6000) + agentChars;
     if (current.length && (current.length >= CHUNK_MAX_ENTRIES || size + cost > CHUNK_MAX_CHARS)) {
       chunks.push(current);
       current = [];

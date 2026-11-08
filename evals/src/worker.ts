@@ -5,9 +5,9 @@ import {
   LazaretMemory,
   type MemoryThresholds,
 } from "@gleator/lazaret";
-import { config } from "@gleator/tidewater-lazaret/config";
+import { config } from "./fixture/config";
 
-/** Tidewater's Ledger with automatic dispatch off: the eval drives review itself. */
+/** The fixture's Ledger with automatic dispatch off: the eval drives review itself. */
 export class EvalLedger extends LazaretLedger {
   protected override cycleConfig(): CycleConfig {
     return config.cycle;

@@ -1,3 +1,0 @@
-# Local development only. `npm run dev` copies this to .dev.vars (gitignored).
-# Production values are set with `npx wrangler secret put` and never committed.
-LAZARET_SIGNING_SECRET=local-dev-only-signing-secret-0000

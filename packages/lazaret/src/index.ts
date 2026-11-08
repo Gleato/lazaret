@@ -151,8 +151,10 @@ export {
 export { costUsd, PRICES } from "./review/pricing.ts";
 export type { LinkedContext, MemoryHint } from "./review/prompt.ts";
 export {
+  AGENT_SYSTEM_PROMPT,
   buildBatchPrompt,
   buildEscalationPrompt,
+  buildInlinePrompt,
   decodedView,
   encodeUntrusted,
   SYSTEM_PROMPT,

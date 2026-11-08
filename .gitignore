@@ -9,3 +9,6 @@ playwright-report/
 *.log
 .DS_Store
 .astro/
+.venv/
+__pycache__/
+.pytest_cache/

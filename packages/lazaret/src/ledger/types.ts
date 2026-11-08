@@ -66,6 +66,26 @@ export interface EntryInput {
    * it a quarantine verdict without asking a model; an operator decides it.
    */
   hold?: { ruleId: string; category: string; description: string };
+  /**
+   * What the AI agent making this write was asked to do, from origin (gateway/task.ts).
+   * Pinned here at write time, so a later or retried review sees the task the write was
+   * made under. Absent for ordinary clients.
+   */
+  agent?: AgentContext;
+}
+
+export interface AgentToolResult {
+  tool: string;
+  result: string;
+}
+
+export interface AgentContext {
+  /** Trusted: origin chose it from the client's credential, the client didn't supply it. */
+  task: string;
+  /** Untrusted: what the agent read, oldest first. Attackers can write into these. */
+  toolResults?: AgentToolResult[];
+  /** Earlier results were left out, or some were cut, to fit the caps. */
+  toolResultsTruncated?: boolean;
 }
 
 export interface VerdictRecord {

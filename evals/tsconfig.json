@@ -3,6 +3,6 @@
   "compilerOptions": {
     "types": ["@cloudflare/workers-types", "@cloudflare/vitest-plugin/types"]
   },
-  "include": ["src", "test"],
+  "include": ["src", "test", "benchmark"],
   "exclude": ["src/reporter.ts", "src/corpus.ts"]
 }

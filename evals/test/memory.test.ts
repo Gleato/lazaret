@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { AnthropicReviewer, AnthropicRuleProposer } from "@gleator/lazaret";
-import { config } from "@gleator/tidewater-lazaret/config";
 import { describe, expect, it, type TestContext } from "vitest";
+import { config } from "../src/fixture/config";
 import { runMemoryEval } from "../src/memory-eval";
 import { callCostUsd } from "../src/pricing";
 

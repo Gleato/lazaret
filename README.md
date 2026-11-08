@@ -1,4 +1,4 @@
-<p><img src="apps/site/public/brand/lazaret-banner.png" alt="Lazaret" width="640"></p>
+<p><img src="docs/lazaret-banner.png" alt="Lazaret" width="640"></p>
 
 # Lazaret
 
@@ -13,12 +13,10 @@ Workers that holds every write bound for your origin in a stateful ledger. An
 independent Claude reviewer vets each batch, and only writes that pass reach your
 server. Writes that fail are dropped, along with anything that depends on them.
 
-> **Status: the demo is live.** [demo.gleator.com](https://demo.gleator.com) is the
-> Tidewater Support helpdesk behind a real Lazaret deployment, on live Claude models. A
-> Playwright suite checks it in production: every canned attack is kept out of
-> Tidewater's database, and honest writes get through. The library is
-> [`@gleator/lazaret`](packages/lazaret) 0.3.1, and the project lives at
-> [gleator.com](https://gleator.com/projects/lazaret).
+> **Status:** the library is [`@gleator/lazaret`](packages/lazaret) 0.3.1 on npm. The
+> project page at [gleator.com](https://gleator.com/projects/lazaret) has a simulated,
+> clickable demo that replays verdicts from a recorded live eval run. To see it live, put
+> it in front of your own API: `npm install @gleator/lazaret` and follow the steps below.
 
 ## How it works
 
@@ -81,8 +79,8 @@ compacted state equals a full replay, apart from the pruned batches.
 ## Put Lazaret in front of your own API
 
 Lazaret is a Cloudflare Worker that sits in front of your origin. The worked example
-is [Tidewater Support](apps/demo-origin), a helpdesk that knew nothing about Lazaret,
-and [its Lazaret deployment](apps/demo-lazaret). The steps below follow that example.
+below is a small helpdesk (logins, API keys, account credits, tickets), the same one the
+[evals](evals) measure; its full config is [`evals/src/fixture/config.ts`](evals/src/fixture/config.ts).
 
 ```bash
 npm install @gleator/lazaret
@@ -93,7 +91,7 @@ through, reviewed inline, escrowed, or blocked. Escrowed writes declare the reso
 they touch, so dropping one drops what depends on it.
 
 ```ts
-// lazaret.config.ts (from apps/demo-lazaret/src/config.ts)
+// lazaret.config.ts (the full version: evals/src/fixture/config.ts)
 import { defineLazaret } from "@gleator/lazaret";
 
 export const config = defineLazaret({
@@ -120,9 +118,8 @@ Unmatched writes are escrowed, not passed, so a route you forgot is still quaran
 feel broken while a write waits for review.
 
 **2. Deploy the gateway.** Subclass the three runtime classes to hand them your config,
-and export the gateway. See [`apps/demo-lazaret/src/index.ts`](apps/demo-lazaret/src/index.ts)
-and its [`wrangler.jsonc`](apps/demo-lazaret/wrangler.jsonc) for the bindings
-(a Ledger and a Memory Durable Object, a review Workflow, and a cron for the recovery sweep).
+and export the gateway. The bindings are a Ledger and a Memory Durable Object, a review
+Workflow, and a cron for the recovery sweep (the `wrangler.jsonc` sketch follows the code).
 
 ```ts
 export class Ledger extends LazaretLedger {}
@@ -134,6 +131,23 @@ export class ReviewWorkflow extends LazaretReviewWorkflow<Env> {
 }
 const gateway = createGateway(config);
 export default { fetch: gateway.fetch, scheduled: gateway.scheduled };
+```
+
+```jsonc
+// wrangler.jsonc (bindings only)
+{
+  "durable_objects": {
+    "bindings": [
+      { "name": "LAZARET_LEDGER", "class_name": "Ledger" },
+      { "name": "LAZARET_MEMORY", "class_name": "Memory" }
+    ]
+  },
+  "workflows": [
+    { "binding": "LAZARET_REVIEW", "name": "lazaret-review", "class_name": "ReviewWorkflow" }
+  ],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Ledger", "Memory"] }],
+  "triggers": { "crons": ["* * * * *"] }
+}
 ```
 
 **3. Make origin refuse anything that didn't come through Lazaret.** Otherwise an
@@ -150,8 +164,21 @@ if (!check.ok) return new Response("Forbidden", { status: 403 });
 
 **4. Dedupe writes by `x-lazaret-id`.** The Committer retries after crashes and
 network errors, so the same write can arrive twice. Store each write's response in
-the same transaction as the write and replay it on a repeat. Tidewater does this in
-one small module: [`apps/demo-origin/src/dedupe.ts`](apps/demo-origin/src/dedupe.ts).
+the same transaction as the write and replay it on a repeat. On D1 that is one table
+and one batch:
+
+```ts
+// Record the response first: if two copies race, the loser's batch fails on the
+// primary key before any of its side effects apply.
+const seen = await db.prepare("SELECT status, body FROM lazaret_requests WHERE id = ?")
+  .bind(id).first<{ status: number; body: string }>();
+if (seen) return new Response(seen.body, { status: seen.status });
+await db.batch([
+  db.prepare("INSERT INTO lazaret_requests (id, status, body) VALUES (?, ?, ?)")
+    .bind(id, 201, JSON.stringify(result)),
+  ...sideEffects, // the write's own statements
+]);
+```
 
 **5. Use the receipt as the id of what a write creates (optional, recommended).** An
 escrowed write answers `202` with a receipt. If origin uses that receipt as the new
@@ -206,7 +233,7 @@ A disputed write nobody labels within 3 days (`trustAllowsAfterMs`) is taken as 
 fails closed by default (`503`). For a route where an outage costs more than the risk, set
 `onReviewUnavailable: "gate"`: a request the gate found nothing at all on goes through
 (tagged `x-lazaret-review: degraded`), anything else still waits. A model that declines
-or answers garbage is never treated as unreachable. Tidewater does this for login only.
+or answers garbage is never treated as unreachable. The example config does this for login only.
 
 **9. Cap what the reviewer can spend.** `review.dailyBudgetUsd` (default $5) is enforced
 from real token usage across every tier. Once the day's budget is spent, inline routes
@@ -233,7 +260,43 @@ it holds for a person rather than dropping. Defaults: 24 h window, 8 earlier wri
 160-character previews. It costs extra prompt tokens and, for escrowed writes, one
 account lookup per session.
 
-**12. Share behaviour counts across isolates (recommended in production).** Rate,
+**12. Tell the reviewer what an agent was asked to do (for AI agents).** A hijacked agent
+sends clean, well-formed writes, so a transfer to the wrong account looks fine until you
+know the agent was only asked to pay a bill. With `review.task`, the gateway asks origin
+before each reviewed write, the same way it asks about the actor: a signed
+`GET /agent/context` with the client's own headers
+([`task.ts`](packages/lazaret/src/gateway/task.ts)).
+
+```ts
+review: {
+  task: { path: "/agent/context", toolResultsField: "tool_results" },
+},
+```
+
+| Origin answers                                | Lazaret                                                                     |
+| --------------------------------------------- | --------------------------------------------------------------------------- |
+| `200 { "task": "Pay my December bill" }`      | The reviewer judges whether this write serves the task                      |
+| `204`, `401`, `403`, or a `200` with no task  | Not an agent: reviewed as usual, so people and agents can share a route     |
+| Anything else, including a timeout or a `404` | Fails closed: an inline write is refused, an escrowed one held for a person |
+
+The task can't come from the request, because a hijacked agent controls its headers and
+body. Three things are yours to get right, and Lazaret can't check them:
+
+- Give each agent run its own credential, so one credential means one run.
+- Set the task from the user's side. No endpoint open to the agent's credential may change it.
+- Key the lookup on the credential alone, never on a header the client chose. Client headers are forwarded.
+
+Pass the user's own words, never content the agent fetched: the reviewer treats the task as
+true. `toolResultsField` is optional and off by default. It names an array of
+`{ tool, result }`, oldest first, from your runtime's own record, never from the agent. The
+reviewer sees the newest 8 as untrusted evidence, to check details such as an amount on a
+bill. Attackers can write into tool results, so turn this on only if your own tests show it
+helps. An escrowed write pays one origin round trip for the lookup. Writes reviewed with a
+task stay out of the Memory, because their verdicts depend on something the gate can't see.
+This assumes origin knows the task: if your agent platform is a separate service, proxy it
+through origin.
+
+**13. Share behaviour counts across isolates (recommended in production).** Rate,
 timing and failure scoring is per isolate by default, and Cloudflare can spread one
 client across several isolates. That client is often a credential-stuffing swarm.
 `behaviour: { store: "durable" }`, with a `LazaretBehaviour` Durable Object bound as
@@ -247,60 +310,24 @@ p50 _and_ p95, so that version was replaced.
 
 ### Deploy it
 
-The live demo is three Workers in one Cloudflare account:
-
-| Host               | Worker                                                                                            | Config                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `demo.gleator.com` | `tidewater-lazaret`: the gateway, Ledger, Memory, behaviour store, review Workflow and demo guard | [`apps/demo-lazaret/wrangler.jsonc`](apps/demo-lazaret/wrangler.jsonc) |
-| none               | `tidewater-origin`: reachable only through the gateway's service binding, on D1                   | [`apps/demo-origin/wrangler.jsonc`](apps/demo-origin/wrangler.jsonc)   |
-| `gleator.com`      | `gleator-site`: the static site (launching with a redesign)                                       | [`apps/site/wrangler.jsonc`](apps/site/wrangler.jsonc)                 |
-
 ```bash
 npx wrangler login
-npx wrangler d1 create tidewater          # put the id in apps/demo-origin/wrangler.jsonc
-npm run db:migrate:remote -w @gleator/tidewater-origin
-npm run deploy:origin                     # first: it is the gateway's binding target
-npm run deploy:demo
+npx wrangler secret put LAZARET_SIGNING_SECRET   # the same value on origin
+npx wrangler secret put ANTHROPIC_API_KEY
+npx wrangler secret put LAZARET_OPERATOR_TOKEN   # only for the human review queue
+npx wrangler deploy
 ```
 
-Secrets go in with `npx wrangler secret put <NAME> -c <config>`. Never put them in code.
-
-- origin: `LAZARET_SIGNING_SECRET` and `ANTHROPIC_API_KEY` (Tidewater's own agent).
-- gateway: the same `LAZARET_SIGNING_SECRET`, plus `ANTHROPIC_API_KEY`, `TURNSTILE_SECRET`
-  and `LAZARET_OPERATOR_TOKEN`.
-
-The signing secret is shared and must be identical on both; `openssl rand -base64 48`
-makes a good one. The Turnstile site key is public, so it lives in the config. Custom
-domains create their own DNS records and certificates.
-
-### Try it locally
-
-The demo runs offline with a scripted reviewer in place of Claude, so it needs no API
-key and costs nothing:
-
-```bash
-npm run dev -w @gleator/tidewater-lazaret
-```
-
-Open http://localhost:8787 and sign in as Mara (customer) or Sam (support agent). For
-the gleator.com site and its live demo, run this as well and open http://localhost:4321:
-
-```bash
-npm run dev -w @gleator/site
-```
-
-The public demo sits behind a guard (`apps/demo-lazaret/src/guard.ts`): writes need a
-Turnstile pass, there are per-IP rate limits and a $0.25 daily share per IP, Tidewater's
-AI agent runs count against the same $10 daily cap, and the demo resets every hour. In
-local dev the guard uses Cloudflare's always-pass Turnstile test keys. To trigger the
-hourly reset by hand, call `http://localhost:8787/__scheduled?cron=0+*+*+*+*`.
+Never put secrets in code. The signing secret is shared with origin and must be identical
+on both; `openssl rand -base64 48` makes a good one. Put the gateway on your API's host
+as a Workers custom domain, and Cloudflare creates the DNS record and certificate.
 
 ## Evals
 
 [`evals/`](evals) holds a labelled corpus of 128 cases: 67 attacks and 61 benign
 requests, including hard negatives such as tickets that quote SQL errors or mention
 `localhost`. The attacks include prompt injection aimed at Lazaret's own reviewer,
-indirect injection aimed at Tidewater's AI support agent, and fraud split across
+indirect injection aimed at the helpdesk's own AI support agent, and fraud split across
 requests that each look honest (sent in separate batches, some from a fresh login). The runner pushes the corpus
 through the real gateway, Ledger and review pipeline, and reports precision, recall,
 false-positive rate, latency, time to first token and cost.
@@ -385,34 +412,22 @@ The test suite covers illegal transitions, atomic rollback, and crash recovery: 
 evicts a live Durable Object mid-review and checks that the rebuilt state is
 identical and that no write is committed twice.
 
-**Against production.** [`e2e/`](e2e) is a Playwright suite for the deployed demo,
-run by hand, never in `npm test`. It fires each of the console's canned exhibits, using
-live models and a demo pass minted with the operator token. It then queries Tidewater's
-own D1 through wrangler. `lazaret_requests` is origin's log of every signed write it
-accepted, so "the attack never reached origin" is a direct query, not Lazaret vouching
-for itself. It also loads the UI at desktop and phone widths. A run costs about $0.06–0.15.
-
-```bash
-cp e2e/.env.example e2e/.env    # then add LAZARET_OPERATOR_TOKEN
-npm run e2e:prod
-```
-
 **The package.** `npm run build -w @gleator/lazaret` compiles to `packages/lazaret/dist`,
-with its own manifest. In the repo, the apps run straight from the TypeScript source.
+with its own manifest. In the repo, the evals run straight from the TypeScript source.
 `npm run smoke:pack -w @gleator/lazaret` installs the packed tarball into an empty
 Worker, typechecks it under both `Bundler` and `NodeNext` resolution, and bundles it.
 
 ## What Lazaret doesn't catch
 
 Lazaret judged each write on its own merits, so fraud spread across many believable
-requests got through: no single request in it is an attack. A live test on the demo
-(2026-11-04) showed this. One customer sent five refund tickets, each under $50 and each
-reviewed in its own batch. All five were allowed, Tidewater's AI assistant proposed all
+requests got through: no single request in it is an attack. A live test on the former demo
+helpdesk (2026-11-04) showed this. One customer sent five refund tickets, each under $50 and each
+reviewed in its own batch. All five were allowed, the helpdesk's AI assistant proposed all
 five refunds, and four of them, $190 in all, were paid.
 
-Two changes followed. Tidewater now caps the refunds its assistant proposes per
-customer, in code (`limitPerCustomer` in `apps/demo-origin/src/agent/run.ts`), because
-adding up one customer's claims is the application's job. And Lazaret can now link writes
+Two changes followed. The helpdesk capped the refunds its assistant proposes per
+customer, in its own code, because adding up one customer's claims is the application's
+job. And Lazaret can now link writes
 across batches (step 11 above). On the eval's four split-fraud cases, the reviewer held
 4 of 4 for a person, up from 1 of 4, and held none of the four honest look-alikes (a busy
 customer, a support agent crediting several customers).
@@ -436,7 +451,7 @@ What still gets through:
   recalled. An app that pays out money should keep its own hard limits.
 - **Anything outside the links.** Writes are linked by session, account and resource, so
   claims spread across many accounts, each paid to a different customer, don't link.
-  History also only reaches back over the window (the demo's Ledger restarts hourly).
+  History also only reaches back over the window (the example config's Ledger restarts hourly).
 - **A model's judgement.** The reviewer decides what counts as a pattern, and it can
   waver: two borderline honest tickets were held in the latest run, though they had no
   linked history and passed in the two runs before.
@@ -452,7 +467,7 @@ dropped the ticket.
 - [x] M3: Claude reviewer, review workflow, committer, taint propagation
 - [x] M4: Author-only read overlay
 - [x] M5: Memory distillation and rule promotion
-- [x] M6: Demo origin (Tidewater Support helpdesk) and evals, plus the human review queue
+- [x] M6: Demo origin (a helpdesk) and evals, plus the human review queue
 - [x] M7: gleator.com site, live ledger visualiser, attack console, evals and memory
   panels, spend cap, demo guard
 - [x] M8: log compaction, a shared behaviour store, the demo deployed and checked by a
@@ -461,6 +476,8 @@ dropped the ticket.
 - [x] M10: linked history, so the reviewer sees fraud split across batches
 - [x] M11: count signals, a `hold` action and counting rules, so the Memory learns split
   fraud
+- [x] The live demo and its helpdesk retired (2026-11-06) for a simulated demo on
+  gleator.com; the site moved to its own repo
 
 The full spec is in [`tasks/todo.md`](tasks/todo.md).
 

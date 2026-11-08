@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ResolvedConfig } from "../config/define.ts";
-import { SYSTEM_PROMPT } from "./prompt.ts";
+import { AGENT_SYSTEM_PROMPT, SYSTEM_PROMPT } from "./prompt.ts";
 import { VERDICT_SCHEMA } from "./schema.ts";
 
 // The reviewer "brain" (principle 2). It takes a prompt and returns raw structured
@@ -16,6 +16,8 @@ export interface ReviewCall {
   tier: ReviewTier;
   prompt: string;
   signal?: AbortSignal;
+  /** The prompt carries an agent's task, so the reviewer needs the rules for judging one. */
+  agent?: boolean;
 }
 
 /**
@@ -186,7 +188,7 @@ export class AnthropicReviewer implements Reviewer {
     const tier = TIERS[call.tier];
     const outcome = await structuredCall(this.#client, {
       model,
-      system: SYSTEM_PROMPT,
+      system: call.agent ? AGENT_SYSTEM_PROMPT : SYSTEM_PROMPT,
       prompt: call.prompt,
       schema: VERDICT_SCHEMA,
       effort: tier.effort,

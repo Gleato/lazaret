@@ -121,6 +121,29 @@ export interface LazaretConfig {
      * instead of quarantining what it can't attribute.
      */
     actor?: { path: string; fields: Record<string, string>; timeoutMs?: number };
+    /**
+     * What an AI agent was asked to do, from origin itself (gateway/task.ts). Before a
+     * reviewed write, the gateway makes a signed `GET path` to origin with the client's own
+     * headers. Origin answers from the client's credential: the task for that agent run, or
+     * 204 if this client isn't an agent. The reviewer then judges whether the write serves
+     * the task. If origin can't answer, the write fails closed.
+     *
+     * Each run needs its own credential, the agent must have no way to set its task, and
+     * origin must key on the credential alone. Pass the user's own words here, never content
+     * the agent fetched: the reviewer treats the task as true.
+     */
+    task?: {
+      path: string;
+      /** Dotted JSON path of the task text. Default `task`. */
+      field?: string;
+      /**
+       * Dotted JSON path of the agent's recent tool results, `[{ tool, result }]`, oldest
+       * first. Off unless set. The reviewer sees them as untrusted evidence, to check details
+       * such as an amount on a bill. They must come from the runtime's own record.
+       */
+      toolResultsField?: string;
+      timeoutMs?: number;
+    };
   };
   signing?: {
     /** Env binding holding the HMAC secret shared with origin. */
@@ -219,6 +242,12 @@ export interface ResolvedConfig {
     dailyBudgetUsd: number;
     budgetShard: string;
     actor: { path: string; fields: Record<string, string>; timeoutMs: number } | null;
+    task: {
+      path: string;
+      field: string;
+      toolResultsField: string | null;
+      timeoutMs: number;
+    } | null;
   };
   signing: { secretBinding: string };
   operator: { tokenBinding: string };
@@ -395,6 +424,26 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
     }
   }
 
+  const taskConfig = config.review?.task;
+  const task = taskConfig
+    ? {
+        path: taskConfig.path,
+        field: taskConfig.field ?? "task",
+        toolResultsField: taskConfig.toolResultsField ?? null,
+        timeoutMs: taskConfig.timeoutMs ?? 500,
+      }
+    : null;
+  if (task) {
+    if (!task.path.startsWith("/")) problems.push("review.task.path must start with /");
+    if (!task.field) problems.push("review.task.field must not be empty");
+    if (task.toolResultsField === "") {
+      problems.push("review.task.toolResultsField must not be empty");
+    }
+    if (!(task.timeoutMs >= 10 && task.timeoutMs <= 5000)) {
+      problems.push("review.task.timeoutMs must be between 10 and 5000");
+    }
+  }
+
   // Linked history (M10). Actor linking needs the actor lookup, and the field it names.
   const linkConfig = config.link;
   const link = linkConfig
@@ -492,6 +541,7 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
       dailyBudgetUsd,
       budgetShard,
       actor,
+      task,
     },
     signing: { secretBinding: config.signing?.secretBinding ?? "LAZARET_SIGNING_SECRET" },
     operator: { tokenBinding: config.operator?.tokenBinding ?? "LAZARET_OPERATOR_TOKEN" },

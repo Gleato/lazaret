@@ -40,7 +40,9 @@ async function setup({ token = TOKEN as string | null } = {}) {
     });
 
   /** Run one batch by hand: append, seal, record verdicts, commit the allowed, settle. */
-  async function reviewed(specs: { resources: string[]; v: VerdictRecord; body?: string }[]) {
+  async function reviewed(
+    specs: { resources: string[]; v: VerdictRecord; body?: string; task?: string }[],
+  ) {
     const receipts = [];
     for (const s of specs) {
       receipts.push(
@@ -48,6 +50,7 @@ async function setup({ token = TOKEN as string | null } = {}) {
           entry({
             resources: s.resources,
             request: { ...entry().request, body: JSON.stringify({ body: s.body ?? "hi" }) },
+            ...(s.task ? { agent: { task: s.task } } : {}),
           }),
         ),
       );
@@ -158,6 +161,25 @@ describe("operator queue", () => {
     expect(input.drops).toContainEqual(
       expect.objectContaining({ entryId: missed, category: "sqli" }),
     );
+  });
+
+  it("shows an agent's task to the operator, and keeps the label out of the Memory", async () => {
+    const { act, call, memory, reviewed } = await setup();
+    const [held] = (await reviewed([
+      { resources: ["ticket:1"], v: verdict("quarantine", 0.6, "uncertain"), task: "Pay the bill" },
+    ])) as [string];
+    const { entries } = (await (await call("queue")).json()) as {
+      entries: { agent?: { task: string } }[];
+    };
+    expect(entries[0]?.agent?.task).toBe("Pay the bill");
+    expect((await act(held, "drop")).status).toBe(200);
+    await new Promise((r) => setTimeout(r, 50));
+    const input = await (
+      memory as unknown as {
+        getDistillInput(): Promise<{ drops: { entryId: string }[] }>;
+      }
+    ).getDistillInput();
+    expect(input.drops).toEqual([]);
   });
 
   it("only reports committed writes, and only resolves held ones", async () => {

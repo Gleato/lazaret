@@ -296,7 +296,7 @@ describe("Gateway with linking", () => {
   const origin = vi.fn();
   beforeEach(() => {
     origin.mockReset();
-    // Origin answers who the client is from its token, as Tidewater's /api/me does.
+    // Origin answers who the client is from its token, as a typical /api/me does.
     origin.mockImplementation(async (req: Request) => {
       if (new URL(req.url).pathname.endsWith("/api/me")) {
         const token = req.headers.get("authorization") ?? "";
@@ -322,7 +322,7 @@ describe("Gateway with linking", () => {
           resources: ["account:{id}"],
         },
       ],
-      // Lazaret's session is the login token, as in Tidewater, so a new sign-in is a new session.
+      // Lazaret's session is the login token here, so a new sign-in is a new session.
       session: { header: "authorization" },
       review: { actor: { path: "/api/me", fields: { id: "account.id", role: "account.role" } } },
       link,

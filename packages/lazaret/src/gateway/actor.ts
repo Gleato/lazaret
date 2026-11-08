@@ -60,7 +60,7 @@ export async function lookupActor(
 }
 
 /** `a.b.c` over own properties only, so `__proto__` and friends resolve to nothing. */
-function pick(value: unknown, path: string): unknown {
+export function pick(value: unknown, path: string): unknown {
   let current = value;
   for (const key of path.split(".")) {
     if (current === null || typeof current !== "object" || !Object.hasOwn(current, key)) {

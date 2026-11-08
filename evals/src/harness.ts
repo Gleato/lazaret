@@ -12,15 +12,27 @@ import {
   type StepRunner,
   type VerdictRecord,
 } from "@gleator/lazaret";
-import { tidewaterConfig } from "@gleator/tidewater-lazaret/config";
-import { scriptedReviewer } from "@gleator/tidewater-lazaret/scripted-reviewer";
+import { helpdeskConfig } from "./fixture/config";
+import { scriptedReviewer } from "./fixture/scripted-reviewer";
+import { BudgetExceeded, instrument, promptEntryIds } from "./instrument";
 import type { CallRecord, CaseRequest, CaseResult, EvalCase, Stage } from "./types";
 
-// Runs the corpus through the real thing, inside workerd: Tidewater's Lazaret
-// config, the real gateway and deterministic gate, a real Ledger Durable Object
+// Runs the corpus through the real thing, inside workerd: the helpdesk fixture's
+// Lazaret config (src/fixture/config.ts), the real gateway and deterministic gate, a real Ledger Durable Object
 // (batches seal exactly as in production: on size or risk spike), and the real
 // review pipeline (chunking, escalation guard, taint, fail-closed). Only origin is
 // a stub, since what's scored is whether a write *reached* it.
+
+export { BudgetExceeded } from "./instrument";
+
+/**
+ * The seeded logins the corpus uses (evals/corpus), as recorded. The corpus keeps the
+ * retired demo helpdesk's fictional names because it is a measurement record.
+ */
+const CORPUS_LOGIN = {
+  emails: /^(mara|theo|sam)@tidewater\.test$/,
+  password: "tidewater-demo",
+};
 
 export type Mode = "gate-only" | "fake" | "live";
 
@@ -44,84 +56,6 @@ const allowAll: Reviewer = {
     };
   },
 };
-
-function promptEntries(prompt: string): { entry_id: string; route: string }[] {
-  const start = prompt.indexOf("<batch_data>\n") + "<batch_data>\n".length;
-  const data = JSON.parse(prompt.slice(start, prompt.lastIndexOf("\n</batch_data>"))) as {
-    entries: { entry_id: string; route: string }[];
-  };
-  return data.entries;
-}
-
-const promptEntryIds = (prompt: string) => promptEntries(prompt).map((e) => e.entry_id);
-
-export class BudgetExceeded extends Error {}
-
-/** Wraps a reviewer to time every call and record tokens, with a hard spend cap. */
-function instrument(inner: Reviewer, maxUsd: number, costOf: (c: CallRecord) => number) {
-  const calls: CallRecord[] = [];
-  const escalated = new Set<string>();
-  // Counted when a call *starts*: an inline call that hits its deadline never resolves
-  // in time to be recorded before the gateway answers 503.
-  const started: Record<string, number> = {};
-  // The model's own inline verdict per entry (before the gateway's confidence bar), so
-  // the report can say *why* an inline write was refused. Keyed by entry id, which for
-  // inline review is the gateway's request id.
-  const inlineVerdicts = new Map<string, VerdictRecord>();
-  let spent = 0;
-  const reviewer: Reviewer = {
-    async review(call) {
-      if (spent >= maxUsd) throw new BudgetExceeded(`eval budget of $${maxUsd} reached`);
-      const promptData = promptEntries(call.prompt);
-      const ids = promptData.map((e) => e.entry_id);
-      const route = promptData.length === 1 ? promptData[0]?.route : undefined;
-      if (call.tier === "escalation") for (const id of ids) escalated.add(id);
-      started[call.tier] = (started[call.tier] ?? 0) + 1;
-      const at = Date.now();
-      let outcome: Awaited<ReturnType<Reviewer["review"]>>;
-      try {
-        outcome = await inner.review(call);
-      } catch (err) {
-        // Timeouts (aborted by the inline deadline) and API errors are calls too.
-        calls.push({
-          tier: call.tier,
-          model: "unknown",
-          latencyMs: Date.now() - at,
-          outcome: `error: ${(err as Error).name}`,
-          entries: ids.length,
-          route,
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheReadTokens: 0,
-          cacheWriteTokens: 0,
-        });
-        throw err;
-      }
-      const record: CallRecord = {
-        tier: call.tier,
-        model: "model" in outcome ? outcome.model : "unknown",
-        latencyMs: Date.now() - at,
-        outcome: outcome.kind,
-        ...(outcome.kind === "refusal" ? { refusalCategory: outcome.category } : {}),
-        entries: ids.length,
-        route,
-        inputTokens: outcome.usage?.inputTokens ?? 0,
-        outputTokens: outcome.usage?.outputTokens ?? 0,
-        cacheReadTokens: outcome.usage?.cacheReadTokens ?? 0,
-        cacheWriteTokens: outcome.usage?.cacheWriteTokens ?? 0,
-      };
-      calls.push(record);
-      spent += costOf(record);
-      if (call.tier === "inline" && outcome.kind === "output") {
-        const v = (outcome.output as { verdicts?: (VerdictRecord & { entry_id: string })[] })
-          .verdicts?.[0];
-        if (v && ids[0]) inlineVerdicts.set(ids[0], v);
-      }
-      return outcome;
-    },
-  };
-  return { reviewer, calls, escalated, started, inlineVerdicts };
-}
 
 /** Workflow-like step runner: runs steps inline, retrying with the requested backoff. */
 const stepRunner: StepRunner = {
@@ -215,7 +149,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
   );
 
   const config = defineLazaret(
-    tidewaterConfig({
+    helpdeskConfig({
       ledger: { binding: "EVAL_LEDGER", shard: options.shard },
       ...(options.memory ? { memory: { binding: "EVAL_MEMORY", name: options.memory.name } } : {}),
     }),
@@ -240,19 +174,20 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
     if (id) reached.add(id);
     const body = await request.text();
     const path = new URL(request.url).pathname;
-    // Like Tidewater: only the seeded demo accounts can log in. A stuffing burst
-    // therefore produces a run of 401s, which is what the gate's failure scoring sees.
+    // Only the seeded accounts can log in. A stuffing burst therefore produces a run of
+    // 401s, which is what the gate's failure scoring sees. The addresses and password
+    // are the ones the corpus was written with (CORPUS_LOGIN), kept as recorded.
     if (path === "/api/login") {
       const creds = JSON.parse(body || "{}") as { email?: unknown; password?: unknown };
       const ok =
         typeof creds.email === "string" &&
-        /^(mara|theo|sam)@tidewater\.test$/.test(creds.email) &&
-        creds.password === "tidewater-demo";
+        CORPUS_LOGIN.emails.test(creds.email) &&
+        creds.password === CORPUS_LOGIN.password;
       return ok
         ? Response.json({ token: `tw_${"0".repeat(48)}` })
         : Response.json({ error: "invalid email or password" }, { status: 401 });
     }
-    // The gateway's actor lookup before inline review (review.actor in the Tidewater config).
+    // The gateway's actor lookup before inline review (review.actor in the fixture config).
     if (request.method === "GET" && path === "/api/me") {
       const account = actors.get(request.headers.get("authorization") ?? "");
       return account
@@ -378,7 +313,7 @@ export async function runCorpus(corpus: EvalCase[], options: HarnessOptions) {
         }
         if (step.newBatch) await reviewSealed();
         const res = await gateway.fetch(
-          new Request(`https://support.tidewater.test${path}`, {
+          new Request(`https://support.helpdesk.test${path}`, {
             method: step.method,
             headers: {
               authorization: tokenOf(c, step.session),

@@ -5,11 +5,12 @@
       "**",
       "!**/node_modules",
       "!**/.wrangler",
+      "!**/.venv",
+      "!**/.pytest_cache",
       "!**/dist",
       "!tasks",
       "!evals/results",
-      "!**/.astro",
-      "!apps/site/src/assets/logos"
+      "!**/.astro"
     ]
   },
   "formatter": {

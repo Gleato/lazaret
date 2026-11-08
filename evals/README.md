@@ -1,7 +1,9 @@
 # Lazaret evals
 
 A labelled corpus and a runner that measures how well Lazaret keeps attacks away from
-origin while letting real customers through. It uses the Tidewater demo's own config.
+origin while letting real customers through. It measures a small fictional helpdesk's config
+([`src/fixture/config.ts`](src/fixture/config.ts)) against a stub origin. The corpus keeps
+that helpdesk's original fictional account names, since it is a measurement record.
 
 ## Corpus
 
@@ -35,7 +37,7 @@ so cases don't share rate or taint state.
 
 Attack classes include SQLi, XSS, mass assignment, refund fraud, credential stuffing,
 prompt injection aimed at Lazaret's reviewer (`reviewer_injection`), indirect injection
-aimed at Tidewater's AI agent (`downstream_injection`) and taint. The benign side leans on
+aimed at the helpdesk's AI agent (`downstream_injection`) and taint. The benign side leans on
 hard negatives: tickets quoting SQL errors, HTML embed snippets, `localhost` URLs,
 angry customers, legitimate refunds, natural uses of "ignore", non-English text.
 

@@ -2,7 +2,7 @@ import { type Committer, TransientCommitError } from "../commit/committer.ts";
 import type { ResolvedConfig } from "../config/define.ts";
 import type { LazaretLedger, OperatorResult } from "../ledger/durable-object.ts";
 import type { EntryState } from "../ledger/types.ts";
-import { archiveRecord } from "../memory/sample.ts";
+import { archiveRecord, learnsFromEntry } from "../memory/sample.ts";
 import type { DisputedWrite, LazaretMemory } from "../memory/store.ts";
 import { json } from "./http.ts";
 import { sha256Hex } from "./session.ts";
@@ -209,7 +209,7 @@ function labelInMemory(
   category: string | undefined,
 ): void {
   const { memory } = deps;
-  if (!memory) return;
+  if (!memory || !learnsFromEntry(entry)) return;
   const reviewed = entry.verdict?.category;
   const verdict = action === "release" ? ("allow" as const) : ("drop" as const);
   const labelled: EntryState = {
@@ -252,6 +252,9 @@ function queueView(e: EntryState) {
     signals: e.signals.map((s) => ({ id: s.id, weight: s.weight, evidence: s.evidence })),
     verdict: e.verdict ?? null,
     resolution: e.resolution ?? null,
+    // What an agent was asked to do, so a person can judge the write the way the reviewer
+    // did. Its tool results are attacker-influenced text, like the body.
+    ...(e.agent ? { agent: e.agent } : {}),
     request: {
       method: e.request.method,
       path: e.request.path,

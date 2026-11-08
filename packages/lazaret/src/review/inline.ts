@@ -53,6 +53,7 @@ export async function inlineReview(
         tier: "inline",
         prompt: buildInlinePrompt(entry, actor, linked),
         signal: controller.signal,
+        ...(entry.agent ? { agent: true } : {}),
       }),
       deadline,
     ]);

@@ -8,7 +8,7 @@ import {
 
 // A scripted stand-in for the distiller (AnthropicRuleProposer), for the fake Memory
 // eval: free, deterministic and CI-checked. It is the scripted reviewer's partner
-// (apps/demo-lazaret/src/scripted-reviewer.ts): that one drops on a keyword list, this
+// (src/fixture/scripted-reviewer.ts): that one drops on a keyword list, this
 // one turns those drops back into gate rules from the same list.
 //
 // So the fake run measures the Memory's *plumbing*: archive → distill → backtest →

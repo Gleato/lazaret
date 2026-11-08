@@ -10,7 +10,7 @@ import {
   type RuleProposer,
   runDistillation,
 } from "@gleator/lazaret";
-import { tidewaterConfig } from "@gleator/tidewater-lazaret/config";
+import { helpdeskConfig } from "./fixture/config";
 import { runCorpus } from "./harness";
 import { frozenNamespace, frozenPort } from "./memory-eval";
 import { summarize } from "./metrics";
@@ -221,7 +221,7 @@ export async function simulatedOperator(
   disputeIds: string[],
 ) {
   const config = defineLazaret(
-    tidewaterConfig({
+    helpdeskConfig({
       ledger: { binding: "EVAL_LEDGER", shard },
       memory: { binding: "EVAL_MEMORY", name: memoryName },
     }),
@@ -242,7 +242,7 @@ export async function simulatedOperator(
   } as unknown as ExecutionContext;
   const call = (path: string, body?: unknown) =>
     gateway.fetch(
-      new Request(`https://support.tidewater.test/__lazaret/operator/${path}`, {
+      new Request(`https://support.helpdesk.test/__lazaret/operator/${path}`, {
         method: body === undefined ? "GET" : "POST",
         headers: {
           authorization: `Bearer ${OPERATOR_TOKEN}`,

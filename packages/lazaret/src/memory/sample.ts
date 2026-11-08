@@ -44,6 +44,19 @@ export function sampleFromEntry(entry: EntryState): RuleSample {
   };
 }
 
+/** Stands in for a rule id on a write held because origin couldn't say what its task was. */
+export const TASK_UNKNOWN_RULE = "task-unknown";
+
+/**
+ * Whether a decision on this entry can teach the Memory. Not for agent writes: their
+ * verdicts depend on a task the gate never sees, so a rule learned from one would misfire,
+ * and an on-task allow would count against a good rule. That includes a write held because
+ * its task couldn't be found, since nobody knows what it would have been judged against.
+ */
+export function learnsFromEntry(e: EntryState): boolean {
+  return !e.agent && e.hold?.ruleId !== TASK_UNKNOWN_RULE;
+}
+
 /** Archive record for an entry that has a verdict. */
 export function archiveRecord(
   entry: EntryState,

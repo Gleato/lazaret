@@ -18,7 +18,7 @@ import type { LazaretLedger } from "../ledger/durable-object.ts";
 import { HOLD_CAP_PER_HOUR, type LinkCounts, type LinkedWrite, linkKeys } from "../ledger/links.ts";
 import type { ObservedInput } from "../ledger/public.ts";
 import type { EntryInput } from "../ledger/types.ts";
-import { archiveRecord } from "../memory/sample.ts";
+import { archiveRecord, TASK_UNKNOWN_RULE } from "../memory/sample.ts";
 import type { LazaretMemory } from "../memory/store.ts";
 import { overlayResponse } from "../overlay/apply.ts";
 import { meteredReviewer, tierModel } from "../review/budget.ts";
@@ -38,6 +38,7 @@ import {
 import { handleOperator } from "./operator.ts";
 import { handlePublic, PUBLIC_KINDS } from "./public.ts";
 import { deriveSessionId } from "./session.ts";
+import { lookupTask, type TaskLookup } from "./task.ts";
 
 // The Gateway is the Worker entrypoint. For every request it:
 //   1. normalises the path and matches a route (or the read/write fallback)
@@ -358,6 +359,23 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
           : Promise.resolve(null);
       };
 
+      // The agent's task, from origin. Asked per write, not cached: a run's tool results
+      // change between steps. Only for writes that got past the gate.
+      const taskLookup = (): Promise<TaskLookup> => {
+        const taskConfig = config.review.task;
+        return taskConfig
+          ? lookupTask(taskConfig, (signal) =>
+              toOrigin(
+                crypto.randomUUID(),
+                "GET",
+                originUrl(config.origin, taskConfig.path, ""),
+                null,
+                signal,
+              ),
+            )
+          : Promise.resolve({ kind: "none" });
+      };
+
       const params = matched?.params ?? {};
       const resourceTemplates = matched?.compiled.route.resources ?? [];
       const resources = resourceTemplates.map((t) => fillTemplate(t, params));
@@ -541,6 +559,17 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
         case "ESCROW": {
           if (links.length) entry.links = links;
           if (hold) entry.hold = hold;
+          const task = await taskLookup();
+          if (task.kind === "task") entry.agent = task.context;
+          // Fails closed: reviewing without the task is the weaker review a hijacked agent
+          // would want. A person decides instead, and no model is paid to guess.
+          if (task.kind === "unknown" && !entry.hold) {
+            entry.hold = {
+              ruleId: TASK_UNKNOWN_RULE,
+              category: "other",
+              description: "Held because origin could not say what task this client was given.",
+            };
+          }
           const receipt = await ledgerFor(env).append(entry);
           return tag(
             json(
@@ -594,28 +623,36 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
           // Already looked up above when linking needed it.
           if (!actorKnown) actor = await actorLookup();
           const history = spent ? [] : linkHistory;
+          const task: TaskLookup = spent ? { kind: "none" } : await taskLookup();
+          const agent = task.kind === "task" ? { agent: task.context } : {};
           const started = Date.now();
           const result = spent
             ? ({ unavailable: "daily review budget spent", cause: "budget" } as const)
-            : await inlineReview(
-                {
-                  ...entry,
-                  id: requestId,
-                  batchId: "inline",
-                  status: "PENDING",
-                  receivedAt: sample.at,
-                },
-                reviewer,
-                config,
-                actor,
-                history.length && link
-                  ? { byEntry: { [requestId]: history }, previewChars: link.previewChars }
-                  : undefined,
-              );
+            : task.kind === "unknown"
+              ? // Fails closed, past any gate fallback: an outage must not put a hijacked
+                // agent back under the weaker no-task review.
+                ({ unavailable: "agent task unknown", cause: "unusable" } as const)
+              : await inlineReview(
+                  {
+                    ...entry,
+                    ...agent,
+                    id: requestId,
+                    batchId: "inline",
+                    status: "PENDING",
+                    receivedAt: sample.at,
+                  },
+                  reviewer,
+                  config,
+                  actor,
+                  history.length && link
+                    ? { byEntry: { [requestId]: history }, previewChars: link.previewChars }
+                    : undefined,
+                );
           const latencyMs = spent ? undefined : Date.now() - started;
           // Inline verdicts feed the Memory like batch verdicts do (off the critical path).
           const memory = memoryFor(env);
-          if (memory && "verdict" in result) {
+          // Not agent writes: see learnsFromEntry in memory/sample.ts.
+          if (memory && "verdict" in result && task.kind !== "task") {
             const record = archiveRecord(
               {
                 ...entry,

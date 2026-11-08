@@ -212,7 +212,7 @@ describe("Gateway count signals", () => {
       gateway.fetch(
         new Request("https://edge.test/api/login", {
           method: "POST",
-          body: JSON.stringify({ email: "mara@tidewater.test", password: "x" }),
+          body: JSON.stringify({ email: "mara@example.test", password: "x" }),
           headers: {
             "content-type": "application/json",
             "user-agent": "Mozilla/5.0 (test)",
@@ -235,8 +235,8 @@ describe("Gateway count signals", () => {
     const { post, stub } = setup({}, down);
     // Logins are decided inline; record two (after the response, as waitUntil would),
     // so the third carries a count signal of 2.
-    await post("/api/login", { email: "mara@tidewater.test", password: "x" });
-    await post("/api/login", { email: "mara@tidewater.test", password: "x" });
+    await post("/api/login", { email: "mara@example.test", password: "x" });
+    await post("/api/login", { email: "mara@example.test", password: "x" });
     await vi.waitFor(async () => {
       const { counts } = await stub.getLinkContext(
         ["session:x", "actor:acct_mara"],
@@ -244,7 +244,7 @@ describe("Gateway count signals", () => {
       );
       expect(counts.senderRoute).toBe(2);
     });
-    const res = await post("/api/login", { email: "mara@tidewater.test", password: "x" });
+    const res = await post("/api/login", { email: "mara@example.test", password: "x" });
     // Before M11's fix, the zero-weight count made the gate's view "not spotless", and
     // this login failed closed (503) during a reviewer outage.
     expect(res.status).toBe(201);

@@ -1,4 +1,4 @@
-<p><img src="https://raw.githubusercontent.com/Gleato/lazaret/main/apps/site/public/brand/lazaret-banner.png" alt="Lazaret" width="640"></p>
+<p><img src="https://raw.githubusercontent.com/Gleato/lazaret/main/docs/lazaret-banner.png" alt="Lazaret" width="640"></p>
 
 # @gleator/lazaret
 
@@ -24,8 +24,8 @@ that fails is dropped, together with the writes that depend on it.
   counting rules, which send repeated claims to a person with no model call. They climb
   to `hold` and never to block.
 
-Live demo: [demo.gleator.com](https://demo.gleator.com). Full guide, design notes and
-evals: [github.com/Gleato/lazaret](https://github.com/Gleato/lazaret).
+Simulated demo: [gleator.com/projects/lazaret](https://gleator.com/projects/lazaret). Full
+guide, design notes and evals: [github.com/Gleato/lazaret](https://github.com/Gleato/lazaret).
 
 ## Install
 
@@ -85,8 +85,8 @@ Bindings: `LAZARET_LEDGER` and `LAZARET_MEMORY` (Durable Objects), `LAZARET_REVI
 `LAZARET_SIGNING_SECRET`, plus `LAZARET_OPERATOR_TOKEN` if you want the human review
 queue. To share behaviour counts across isolates, add `behaviour: { store: "durable" }`
 and a `LazaretBehaviour` binding. The repo's
-[Tidewater deployment](https://github.com/Gleato/lazaret/tree/main/apps/demo-lazaret)
-is a complete, working example.
+[step-by-step guide](https://github.com/Gleato/lazaret#put-lazaret-in-front-of-your-own-api)
+walks through a complete example.
 
 `@gleator/lazaret/public` exports the public stream's types with no Workers imports, for
 browser clients.

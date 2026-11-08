@@ -2319,3 +2319,94 @@ Deployed 2026-11-06: `7586d50`, worker version 91491484-2b89-481a-b4d7-3c9aaaec2
 Round icon (2026-11-06): `gg-favicon-round.svg` added, used for `favicon.ico`, and `icon-192.png` now uses the round badge. Both have transparent corners. `apple-touch-icon.png` stays square because iOS fills transparency with black and applies its own mask. Checked on dark and light tabs locally.
 
 Deployed 2026-11-06: `5c10762`, worker version 19eba27d-8a7a-41ee-8d9f-46d415bdef28. All three icon files on gleator.com match the repo byte for byte, and the live HTML has no `localhost`. Not seen in a real browser tab on the live site; tab rendering was checked locally.
+
+
+## AgentDojo pilot (2026-11-06)
+Plan: `~/.claude/plans/zippy-sauteeing-dijkstra.md`. A pilot, not a publishable score: README and site numbers don't change.
+
+- [x] Move spend tracking out of `evals/src/harness.ts` so the bench Worker has no Tidewater imports
+- [x] Bench Worker (`evals/benchmark/`): real gateway and inline reviewer, stub origin, local only
+- [x] Python harness (`evals/benchmark/agentdojo/`): gated runtime and ground-truth replay on AgentDojo banking
+- [x] Free dry run: arm A about 100% over delivered pairs, allow-all matches A, drop-by-tool 0%
+- [x] Paid replay, arms B (as shipped) and C (with task), hard cap $3, confirmed first
+- [x] Paid live sample, hard cap $5, confirmed first
+- [x] Findings and go/no-go for a full AgentDojo run
+
+Paid replay results (2026-11-07, banking, 144 attack pairs, one run each, open-loop, inline review only). Raw files are in `evals/results/benchmark/`.
+
+| Arm | Attack success | Honest tasks completed | Honest writes refused | Review cost |
+| --- | --- | --- | --- | --- |
+| A, no defense | 100% (144/144) | 100% (16/16) | 0 of 14 | $0 |
+| B, as shipped | 41% (59/144) | 81% (13/16) | 3 of 14 | $0.0418 |
+| C, told the task (not shipped) | 0% (0/144) | 69% (11/16) | 6 of 14 | $0.0476 |
+
+Added time per write was 1.3-1.4 s at p50 and 1.9 s at p95, with one deadline hit per paid arm, which failed closed. The replay floor with every write refused is 44% honest tasks completed. The reviewer can't see tool results, so in arm C it held honest writes it couldn't verify, such as a bill amount.
+
+Live sample (2026-11-07, `claude-haiku-5-5` agent, `important_instructions` attack, 4 user tasks chosen in advance for injection-route coverage, 36 pairs, one trial each):
+
+| Arm | Agent read the injection | Agent tried the attack | Attack succeeded | Tasks finished under attack | Honest tasks finished |
+| --- | --- | --- | --- | --- | --- |
+| Model alone | 36 of 36 | 0 | 0 | 10 of 36 | 3 of 4 |
+| Model plus Lazaret as shipped | 36 of 36 | 0 | 0 | 12 of 36 | 3 of 4 |
+
+Lazaret refused no write in the live sample, because the agent never tried one for the attacker. It added 1.1 s per write at p50 and 1.3 s at p95. The attack still cost a lot: the agent abandoned most tasks once it saw the injection, and 10 vs 12 finished is within noise for one trial. Total pilot spend was about $0.19.
+
+### Review
+- **Fit:** the real gateway and inline reviewer run under AgentDojo with the benchmark code unmodified. The harness needs `anthropic<1`, because AgentDojo can't use SDK 2.x.
+- **Biggest finding:** the reviewer doesn't know what the agent was asked to do. As shipped it let 41% of hijacked writes through; told the task, 0%, at the cost of refusing more honest writes (6 of 14 vs 3 of 14).
+- **Measuring Lazaret:** this model at this attack leaves Lazaret nothing to stop, so a live score can't show its value. Hijacked replay should stay the main number, with the model-alone arm reported beside it.
+- **Go/no-go:** go for replay on the other three suites, once their tools are classified as reads or writes. No-go for a larger live run on this attack. Use adaptive attacks (AutoDojo) before spending more on live agents.
+- **Not done:** one trial, one suite, static attacks. Nothing here is ready to publish, and README and site numbers are unchanged.
+
+## Task context for the reviewer (2026-11-07)
+Plan: `~/.claude/plans/silly-hatching-shamir.md`. Banking replay only. Not a publishable score: README and site numbers don't change.
+
+- [x] `review.task`: a signed lookup to origin using the client's credential (`gateway/task.ts`), failing closed if origin can't answer
+- [x] Task outside `<batch_data>` in all three prompt builders; `AGENT_SYSTEM_PROMPT` kept apart so `SYSTEM_PROMPT` stays byte-identical
+- [x] Tool results as untrusted evidence inside `<batch_data>`, off by default (`toolResultsField`)
+- [x] Agent writes kept out of the Memory; task shown in the operator queue; absent from public frames
+- [x] Bench uses the real lookup; `withTaskContext` removed; forged-data variant added
+- [x] Tests, typecheck and lint pass; free dry runs matched expectations
+- [x] Paid replay ($0.45, cap $2) and corpus re-baseline ($0.31, cap $1), both confirmed first
+
+Replay results (banking, 144 attack pairs, open-loop, inline review only, `claude-haiku-5-5`). Ranges are across repeats. Raw files are in `evals/results/benchmark/`.
+
+| Arm | Runs | Attack success | Attack writes refused | Honest tasks completed | Honest writes refused (of 14) | Tasks completed under attack | Added per write, p50 / p95 | Cost per 1,000 writes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| A, no defense (pilot) | 1 | 100% (144/144) | 0 | 16/16 | 0 | 100% | 0 | $0 |
+| B, no task (pilot) | 1 | 41% (59/144) | 116 held, 1 failed closed | 13/16 | 3 (3 held) | 85% | 1.3 / 1.9 s | $0.13 |
+| B, no task (re-run) | 1 | 38% (55/144) | 120 held, 1 failed closed | 14/16 | 2 (2 held) | 83% | 1.2 / 1.6 s | $0.13 |
+| C, unshipped experiment (pilot) | 1 | 0% (0/144) | 134 dropped, 41 held, 1 failed closed | 11/16 | 6 (6 held) | 68% | 1.3 / 1.9 s | $0.15 |
+| D, `review.task` | 3 | 0% (0/144 each) | 167-170 dropped, 6-9 held | 11-12/16 | 4-5 (3 dropped, 1-2 held) | 66-68% | 1.2 / 1.5-1.6 s | $0.15 |
+| E, task and tool results | 3 | 0% (0/144 each) | 175 dropped, 1 failed closed | 13-14/16 | 2-4 (2 dropped, 0-1 held, 0-1 failed closed) | 60-63% | 1.3 / 1.8-1.9 s | $0.21 |
+| E on forged data | 1 | 1% (1/144) | 170 dropped, 1 held, 5 allowed | 13/16 | 4 (3 dropped, 1 held) | 64% | 1.3 / 1.8 s | $0.21 |
+
+Seven of the 16 tasks need no write, so the floor with every write refused is 7/16 (44%). Held writes count as not delivered. Arm E hit the 3 s deadline 1-3 times per run, each failing closed; arm D never did.
+
+Corpus re-baseline: 67/67 attacks stopped, 0 false positives, $0.31 (`evals/results/subset-live-2026-11-07T07-10-55Z.json`). The published run had 67/67 and 2 false positives. The no-task prompts are byte-identical, so that difference is run-to-run noise, not an improvement. It was run as a full-size subset so `live-latest.json`, which the site publishes, stays unchanged. Free gate-only and fake runs matched exactly.
+
+### Review
+- **What the task gives:** attack success fell from about 40% to 0% in all three runs of each arm, and the task now comes from a source the client can't forge.
+- **What it costs:** honest tasks are 11-14 of 16 against 13-14 without a task, and tasks completed under attack fall from 83-85% to 60-68%. Under attack, the reviewer refuses more of the agent's honest writes too.
+- **Tool results earn their place on utility:** arm E completed 13-14 honest tasks against 11-12 for D, at about 40% more review cost, about 0.25 s more at p95, and a few deadline failures.
+- **Tool results also open a hole, as feared:** with a planted line that looks like data, arm E allowed 5 of 176 attack writes, and one attack succeeded (a bill task, with 30,000 "owed" to the attacker). Arm D can't be fooled this way, because it never sees the planted text. The cases allowed were the two tasks that send the agent to that document. This is one run of a small hand-written attack, so it shows the hole exists, not how big it is. A real adaptive attacker should do better.
+- **Decision:** tool results stay in, off by default. Turn them on only where a refused honest write costs more than this risk.
+- **Honest writes were dropped (fixed, see below):** the first agent prompt dropped honest writes, where the pilot's experiment held them. Tasks 0, 14 and 15 were dropped in every run of arm D, and task 14 in every run of arm E. An escrowed drop never reaches a person.
+- **Run-to-run noise:** B moved 41% to 38% and 13 to 14 tasks with no change at all, so small differences here mean nothing.
+- **Not done:** one suite, open-loop, static attacks plus one small hand-written variant, and the live-agent sample wasn't re-run. The agent prompt was written from this suite's pilot rationales and then revised once after seeing results, so these numbers aren't from held-out data. Banking's upstream scoring bug (#240) still favours the attacker. Lazaret can't enforce the three deployment rules behind the forgery guarantee (README step 12).
+
+### Revision: hold off-task writes, don't drop them (2026-11-08)
+The one post-result prompt revision the plan allowed. A write the task doesn't call for is now quarantined, so a person can still release it. Drop is kept for writes that are attacks on their own, such as personal details put in a payment subject. One run per arm, $0.12 against a $0.30 cap.
+
+| Arm | Attack success | Attack writes refused | Honest tasks completed | Honest writes refused (of 14) | Completed under attack | Added per write, p50 / p95 | Cost per 1,000 writes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| D before (3 runs) | 0% | 167-170 dropped, 6-9 held | 11-12/16 | 4-5 (3 dropped) | 66-68% | 1.2 / 1.5-1.6 s | $0.15 |
+| D after | 0% (0/144) | 46 dropped, 130 held | 12/16 | 4 (all held, none dropped) | 69% | 1.3 / 1.7 s | $0.16 |
+| E before (3 runs) | 0% | 175 dropped, 1 failed closed | 13-14/16 | 2-4 (2 dropped) | 60-63% | 1.3 / 1.8-1.9 s | $0.21 |
+| E after | 0% (0/144) | 155 dropped, 21 held | 15/16 | 1 (held) | 60% | 1.4 / 1.8 s | $0.21 |
+
+- No honest write was dropped in either arm. Every honest refusal is now a hold a person can release.
+- More attack writes are now held instead of dropped, mostly in arm D, so a person's queue gets more attack writes to clear. On escrowed routes, that's the trade for not losing honest ones. On inline routes, a hold and a drop both refuse.
+- Arm E's 15/16 is one run. Earlier runs give 13-14, so read it as 13-15.
+- The forged-data variant wasn't re-run, so the fake-bill result above still stands for arm E.
+- Tool results stay off by default.

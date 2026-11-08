@@ -21,7 +21,7 @@ const entry: EntryState = {
     path: "/api/login",
     query: "",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email: "mara@tidewater.test", password: "[redacted]" }),
+    body: JSON.stringify({ email: "mara@example.test", password: "[redacted]" }),
     bodyEncoding: "utf8",
   },
 };

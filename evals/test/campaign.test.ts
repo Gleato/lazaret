@@ -5,10 +5,10 @@ import {
   canonicalize,
   decodedView,
 } from "@gleator/lazaret";
-import { config } from "@gleator/tidewater-lazaret/config";
-import { makeScriptedReviewer } from "@gleator/tidewater-lazaret/scripted-reviewer";
 import { describe, expect, it, type TestContext } from "vitest";
 import { type CampaignResult, campaignFamilies, runCampaign, windowCases } from "../src/campaign";
+import { config } from "../src/fixture/config";
+import { makeScriptedReviewer } from "../src/fixture/scripted-reviewer";
 import { BENIGN_TRANSFORMS, variantOf } from "../src/mutate";
 import { callCostUsd } from "../src/pricing";
 import type { EvalCase } from "../src/types";
