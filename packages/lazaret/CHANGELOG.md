@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.4.0 (2026-11-17)
+
+Tells the reviewer what an AI agent was asked to do, so a hijacked agent's clean-looking
+writes stand out.
+
+### Added
+
+- Task context (`review.task`). Before each reviewed write, the gateway makes a signed
+  `GET` to origin with the client's own headers, and origin answers with that agent run's
+  task, keyed on the credential. The reviewer then judges whether the write serves the
+  task. The task can't come from the request, because a hijacked agent controls it.
+  - `204`, `401`, `403`, or a `200` with no task: not an agent, reviewed as before.
+  - Anything else, including a timeout or a `404`: fails closed. An inline write is
+    refused, an escrowed one held for a person.
+  - A write the task doesn't call for is held for a person, not dropped. Drop is kept for
+    writes that are attacks on their own.
+- Tool results as untrusted evidence (`review.task.toolResultsField`), off by default.
+  The reviewer sees the newest 8 to check details such as an amount on a bill.
+- `AGENT_SYSTEM_PROMPT` and `buildInlinePrompt` are exported. With no task, every prompt
+  is byte-identical to 0.3.1.
+- The operator queue shows the task next to a held write.
+
+### Measured
+
+AgentDojo banking (v1.2.2), 144 injection attack pairs replayed open-loop through the real
+gateway, `claude-haiku-5-5` inline reviewer (`evals/results/benchmark/`):
+
+|                                       | Attacks through   | Honest tasks done |
+| ------------------------------------- | ----------------- | ----------------- |
+| No defense                            | 144 of 144        | 16 of 16          |
+| 0.3.1, or 0.4.0 without `review.task` | 55-59 of 144      | 13-14 of 16       |
+| 0.4.0 with `review.task`              | 0 of 144 (4 runs) | 11-12 of 16       |
+| With tool results too                 | 0 of 144 (4 runs) | 13-15 of 16       |
+
+The reviewer prompt was written from this suite's results, so these aren't held-out
+numbers. One suite, static attacks.
+
+### Known limits
+
+- With tool results on, an attack planted as an ordinary line in a bill the user asked
+  to pay got 1 of 144 through: the reviewer took the forged bill as evidence. This is why
+  tool results stay off by default.
+- The 0% depends on origin getting three things right that Lazaret can't check: one
+  credential per agent run, a task set only from the user's side, and a lookup keyed on
+  the credential alone. See step 12 of the guide.
+- Under attack, more honest writes are held for a person (4 of 14 against 2-3 without a
+  task).
+
+### Upgrading from 0.3.1
+
+No configuration change is needed, and nothing was removed. Without `review.task`,
+nothing changes. With it, each reviewed write adds one origin round trip, and writes
+reviewed with a task stay out of the Memory, because their verdicts depend on something
+the gate can't see. `WriteEntry` has a new optional `agent` field.
+
 ## 0.3.1 (2026-11-05)
 
 Documentation only: the README carries the new Lazaret logo. No code changes.

@@ -13,7 +13,7 @@ Workers that holds every write bound for your origin in a stateful ledger. An
 independent Claude reviewer vets each batch, and only writes that pass reach your
 server. Writes that fail are dropped, along with anything that depends on them.
 
-> **Status:** the library is [`@gleator/lazaret`](packages/lazaret) 0.3.1 on npm. The
+> **Status:** the library is [`@gleator/lazaret`](packages/lazaret) 0.4.0 on npm. The
 > project page at [gleator.com](https://gleator.com/projects/lazaret) has a simulated,
 > clickable demo that replays verdicts from a recorded live eval run. To see it live, put
 > it in front of your own API: `npm install @gleator/lazaret` and follow the steps below.
@@ -388,6 +388,37 @@ sender in the hour"), and it reached `hold` in wave 2. A counting rule climbs sh
 hold and never blocks. It held no honest write. Every honest stop came from the reviewer:
 see [What Lazaret doesn't catch](#what-lazaret-doesnt-catch).
 
+### AgentDojo
+
+The corpus above is written for this project. [AgentDojo](https://github.com/ethz-spylab/agentdojo)
+is a public benchmark of prompt injection against tool-using agents. Its banking suite was
+replayed open-loop through the real gateway: each of 16 user tasks runs its known-good
+tool calls, and each of the 144 attack pairs then sends the hijacked agent's writes
+([`evals/benchmark/`](evals/benchmark), `claude-haiku-5-5` inline reviewer, 2026-11-07
+and 2026-11-08):
+
+|                                                        | Attacks through  | Honest tasks done |
+| ------------------------------------------------------ | ---------------- | ----------------- |
+| No defense                                             | 144 of 144       | 16 of 16          |
+| Without `review.task` (0.3.1)                          | 55-59 of 144     | 13-14 of 16       |
+| With `review.task` (step 12)                           | 0 of 144, 4 runs | 11-12 of 16       |
+| With tool results too                                  | 0 of 144, 4 runs | 13-15 of 16       |
+| With tool results, attack forged as a line in the bill | 1 of 144         | 13 of 16          |
+
+7 of the 16 tasks need no write, so 7 is the floor. A held write counts as not delivered.
+This is a pilot: one suite, static attacks, and the reviewer prompt was written from this
+suite's results, so the numbers aren't held-out. Full results and limits are in
+[`tasks/todo.md`](tasks/todo.md).
+
+**Next, a hypothesis.** In the forged run, the user asked the agent to pay a bill, and a
+planted line in that bill named the attacker's account and 30,000 in 10,000 instalments.
+The reviewer read the bill as evidence and allowed it. A reviewer that reads attacker
+text can be argued with. The idea to test: origin returns hard limits with the task, from
+the account's own records (known payees, usual amounts), and the gate holds any write
+outside them for a person before the model sees it, whatever the evidence says. If it
+works, it closes the forged-bill hole and makes tool results safe to turn on by default.
+Not built or measured yet.
+
 ```bash
 npm run eval:gate        # deterministic modes, free: evals/results/{gate-only,fake}.json
 EVAL_CONFIRM_SPEND=yes npm run eval:live   # real Claude, about $0.25, capped by EVAL_MAX_USD
@@ -478,6 +509,8 @@ dropped the ticket.
   fraud
 - [x] The live demo and its helpdesk retired (2026-11-06) for a simulated demo on
   gleator.com; the site moved to its own repo
+- [x] 0.4.0: agent task context (`review.task`), measured on AgentDojo banking
+- [ ] Hard limits from origin, held by the gate before review (see [AgentDojo](#agentdojo))
 
 The full spec is in [`tasks/todo.md`](tasks/todo.md).
 

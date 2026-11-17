@@ -17,6 +17,9 @@ that fails is dropped, together with the writes that depend on it.
   closed. A disagreement with the gate escalates to a stronger model. With `link`, it
   also sees each write's recent linked writes (same login, account or resource), so
   fraud split across requests that each look honest shows up as a pattern.
+- **Agent task:** for AI agents, origin tells the reviewer what the user asked the agent to
+  do (`review.task`), so a hijacked agent's well-formed writes stand out. On AgentDojo's
+  banking suite this took attacks through from about 40% to 0 of 144.
 - **Committer:** replays approved writes to origin, HMAC-signed and idempotent.
 - **Memory:** learns from the reviewer's verdicts and from human labels. It proposes rules
   in a safe DSL, backtests them against clean traffic, and promotes them into the gate,
