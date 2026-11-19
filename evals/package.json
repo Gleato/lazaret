@@ -15,12 +15,14 @@
     "eval:campaign:live": "EVAL_WRITE=1 EVAL_LIVE=1 vitest run test/campaign.test.ts",
     "eval:pattern": "EVAL_WRITE=1 vitest run test/pattern.test.ts",
     "eval:pattern:live": "EVAL_WRITE=1 EVAL_LIVE=1 vitest run test/pattern.test.ts",
+    "mcp:proxy": "wrangler dev -c mcp/proxy/wrangler.jsonc --ip 127.0.0.1 --port 8798",
     "bench:serve": "wrangler dev -c benchmark/wrangler.jsonc --ip 127.0.0.1 --port 8799",
     "bench:serve:live": "ln -sf ../.dev.vars benchmark/.dev.vars && wrangler dev -c benchmark/wrangler.jsonc --ip 127.0.0.1 --port 8799 --var BENCH_CONFIRM_SPEND:yes"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@gleator/lazaret": "*",
-    "@anthropic-ai/sdk": "^1.3.0"
+    "libpg-query": "^17.8.3"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.9",

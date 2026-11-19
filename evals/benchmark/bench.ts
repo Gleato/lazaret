@@ -22,7 +22,8 @@ export type Decision = "allow" | "drop" | "hold" | "gate_block" | "unavailable";
 
 const MODES: readonly ReviewerMode[] = ["live", "scripted:allow", "scripted:drop", "scripted:hold"];
 
-function scripted(verdict: "allow" | "drop" | "quarantine"): Reviewer {
+/** A free reviewer that gives every entry the same verdict. Also used by lazaret-mcp. */
+export function scripted(verdict: "allow" | "drop" | "quarantine"): Reviewer {
   return {
     async review({ prompt }) {
       return {

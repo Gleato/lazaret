@@ -2,5 +2,15 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": { "types": ["node"] },
-  "include": ["vitest.config.ts", "src/reporter.ts", "src/corpus.ts", "test/meta.d.ts"]
+  "include": [
+    "vitest.config.ts",
+    "src/reporter.ts",
+    "src/corpus.ts",
+    "test/meta.d.ts",
+    "mcp/proxy/compare.ts",
+    "mcp/host-hook.ts",
+    "mcp/client.ts",
+    "mcp/run.ts",
+    "mcp/replay.ts"
+  ]
 }
