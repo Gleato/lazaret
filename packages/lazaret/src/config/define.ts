@@ -1,4 +1,5 @@
 import { type CompiledRule, compileRule, type Rule } from "../gate/rules.ts";
+import { SIGNATURES } from "../gate/signatures.ts";
 import { type CycleConfig, DEFAULT_CYCLE, validateCycleConfig } from "../ledger/triggers.ts";
 import { builtinMerge, type MergeFn, type OverlayConfig } from "../overlay/merge.ts";
 import { type CompiledPattern, compilePattern, templateParams } from "../routing/matcher.ts";
@@ -9,6 +10,7 @@ import { type CompiledPattern, compilePattern, templateParams } from "../routing
 
 export type Policy = "PASS" | "INLINE_REVIEW" | "ESCROW" | "BLOCK";
 const POLICIES: readonly Policy[] = ["PASS", "INLINE_REVIEW", "ESCROW", "BLOCK"];
+const SIGNATURE_CATEGORIES = new Set(SIGNATURES.map((s) => s.category));
 const BUILTIN_MERGES = ["append-json-array", "patch-json-by-id", "merge-json-object"] as const;
 
 export interface RouteConfig {
@@ -40,6 +42,12 @@ export interface RouteConfig {
    * origin still checks the password. A decline or garbled answer always denies.
    */
   onReviewUnavailable?: "deny" | "gate";
+  /**
+   * Built-in signature categories that don't score this route, e.g. `["sqli"]` for a
+   * route whose payload is SQL by design (an agent's SQL tool). Only those signatures
+   * are skipped: every other signature, rules, behaviour scoring and review still apply.
+   */
+  skipSignatures?: string[];
 }
 
 export interface LazaretConfig {
@@ -343,6 +351,15 @@ export function defineLazaret(config: LazaretConfig): ResolvedConfig {
         problems.push(`route "${route.match}": onReviewUnavailable must be "deny" or "gate"`);
       } else if (route.policy !== "INLINE_REVIEW") {
         problems.push(`route "${route.match}": onReviewUnavailable only applies to INLINE_REVIEW`);
+      }
+    }
+    for (const category of route.skipSignatures ?? []) {
+      if (!SIGNATURE_CATEGORIES.has(category)) {
+        problems.push(
+          `route "${route.match}": skipSignatures has unknown category "${category}" (known: ${[
+            ...SIGNATURE_CATEGORIES,
+          ].join(", ")})`,
+        );
       }
     }
     routes.push({ route, pattern });

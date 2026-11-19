@@ -16,6 +16,7 @@
     "eval:pattern": "EVAL_WRITE=1 vitest run test/pattern.test.ts",
     "eval:pattern:live": "EVAL_WRITE=1 EVAL_LIVE=1 vitest run test/pattern.test.ts",
     "mcp:proxy": "wrangler dev -c mcp/proxy/wrangler.jsonc --ip 127.0.0.1 --port 8798",
+    "mcp:proxy:live": "ln -sf ../../.dev.vars mcp/proxy/.dev.vars && wrangler dev -c mcp/proxy/wrangler.jsonc --ip 127.0.0.1 --port 8798 --var MCP_REVIEWER:live --var BENCH_CONFIRM_SPEND:yes",
     "bench:serve": "wrangler dev -c benchmark/wrangler.jsonc --ip 127.0.0.1 --port 8799",
     "bench:serve:live": "ln -sf ../.dev.vars benchmark/.dev.vars && wrangler dev -c benchmark/wrangler.jsonc --ip 127.0.0.1 --port 8799 --var BENCH_CONFIRM_SPEND:yes"
   },

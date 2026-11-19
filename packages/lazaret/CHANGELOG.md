@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 (2026-11-19)
+
+### Added
+
+- `skipSignatures` on a route: built-in signature categories that don't score it, e.g.
+  `["sqli"]` for an agent's SQL tool, whose payload is SQL by design. Every other
+  signature, rules, behaviour scoring and review still apply, and unknown categories
+  are a config error. Found in the MCP eval: `sqli.tautology` held an honest
+  `UPDATE … WHERE … label = 'ci-deploy' AND customer_id = 3`.
+
 ## 0.4.0 (2026-11-17)
 
 Tells the reviewer what an AI agent was asked to do, so a hijacked agent's clean-looking

@@ -11,6 +11,8 @@
     "mcp/host-hook.ts",
     "mcp/client.ts",
     "mcp/run.ts",
-    "mcp/replay.ts"
+    "mcp/replay.ts",
+    "mcp/attacks.ts",
+    "mcp/live.ts"
   ]
 }

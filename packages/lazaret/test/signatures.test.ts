@@ -110,6 +110,23 @@ describe("attack signatures", () => {
 
   // Every signature runs on attacker-controlled input, so each must be linear-time.
   // A catastrophic-backtracking regex would take seconds (or forever) on these.
+  it("skips only the categories a route opts out of", () => {
+    const body = "x' or 1=1 -- <script>alert(1)</script>";
+    const all = scan(body).signals.map((s) => s.id);
+    expect(all).toEqual(expect.arrayContaining(["sqli.tautology", "xss.script_tag"]));
+    const skipped = inspect({
+      path: "/api/tickets",
+      query: "",
+      contentType: "text/plain",
+      bodyText: body,
+      headers: {},
+      sensitiveFields: DEFAULT_SENSITIVE_FIELDS,
+      skipSignatures: ["sqli"],
+    }).signals.map((s) => s.id);
+    expect(skipped.filter((id) => id.startsWith("sqli."))).toEqual([]);
+    expect(skipped).toEqual(all.filter((id) => !id.startsWith("sqli.")));
+  });
+
   it("has no ReDoS-prone signatures", () => {
     const hostile = [
       "a".repeat(100_000),

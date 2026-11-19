@@ -1,5 +1,5 @@
 import { createGateway, defineLazaret, type Reviewer, type VerdictRecord } from "@gleator/lazaret";
-import { scripted } from "../../benchmark/bench";
+import { ipFor, scripted } from "../../benchmark/bench";
 import { lookupTask, TASK_PATH, type TaskStore } from "./context";
 import type { ToolCall } from "./proxy";
 
@@ -13,12 +13,21 @@ import type { ToolCall } from "./proxy";
 
 export const mcpConfig = defineLazaret({
   origin: "https://mcp-origin.test",
-  routes: [{ match: "POST /tools/:name", policy: "INLINE_REVIEW" }],
+  // The SQL tools' payload is SQL by design, so the gate's web-form SQL-injection
+  // signatures (`sqli.*`) would score ordinary queries; they're skipped there only
+  // (found in step 9: `sqli.tautology` held an honest `UPDATE … WHERE … label = '…' AND …`).
+  routes: [
+    { match: "POST /tools/execute_sql", policy: "INLINE_REVIEW", skipSignatures: ["sqli"] },
+    { match: "POST /tools/apply_migration", policy: "INLINE_REVIEW", skipSignatures: ["sqli"] },
+    { match: "POST /tools/:name", policy: "INLINE_REVIEW" },
+  ],
   // One session per agent run, keyed on the client's credential to lazaret-mcp, and the
   // run's task is looked up by the same credential (step 5, context.ts). No tool results.
   session: { header: "authorization" },
   ledger: { binding: "MCP_LEDGER" },
-  review: { dailyBudgetUsd: 1, task: { path: TASK_PATH } },
+  // The library's own cap is kept out of the way; the run's cap is RunGuard (worker.ts),
+  // which makes a budget stop an invalid run, never a refused write. As in the bench.
+  review: { dailyBudgetUsd: 50, task: { path: TASK_PATH } },
 });
 
 export type ReviewerMode = "scripted:allow" | "scripted:drop" | "scripted:hold";
@@ -41,7 +50,15 @@ interface Pending {
   sent?: Response;
 }
 
-export function createWriteReview(reviewer: Reviewer, tasks: TaskStore) {
+/** A paid run's spend cap (worker.ts). A stop is a JSON-RPC error with status 402, not a refusal. */
+export interface RunGuard {
+  /** Why the run can't go on (the cap was reached), or null. */
+  stopped(): string | null;
+  /** The library's own budget refused a review: the run is invalid. */
+  libraryBudget(): void;
+}
+
+export function createWriteReview(reviewer: Reviewer, tasks: TaskStore, guard?: RunGuard) {
   const pending = new Map<string, Pending>();
   // The reviewer's own verdicts, by entry id (the gateway's request id, for inline
   // review), so a refusal can say why. The gateway itself answers only "forbidden".
@@ -81,6 +98,8 @@ export function createWriteReview(reviewer: Reviewer, tasks: TaskStore) {
     env: object,
     ctx?: ExecutionContext,
   ): Promise<Response> {
+    const before = guard?.stopped();
+    if (before) return budgetStop(call.id, before);
     const key = crypto.randomUUID();
     const entry: Pending = { body: JSON.stringify(call.arguments ?? {}), forward };
     pending.set(key, entry);
@@ -92,8 +111,10 @@ export function createWriteReview(reviewer: Reviewer, tasks: TaskStore) {
     };
     const auth = request.headers.get("authorization");
     if (auth) headers.authorization = auth;
-    const ip = request.headers.get("cf-connecting-ip");
-    if (ip) headers["cf-connecting-ip"] = ip;
+    // One private IP per run credential, as in the bench: every local run comes from
+    // 127.0.0.1, and the gate's behaviour scoring keys on IP, so separate runs' refusals
+    // would pool and gate-block later runs' writes before review (found in step 7).
+    headers["cf-connecting-ip"] = ipFor(auth ?? "none");
     try {
       const res = await gateway.fetch(
         new Request(`${mcpConfig.origin.origin}/tools/${encodeURIComponent(String(call.name))}`, {
@@ -104,6 +125,11 @@ export function createWriteReview(reviewer: Reviewer, tasks: TaskStore) {
         env,
         ctx,
       );
+      if (res.headers.get("x-lazaret-review") === "budget") {
+        guard?.libraryBudget();
+        await res.body?.cancel();
+        return budgetStop(call.id, "library budget reached");
+      }
       if (entry.sent) {
         await res.body?.cancel();
         return entry.sent;
@@ -134,4 +160,12 @@ function refusal(id: ToolCall["id"], text: string): Response {
     id,
     result: { content: [{ type: "text", text }], isError: true },
   });
+}
+
+/** The run stops here: a JSON-RPC error, so the replay can't mistake it for a stopped attack. */
+function budgetStop(id: ToolCall["id"], reason: string): Response {
+  return Response.json(
+    { jsonrpc: "2.0", id, error: { code: -32002, message: `lazaret-mcp run invalid: ${reason}` } },
+    { status: 402 },
+  );
 }

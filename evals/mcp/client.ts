@@ -25,6 +25,9 @@ export const tasks = (
 
 let runCredential = "";
 
+/** lazaret-mcp stopped the run (a spend cap): the run is invalid, never a stopped attack. */
+export class RunInvalid extends Error {}
+
 // The one place calls leave the runner: a JSON-RPC request to an MCP server over Streamable HTTP.
 type RpcResult = { isError?: boolean; content?: { text?: string }[] };
 export async function rpc(method: string, params: object): Promise<RpcResult> {
@@ -38,7 +41,8 @@ export async function rpc(method: string, params: object): Promise<RpcResult> {
     },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
   });
-  const body = (await res.json()) as { error?: unknown; result: RpcResult };
+  const body = (await res.json()) as { error?: { message?: string }; result: RpcResult };
+  if (res.status === 402) throw new RunInvalid(body.error?.message ?? "run invalid");
   if (body.error) throw new Error(`${method}: ${JSON.stringify(body.error)}`);
   return body.result;
 }
@@ -53,9 +57,11 @@ export async function initialize(): Promise<void> {
 
 // Step 5: play the agent's host. A fresh run credential, whose task lazaret-mcp's
 // PUT /host/task sets (what host-hook.ts does). Without HOST_SECRET, calls go without one.
-export async function startRun(name: string, task: string): Promise<void> {
+// A null task (arm L) gives the run its own credential and no task.
+export async function startRun(name: string, task: string | null): Promise<void> {
   if (!HOST_SECRET) return;
   runCredential = `Bearer run-${name}-${crypto.randomUUID()}`;
+  if (task === null) return;
   const res = await fetch(new URL("/host/task", MCP_URL), {
     method: "PUT",
     headers: { Authorization: `Bearer ${HOST_SECRET}`, "Content-Type": "application/json" },
@@ -123,4 +129,15 @@ export async function fullReset(): Promise<void> {
 // extensions, migrations, and the rows (minus timestamps, which the seed sets from now()).
 export function fingerprint(): string {
   return psql(readFileSync(join(here, "fingerprint.sql"), "utf8"));
+}
+
+// Step 7: the proxy's run control (worker.ts). Host only, so a run can't change its own cap.
+export async function hostRun(maxUsd?: number): Promise<Record<string, unknown>> {
+  const res = await fetch(new URL("/__mcp/run", MCP_URL), {
+    method: maxUsd === undefined ? "GET" : "POST",
+    headers: { Authorization: `Bearer ${HOST_SECRET}`, "Content-Type": "application/json" },
+    ...(maxUsd === undefined ? {} : { body: JSON.stringify({ maxUsd }) }),
+  });
+  if (!res.ok) throw new Error(`run control: ${res.status} ${await res.text()}`);
+  return (await res.json()) as Record<string, unknown>;
 }

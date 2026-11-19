@@ -299,6 +299,7 @@ export function createGateway(config: ResolvedConfig, deps: GatewayDeps = {}) {
         bodyText,
         headers,
         sensitiveFields: config.gate.sensitiveFields,
+        skipSignatures: matched?.compiled.route.skipSignatures,
       });
       const pathSignals: GateSignal[] = norm.anomalies.map((a) => ({
         source: "request",

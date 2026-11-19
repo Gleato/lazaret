@@ -22,6 +22,8 @@ export interface InspectInput {
   bodyText: string | null;
   headers: Record<string, string>;
   sensitiveFields: string[];
+  /** Built-in signature categories the matched route skips (RouteConfig.skipSignatures). */
+  skipSignatures?: readonly string[];
 }
 
 export interface Inspection {
@@ -90,6 +92,10 @@ function htmlDecode(s: string): string {
 
 export function inspect(input: InspectInput): Inspection {
   const signals: GateSignal[] = [];
+  const skip = input.skipSignatures;
+  const signatures = skip?.length
+    ? SIGNATURES.filter((sig) => !skip.includes(sig.category))
+    : SIGNATURES;
   const seen = new Set<string>();
   let budget = MAX_TOTAL_SCAN;
   let truncated = false;
@@ -103,7 +109,7 @@ export function inspect(input: InspectInput): Inspection {
     const text = raw.slice(0, Math.min(MAX_STRING_SCAN, budget));
     budget -= text.length;
     const forms = [text.toLowerCase(), canonicalize(text)];
-    for (const sig of SIGNATURES) {
+    for (const sig of signatures) {
       if (seen.has(sig.id)) continue;
       for (const form of forms) {
         const m = sig.pattern.exec(form);

@@ -71,7 +71,7 @@ interface RunContext {
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 
 /** A distinct private IP per session, so behaviour scoring can't pool separate pairs. */
-function ipFor(session: string): string {
+export function ipFor(session: string): string {
   let hash = 0;
   for (const ch of session) hash = (hash * 31 + (ch.codePointAt(0) ?? 0)) >>> 0;
   return `10.${(hash >> 16) & 255}.${(hash >> 8) & 255}.${hash & 255}`;

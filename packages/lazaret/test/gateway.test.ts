@@ -293,6 +293,43 @@ describe("Gateway", () => {
       expect(await verifyLazaretRequest(forwarded, SECRET)).toMatchObject({ ok: true });
     });
 
+    it("skips the signature categories a route opts out of, and only on that route", async () => {
+      // An agent's SQL tool: the payload is SQL by design (the lazaret-mcp false positive).
+      const sql = {
+        query:
+          "update api_keys set revoked_at = now() where id = 5 and label = 'ci-deploy' and customer_id = 3",
+      };
+      const xss = { query: "update notes set body = '<script>alert(1)</script>'" };
+      const { reviewer, calls } = fakeReviewer(() => verdict("allow", 0.8));
+      const { post } = setup(
+        {
+          routes: [
+            { match: "POST /tools/execute_sql", policy: "INLINE_REVIEW", skipSignatures: ["sqli"] },
+            { match: "POST /tools/:name", policy: "INLINE_REVIEW" },
+          ],
+        },
+        { reviewer },
+      );
+      const gateOf = (i: number) =>
+        (
+          promptEntries(calls[i]?.prompt ?? "")[0] as unknown as {
+            gate: { risk: number; signals: { id: string }[] };
+          }
+        ).gate;
+
+      expect((await post("/tools/execute_sql", sql)).status).toBe(200);
+      expect(gateOf(0).signals.map((s) => s.id)).not.toContain("sqli.tautology");
+      expect(gateOf(0).risk).toBeLessThan(0.7);
+
+      // Other categories still score on the opted-out route.
+      await post("/tools/execute_sql", xss);
+      expect(gateOf(1).signals.map((s) => s.id)).toContain("xss.script_tag");
+
+      // Another route still scores sqli, so the same 0.8 allow is held.
+      expect((await post("/tools/other", sql)).status).toBe(403);
+      expect(gateOf(2).signals.map((s) => s.id)).toContain("sqli.tautology");
+    });
+
     it("rejects a dropped write without touching origin", async () => {
       const { reviewer } = fakeReviewer(() => verdict("drop", 0.9, "credential_attack"));
       const { post } = setup({}, { reviewer });

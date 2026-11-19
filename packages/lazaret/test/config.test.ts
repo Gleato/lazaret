@@ -75,6 +75,16 @@ describe("defineLazaret", () => {
     expect(
       problems({ routes: [{ match: "POST /t", policy: "ESCROW", onReviewUnavailable: "gate" }] }),
     ).toMatch(/onReviewUnavailable only applies to INLINE_REVIEW/);
+    expect(
+      problems({
+        routes: [{ match: "POST /t", policy: "INLINE_REVIEW", skipSignatures: ["sqli", "sql"] }],
+      }),
+    ).toMatch(/skipSignatures has unknown category "sql"/);
+    expect(
+      problems({
+        routes: [{ match: "POST /t", policy: "INLINE_REVIEW", skipSignatures: ["sqli"] }],
+      }),
+    ).toBe("");
     expect(problems({ review: { actor: { path: "api/me", fields: {} } } })).toMatch(
       /actor.path must start with \/[\s\S]*actor.fields must not be empty/,
     );

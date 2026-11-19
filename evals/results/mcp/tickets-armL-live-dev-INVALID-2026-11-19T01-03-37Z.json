@@ -1,0 +1,43 @@
+{
+  "arm": "L",
+  "reviewer": "live",
+  "half": "dev",
+  "invalid": "lazaret-mcp run invalid: budget of $0.0005 reached",
+  "review": {
+    "reviewer": "live",
+    "model": "claude-haiku-5-5",
+    "inlineTimeoutMs": 3000,
+    "maxUsd": 0.0005,
+    "spentUsd": 0.0005228149999999999,
+    "invalid": "budget of $0.0005 reached",
+    "started": {
+      "inline": 2
+    },
+    "calls": [
+      {
+        "tier": "inline",
+        "model": "claude-haiku-5-5",
+        "latencyMs": 2213,
+        "outcome": "output",
+        "entries": 1,
+        "route": "POST /tools/:name",
+        "inputTokens": 364,
+        "outputTokens": 194,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 2009
+      },
+      {
+        "tier": "inline",
+        "model": "claude-haiku-5-5",
+        "latencyMs": 1321,
+        "outcome": "output",
+        "entries": 1,
+        "route": "POST /tools/:name",
+        "inputTokens": 302,
+        "outputTokens": 176,
+        "cacheReadTokens": 2009,
+        "cacheWriteTokens": 0
+      }
+    ]
+  }
+}

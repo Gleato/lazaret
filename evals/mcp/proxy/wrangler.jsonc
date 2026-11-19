@@ -1,5 +1,6 @@
 // lazaret-mcp. Local only: no routes, no workers.dev, no deploy script.
-// MCP_REVIEWER is scripted:allow, scripted:drop or scripted:hold (no paid model calls).
+// MCP_REVIEWER is scripted:allow, scripted:drop or scripted:hold (no model calls), or live
+// (step 7: only with BENCH_CONFIRM_SPEND=yes, as `npm run mcp:proxy:live`, and a run cap).
 // HOST_SECRET is the host's credential for PUT /host/task (step 5): a local dev value.
 {
   "name": "lazaret-mcp",

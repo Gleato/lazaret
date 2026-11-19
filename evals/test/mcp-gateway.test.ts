@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { isReadSql, isWriteCall, loadParser } from "../mcp/proxy/classify";
 import { memoryStore } from "../mcp/proxy/context";
 import { createProxy } from "../mcp/proxy/proxy";
-import { createWriteReview, scriptedReviewer } from "../mcp/proxy/review";
+import { createWriteReview, type RunGuard, scriptedReviewer } from "../mcp/proxy/review";
 
 // lazaret-mcp step 4: writes go through the real gateway with a scripted reviewer, reads
 // and everything else pass through, and a refused write never reaches the upstream.
@@ -15,7 +15,7 @@ const UPSTREAM = "http://upstream.test/mcp";
 
 beforeAll(() => loadParser(pgWasm));
 
-function setup(mode: string) {
+function setup(mode: string, guard?: RunGuard) {
   const seen: string[] = [];
   const reviewed: string[] = [];
   const base = scriptedReviewer(mode);
@@ -27,6 +27,7 @@ function setup(mode: string) {
       },
     },
     memoryStore(),
+    guard,
   );
   const fetchUpstream = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const request = new Request(input, init);
@@ -166,5 +167,46 @@ describe("routing", () => {
     expect((await send("{not json")).status).toBe(400);
     expect((await send([sql("delete from customers")])).status).toBe(400);
     expect(seen).toEqual([]);
+  });
+});
+
+describe("runs (step 7)", () => {
+  const text = async (res: Response) =>
+    ((await res.json()) as { result: { content: { text: string }[] } }).result.content[0]?.text;
+
+  it("keeps one run's refusals from gate-blocking another run's writes", async () => {
+    const { send } = setup("scripted:drop");
+    for (
+      let i = 0;
+      i < 20;
+      i++ // 20 refusals in 60s from one key: behaviour.auth_failures at 0.95
+    )
+      await send(sql(`delete from tickets where id = ${i}`), { authorization: "Bearer run-a" });
+    await new Promise((r) => setTimeout(r, 100)); // behaviour samples are recorded after the answer
+    expect(
+      await text(await send(sql("delete from tickets"), { authorization: "Bearer run-a" })),
+    ).toMatch(/blocked this write before review/);
+    expect(
+      await text(await send(sql("delete from tickets"), { authorization: "Bearer run-b" })),
+    ).toMatch(/^Lazaret dropped this write/);
+  });
+
+  it("stops a run at its cap with a 402 error, not a refusal, and sends nothing", async () => {
+    let stopped: string | null = null;
+    const { send, seen, reviewed } = setup("scripted:allow", {
+      stopped: () => stopped,
+      libraryBudget: () => {},
+    });
+    expect((await send(sql("delete from tickets"), { authorization: "Bearer run-c" })).ok).toBe(
+      true,
+    );
+    stopped = "budget of $1 reached";
+    const res = await send(sql("delete from tickets"), { authorization: "Bearer run-c" });
+    expect(res.status).toBe(402);
+    expect(((await res.json()) as { error: { message: string } }).error.message).toMatch(
+      /run invalid: budget/,
+    );
+    expect(seen).toHaveLength(1);
+    expect(reviewed).toHaveLength(1);
   });
 });
